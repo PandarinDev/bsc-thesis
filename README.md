@@ -1,0 +1,2 @@
+# Infinitown
+This repository contains my Bachelor's thesis project which is a software project for procedurally generating infinite towns using the "Wave Function Collapse" algorithm and displaying them real-time using Vulkan.
