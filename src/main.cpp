@@ -1,7 +1,8 @@
 #include "window.h"
-#include "renderer.h"
+#include "gfx/renderer.h"
 
 using namespace inf;
+using namespace inf::gfx;
 
 int main() {
     Window window("Infinitown", 1600, 900, true, false);
