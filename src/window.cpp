@@ -1,5 +1,8 @@
 #include "window.h"
 
+#define GLFW_EXPOSE_NATIVE_COCOA
+#include <GLFW/glfw3native.h>
+
 #include <stdexcept>
 
 namespace inf {
@@ -30,6 +33,7 @@ namespace inf {
         // TODO: Add Windows and Linux support here
         VkMetalSurfaceCreateInfoEXT surface_create_info{};
         surface_create_info.sType = VK_STRUCTURE_TYPE_METAL_SURFACE_CREATE_INFO_EXT;
+        surface_create_info.pLayer = glfwGetCocoaWindow(handle);
         if (vkCreateMetalSurfaceEXT(instance.get_instance(), &surface_create_info, nullptr, &surface) != VK_SUCCESS) {
             throw std::runtime_error("Failed to create Metal surface.");
         }

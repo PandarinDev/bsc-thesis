@@ -1,8 +1,8 @@
 #include "gfx/vk/device.h"
 
-#include <vector>
 #include <stdexcept>
 #include <utility>
+#include <unordered_set>
 
 namespace inf::gfx::vk {
 
@@ -10,16 +10,21 @@ namespace inf::gfx::vk {
         return graphics_family.has_value() && presentation_family.has_value();
     }
 
-    VkDeviceQueueCreateInfo QueueFamilyIndices::to_queue_create_info() const {
-        static const float GRAPHICS_QUEUE_PRIORITY = 1.0f;
+    std::vector<VkDeviceQueueCreateInfo> QueueFamilyIndices::to_queue_create_info() const {
+        static const float GENERAL_QUEUE_PRIORITY = 1.0f;
 
-        VkDeviceQueueCreateInfo queue_create_info{};
-        queue_create_info.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-        queue_create_info.queueFamilyIndex = graphics_family.value();
-        queue_create_info.queueCount = 1;
-        queue_create_info.pQueuePriorities = &GRAPHICS_QUEUE_PRIORITY;
+        std::vector<VkDeviceQueueCreateInfo> queue_create_infos;
+        std::unordered_set<std::uint32_t> unique_queue_families = { graphics_family.value(), presentation_family.value() };
+        for (const auto queue_family : unique_queue_families) {
+            VkDeviceQueueCreateInfo graphics_queue_create_info{};
+            graphics_queue_create_info.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+            graphics_queue_create_info.queueFamilyIndex = queue_family;
+            graphics_queue_create_info.queueCount = 1;
+            graphics_queue_create_info.pQueuePriorities = &GENERAL_QUEUE_PRIORITY;
+            queue_create_infos.emplace_back(std::move(graphics_queue_create_info));
+        }
 
-        return queue_create_info;
+        return queue_create_infos;
     }
 
     LogicalDevice::LogicalDevice(const VkDevice& device, const QueueFamilyIndices& queue_family_indices) :
@@ -85,7 +90,8 @@ namespace inf::gfx::vk {
 
         VkDeviceCreateInfo device_create_info{};
         device_create_info.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
-        device_create_info.pQueueCreateInfos = &queue_create_info;
+        device_create_info.pQueueCreateInfos = queue_create_info.data();
+        device_create_info.queueCreateInfoCount = queue_create_info.size();
         device_create_info.pEnabledFeatures = &device_features;
         device_create_info.enabledExtensionCount = 0;
         // NOTE: The device layer count is likely ignored by modern implementation, but should still be set for compatibility reasons

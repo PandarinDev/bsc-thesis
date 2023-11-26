@@ -7,6 +7,7 @@
 
 #include <cstdint>
 #include <optional>
+#include <vector>
 
 namespace inf::gfx::vk {
 
@@ -16,7 +17,7 @@ namespace inf::gfx::vk {
         std::optional<std::uint32_t> presentation_family;
 
         bool is_complete() const;
-        VkDeviceQueueCreateInfo to_queue_create_info() const;
+        std::vector<VkDeviceQueueCreateInfo> to_queue_create_info() const;
 
     };
 
