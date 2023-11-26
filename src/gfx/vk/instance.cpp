@@ -21,10 +21,21 @@ namespace inf::gfx::vk {
         instance_create_info.pApplicationInfo = &application_info;
 
         // Fetch the required instance extensions from GLFW
-        std::uint32_t extension_count = 0;
-        const char** extension_names = glfwGetRequiredInstanceExtensions(&extension_count);
-        instance_create_info.enabledExtensionCount = extension_count;
-        instance_create_info.ppEnabledExtensionNames = extension_names;
+        std::uint32_t glfw_extension_count = 0;
+        const char** glfw_extension_names = glfwGetRequiredInstanceExtensions(&glfw_extension_count);
+
+        std::vector<const char*> extension_names;
+        for (std::size_t i = 0; i < glfw_extension_count; ++i) {
+            extension_names.emplace_back(glfw_extension_names[i]);
+        }
+        // MoltenVK requires the portability enumeration extension and the portability bit being set as it is not a fully compliant implementation
+        #ifdef __APPLE__
+        extension_names.emplace_back(VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME);
+        instance_create_info.flags |= VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR;
+        #endif
+
+        instance_create_info.enabledExtensionCount = static_cast<std::uint32_t>(extension_names.size());
+        instance_create_info.ppEnabledExtensionNames = extension_names.data();
         instance_create_info.enabledLayerCount = 0;
 
         std::unique_ptr<VkInstance> instance = std::make_unique<VkInstance>();

@@ -27,6 +27,7 @@ int GLAD_VK_VERSION_1_0 = 0;
 int GLAD_VK_VERSION_1_1 = 0;
 int GLAD_VK_VERSION_1_2 = 0;
 int GLAD_VK_VERSION_1_3 = 0;
+int GLAD_VK_KHR_portability_enumeration = 0;
 int GLAD_VK_KHR_surface = 0;
 int GLAD_VK_KHR_swapchain = 0;
 
@@ -640,6 +641,7 @@ static int glad_vk_find_extensions_vulkan( VkPhysicalDevice physical_device) {
     char **extensions = NULL;
     if (!glad_vk_get_extensions(physical_device, &extension_count, &extensions)) return 0;
 
+    GLAD_VK_KHR_portability_enumeration = glad_vk_has_extension("VK_KHR_portability_enumeration", extension_count, extensions);
     GLAD_VK_KHR_surface = glad_vk_has_extension("VK_KHR_surface", extension_count, extensions);
     GLAD_VK_KHR_swapchain = glad_vk_has_extension("VK_KHR_swapchain", extension_count, extensions);
 

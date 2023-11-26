@@ -14,7 +14,7 @@ namespace inf::gfx::vk {
 
     private:
 
-        VkPhysicalDevice device;
+        [[maybe_unused]] VkPhysicalDevice device;
         VkPhysicalDeviceProperties properties;
 
     };
