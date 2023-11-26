@@ -10,15 +10,17 @@ namespace inf::gfx::vk {
 
     Surface::~Surface() {
         // All swapchain objects created for this surface must be destroyed before this call
-        vkDestroySurfaceKHR(instance->get_instance(), surface, nullptr);
+        if (instance) {
+            vkDestroySurfaceKHR(instance->get_instance(), surface, nullptr);
+        }
     }
 
     Surface::Surface(Surface&& other) :
-        instance(other.instance),
+        instance(std::exchange(other.instance, nullptr)),
         surface(std::exchange(other.surface, VK_NULL_HANDLE)) {}
 
     Surface& Surface::operator=(Surface&& other) {
-        instance = other.instance;
+        instance = std::exchange(other.instance, nullptr);
         surface = std::exchange(other.surface, VK_NULL_HANDLE);
 
         return *this;

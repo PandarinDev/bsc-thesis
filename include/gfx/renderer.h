@@ -20,6 +20,7 @@ namespace inf::gfx {
         std::unique_ptr<vk::Surface> surface;
         std::unique_ptr<vk::PhysicalDevice> physical_device;
         std::unique_ptr<vk::LogicalDevice> logical_device;
+        std::unique_ptr<vk::SwapChain> swap_chain;
 
     };
 

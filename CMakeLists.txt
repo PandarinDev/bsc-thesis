@@ -27,8 +27,3 @@ if(MSVC)
 else()
     target_compile_options(infinitown PRIVATE -Wall -Wextra -Wpedantic -Werror)
 endif()
-
-# Add Metal extension for Metal surface creation on MacOS
-if(APPLE)
-    target_compile_definitions(infinitown PRIVATE "-DVK_USE_PLATFORM_METAL_EXT")
-endif()

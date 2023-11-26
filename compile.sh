@@ -1,5 +1,5 @@
 #/bin/bash -e
-cmake -S . -B build
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug
 if [ $(uname) == "Darwin" ]; then
     cmake --build build -j$(sysctl -n hw.ncpu)
 else

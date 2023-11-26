@@ -29,13 +29,8 @@ namespace inf {
 
     gfx::vk::Surface Window::create_surface(const gfx::vk::Instance& instance) const {
         VkSurfaceKHR surface;
-
-        // TODO: Add Windows and Linux support here
-        VkMetalSurfaceCreateInfoEXT surface_create_info{};
-        surface_create_info.sType = VK_STRUCTURE_TYPE_METAL_SURFACE_CREATE_INFO_EXT;
-        surface_create_info.pLayer = glfwGetCocoaWindow(handle);
-        if (vkCreateMetalSurfaceEXT(instance.get_instance(), &surface_create_info, nullptr, &surface) != VK_SUCCESS) {
-            throw std::runtime_error("Failed to create Metal surface.");
+        if (glfwCreateWindowSurface(instance.get_instance(), handle, nullptr, &surface) != VK_SUCCESS) {
+            throw std::runtime_error("Failed to create Vulkan surface from GLFW window.");
         }
 
         return gfx::vk::Surface(&instance, surface);

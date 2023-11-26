@@ -2,6 +2,7 @@
 
 #include "gfx/vk/instance.h"
 #include "gfx/vk/surface.h"
+#include "gfx/vk/swap_chain.h"
 
 #include <glad/vulkan.h>
 
@@ -21,21 +22,39 @@ namespace inf::gfx::vk {
 
     };
 
+    struct SwapChainSupport {
+
+        VkSurfaceCapabilitiesKHR surface_capabilities;
+        std::vector<VkSurfaceFormatKHR> surface_formats;
+        std::vector<VkPresentModeKHR> present_modes;
+
+    };
+
     struct LogicalDevice {
 
-        explicit LogicalDevice(const VkDevice& device, const QueueFamilyIndices& queue_family_indices);
+        explicit LogicalDevice(
+            const VkDevice& device,
+            const QueueFamilyIndices& queue_family_indices,
+            const SwapChainSupport& swap_chain_support);
         ~LogicalDevice();
         LogicalDevice(const LogicalDevice&) = delete;
         LogicalDevice& operator=(const LogicalDevice&) = delete;
         LogicalDevice(LogicalDevice&&);
         LogicalDevice& operator=(LogicalDevice&&);
 
-        VkQueue get_graphics_queue() const;
+        const VkDevice& get_device() const;
+
+        SwapChain create_swap_chain(const Surface& surface) const;
 
     private:
 
-        [[maybe_unused]] VkDevice device;
+        VkDevice device;
         QueueFamilyIndices queue_family_indices;
+        SwapChainSupport swap_chain_support;
+
+        VkSurfaceFormatKHR choose_surface_format() const;
+        VkPresentModeKHR choose_present_mode() const;
+        VkExtent2D choose_extent() const;
 
     };
 
@@ -43,15 +62,20 @@ namespace inf::gfx::vk {
 
         explicit PhysicalDevice(const VkPhysicalDevice& device, const Surface& surface);
 
+        const VkPhysicalDevice& get_physical_device() const;
         bool is_dedicated_gpu() const;
-        bool is_suitable() const;
+        bool is_suitable(const Surface& surface) const;
         const QueueFamilyIndices& get_queue_family_indices() const;
-        LogicalDevice create_logical_device() const;
+        LogicalDevice create_logical_device(const Surface& surface) const;
+
+        // This is only a valid operation if the physical device supports the surface format
+        SwapChainSupport query_swap_chain_support(const Surface& surface) const;
 
     private:
 
-        [[maybe_unused]] VkPhysicalDevice device;
+        VkPhysicalDevice device;
         VkPhysicalDeviceProperties properties;
+        bool supports_required_extensions;
         QueueFamilyIndices queue_family_indices;
 
     };

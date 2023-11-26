@@ -3,9 +3,15 @@
 #define GLFW_INCLUDE_NONE
 #include <GLFW/glfw3.h>
 
+#include <string>
 #include <stdexcept>
+#include <iostream>
 
 namespace inf::gfx::vk {
+
+    static const std::vector<const char*> VALIDATION_LAYERS = {
+        "VK_LAYER_KHRONOS_validation"
+    };
 
     Instance Instance::create_instance(std::string_view application_name) {
         VkApplicationInfo application_info{};
@@ -37,6 +43,28 @@ namespace inf::gfx::vk {
         instance_create_info.enabledExtensionCount = static_cast<std::uint32_t>(extension_names.size());
         instance_create_info.ppEnabledExtensionNames = extension_names.data();
         instance_create_info.enabledLayerCount = 0;
+
+        // Check if validation layers are supported
+        // TODO Gate this functionality behind a flag, do not run in release builds
+        std::uint32_t num_layers = 0;
+        vkEnumerateInstanceLayerProperties(&num_layers, nullptr);
+        std::vector<VkLayerProperties> available_layers(num_layers);
+        vkEnumerateInstanceLayerProperties(&num_layers, available_layers.data());
+
+        for (const auto& required : VALIDATION_LAYERS) {
+            bool layer_supported = false;
+            for (const auto& available : available_layers) {
+                if (strcmp(required, available.layerName) == 0) {
+                    layer_supported = true;
+                    break;
+                }
+            }
+            if (!layer_supported) {
+                throw std::runtime_error(std::string("Validation layer '") + required + "' is not supported by host Vulkan implementation.");
+            }
+        }
+        instance_create_info.enabledLayerCount = static_cast<std::uint32_t>(VALIDATION_LAYERS.size());
+        instance_create_info.ppEnabledLayerNames = VALIDATION_LAYERS.data();
 
         std::unique_ptr<VkInstance> instance = std::make_unique<VkInstance>();
         if (vkCreateInstance(&instance_create_info, nullptr, instance.get()) != VK_SUCCESS) {
