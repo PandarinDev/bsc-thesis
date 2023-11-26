@@ -6,7 +6,8 @@ using namespace inf::gfx;
 
 int main() {
     Window window("Infinitown", 1600, 900, true, false);
-    Renderer renderer;
+    Renderer renderer(window);
+
     while (!window.should_close()) {
         window.poll_events();
         window.swap_buffers();

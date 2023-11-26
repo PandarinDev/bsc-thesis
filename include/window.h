@@ -1,5 +1,8 @@
 #pragma once
 
+#include "gfx/vk/instance.h"
+#include "gfx/vk/surface.h"
+
 #include <glad/vulkan.h>
 #define GLFW_INCLUDE_NONE
 #include <GLFW/glfw3.h>
@@ -14,6 +17,8 @@ namespace inf {
         ~Window();
         Window(const Window&) = delete;
         Window& operator=(const Window&) = delete;
+
+        gfx::vk::Surface create_surface(const gfx::vk::Instance& instance) const;
 
         void poll_events() const;
         void swap_buffers() const;

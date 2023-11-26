@@ -3,7 +3,7 @@
 TEST_CASE("Basic test") {
 
     SECTION("Should pass") {
-        REQUIRE(false);
+        REQUIRE(true);
     }
 
 }

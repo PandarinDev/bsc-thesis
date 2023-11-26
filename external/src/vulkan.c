@@ -27,6 +27,10 @@ int GLAD_VK_VERSION_1_0 = 0;
 int GLAD_VK_VERSION_1_1 = 0;
 int GLAD_VK_VERSION_1_2 = 0;
 int GLAD_VK_VERSION_1_3 = 0;
+#if defined(VK_USE_PLATFORM_METAL_EXT)
+int GLAD_VK_EXT_metal_surface = 0;
+
+#endif
 int GLAD_VK_KHR_portability_enumeration = 0;
 int GLAD_VK_KHR_surface = 0;
 int GLAD_VK_KHR_swapchain = 0;
@@ -137,6 +141,10 @@ PFN_vkCreateGraphicsPipelines glad_vkCreateGraphicsPipelines = NULL;
 PFN_vkCreateImage glad_vkCreateImage = NULL;
 PFN_vkCreateImageView glad_vkCreateImageView = NULL;
 PFN_vkCreateInstance glad_vkCreateInstance = NULL;
+#if defined(VK_USE_PLATFORM_METAL_EXT)
+PFN_vkCreateMetalSurfaceEXT glad_vkCreateMetalSurfaceEXT = NULL;
+
+#endif
 PFN_vkCreatePipelineCache glad_vkCreatePipelineCache = NULL;
 PFN_vkCreatePipelineLayout glad_vkCreatePipelineLayout = NULL;
 PFN_vkCreatePrivateDataSlot glad_vkCreatePrivateDataSlot = NULL;
@@ -491,6 +499,13 @@ static void glad_vk_load_VK_VERSION_1_3( GLADuserptrloadfunc load, void* userptr
     glad_vkQueueSubmit2 = (PFN_vkQueueSubmit2) load(userptr, "vkQueueSubmit2");
     glad_vkSetPrivateData = (PFN_vkSetPrivateData) load(userptr, "vkSetPrivateData");
 }
+#if defined(VK_USE_PLATFORM_METAL_EXT)
+static void glad_vk_load_VK_EXT_metal_surface( GLADuserptrloadfunc load, void* userptr) {
+    if(!GLAD_VK_EXT_metal_surface) return;
+    glad_vkCreateMetalSurfaceEXT = (PFN_vkCreateMetalSurfaceEXT) load(userptr, "vkCreateMetalSurfaceEXT");
+}
+
+#endif
 static void glad_vk_load_VK_KHR_surface( GLADuserptrloadfunc load, void* userptr) {
     if(!GLAD_VK_KHR_surface) return;
     glad_vkDestroySurfaceKHR = (PFN_vkDestroySurfaceKHR) load(userptr, "vkDestroySurfaceKHR");
@@ -641,6 +656,10 @@ static int glad_vk_find_extensions_vulkan( VkPhysicalDevice physical_device) {
     char **extensions = NULL;
     if (!glad_vk_get_extensions(physical_device, &extension_count, &extensions)) return 0;
 
+#if defined(VK_USE_PLATFORM_METAL_EXT)
+    GLAD_VK_EXT_metal_surface = glad_vk_has_extension("VK_EXT_metal_surface", extension_count, extensions);
+
+#endif
     GLAD_VK_KHR_portability_enumeration = glad_vk_has_extension("VK_KHR_portability_enumeration", extension_count, extensions);
     GLAD_VK_KHR_surface = glad_vk_has_extension("VK_KHR_surface", extension_count, extensions);
     GLAD_VK_KHR_swapchain = glad_vk_has_extension("VK_KHR_swapchain", extension_count, extensions);
@@ -702,6 +721,10 @@ int gladLoadVulkanUserPtr( VkPhysicalDevice physical_device, GLADuserptrloadfunc
     glad_vk_load_VK_VERSION_1_3(load, userptr);
 
     if (!glad_vk_find_extensions_vulkan( physical_device)) return 0;
+#if defined(VK_USE_PLATFORM_METAL_EXT)
+    glad_vk_load_VK_EXT_metal_surface(load, userptr);
+
+#endif
     glad_vk_load_VK_KHR_surface(load, userptr);
     glad_vk_load_VK_KHR_swapchain(load, userptr);
 

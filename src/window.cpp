@@ -24,6 +24,19 @@ namespace inf {
         glfwDestroyWindow(handle);
     }
 
+    gfx::vk::Surface Window::create_surface(const gfx::vk::Instance& instance) const {
+        VkSurfaceKHR surface;
+
+        // TODO: Add Windows and Linux support here
+        VkMetalSurfaceCreateInfoEXT surface_create_info{};
+        surface_create_info.sType = VK_STRUCTURE_TYPE_METAL_SURFACE_CREATE_INFO_EXT;
+        if (vkCreateMetalSurfaceEXT(instance.get_instance(), &surface_create_info, nullptr, &surface) != VK_SUCCESS) {
+            throw std::runtime_error("Failed to create Metal surface.");
+        }
+
+        return gfx::vk::Surface(&instance, surface);
+    }
+
     void Window::poll_events() const {
         glfwPollEvents();
     }
