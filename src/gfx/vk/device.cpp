@@ -60,10 +60,10 @@ namespace inf::gfx::vk {
         return device;
     }
 
-    SwapChain LogicalDevice::create_swap_chain([[maybe_unused]] const Surface& surface) const {
-        [[maybe_unused]] const auto surface_format = choose_surface_format();
-        [[maybe_unused]] const auto present_mode = choose_present_mode();
-        [[maybe_unused]] const auto extent = choose_extent();
+    SwapChain LogicalDevice::create_swap_chain(const Surface& surface) const {
+        const auto surface_format = choose_surface_format();
+        const auto present_mode = choose_present_mode();
+        const auto extent = choose_extent();
         
         std::uint32_t image_count = swap_chain_support.surface_capabilities.minImageCount + 1;
         // Max image count = 0 in the surface capability means that there is no maximum
