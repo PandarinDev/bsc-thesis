@@ -3,6 +3,7 @@ This repository contains my Bachelor's thesis project which is a software projec
 
 ## Building and Running
 A C++17 compatible compiler is required to build the application (both `gcc` and `clang` are supported, others are untested) as well as a recent version of CMake (version 3.20 or newer).
+Currently shaders are built on the host, and thus are only assumed to be compatible with the host hardware, so `glslc` is required to be on PATH. It is part of the VulkanSDK binary toolset.
 In order to build the application run `.\build.bat` on Windows or `./build.sh` on Linux and MacOS. The binaries will be created inside the `build` folder.
 
 To launch the application look for the `infinitown` executable inside the build folder.
