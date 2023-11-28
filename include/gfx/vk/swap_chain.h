@@ -24,6 +24,8 @@ namespace inf::gfx::vk {
         SwapChain& operator=(SwapChain&&);
     
         const VkSwapchainKHR& get_swap_chain() const;
+        VkFormat get_format() const;
+        const VkExtent2D& get_extent() const;
 
     private:
 

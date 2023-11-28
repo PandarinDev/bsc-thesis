@@ -74,4 +74,16 @@ namespace inf::gfx::vk {
         return *this;
     }
 
+    const VkSwapchainKHR& SwapChain::get_swap_chain() const {
+        return swap_chain;
+    }
+
+    VkFormat SwapChain::get_format() const {
+        return image_format;
+    }
+
+    const VkExtent2D& SwapChain::get_extent() const {
+        return image_extent;
+    }
+
 }
