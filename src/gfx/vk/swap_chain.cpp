@@ -86,4 +86,8 @@ namespace inf::gfx::vk {
         return image_extent;
     }
 
+    const std::vector<VkImageView>& SwapChain::get_image_views() const {
+        return image_views;
+    }
+
 }

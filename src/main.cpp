@@ -10,6 +10,8 @@ int main() {
 
     while (!window.should_close()) {
         window.poll_events();
+        renderer.begin_frame();
+        renderer.end_frame();
         window.swap_buffers();
     }
     glfwTerminate();

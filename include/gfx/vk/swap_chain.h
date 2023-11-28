@@ -26,6 +26,7 @@ namespace inf::gfx::vk {
         const VkSwapchainKHR& get_swap_chain() const;
         VkFormat get_format() const;
         const VkExtent2D& get_extent() const;
+        const std::vector<VkImageView>& get_image_views() const;
 
     private:
 

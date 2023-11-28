@@ -106,7 +106,7 @@ namespace inf::gfx::vk {
         viewport.width = static_cast<float>(swap_chain_extent.width);
         viewport.height = static_cast<float>(swap_chain_extent.height);
         viewport.minDepth = 0.0f;
-        viewport.maxDepth = 0.0f;
+        viewport.maxDepth = 1.0f;
 
         VkRect2D scissor{};
         scissor.offset.x = 0;
@@ -208,6 +208,10 @@ namespace inf::gfx::vk {
         pipeline = std::exchange(other.pipeline, VK_NULL_HANDLE);
 
         return *this;
+    }
+
+    VkPipeline Pipeline::get_pipeline() const {
+        return pipeline;
     }
 
 }

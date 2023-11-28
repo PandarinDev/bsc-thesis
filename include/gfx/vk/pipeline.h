@@ -44,6 +44,8 @@ namespace inf::gfx::vk {
         Pipeline(Pipeline&&);
         Pipeline& operator=(Pipeline&&);
 
+        VkPipeline get_pipeline() const;
+
     private:
 
         const LogicalDevice* device;

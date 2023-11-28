@@ -7,7 +7,7 @@
 
 namespace inf::gfx {
 
-    Renderer::Renderer(const Window& window) {
+    Renderer::Renderer(const Window& window) : image_index(0) {
         if (!gladLoaderLoadVulkan(VK_NULL_HANDLE, VK_NULL_HANDLE, VK_NULL_HANDLE)) {
             throw std::runtime_error("Failed to load Vulkan function pointers.");
         }
@@ -30,12 +30,75 @@ namespace inf::gfx {
             shaders.emplace_back(vk::Shader::create_from_bytes(logical_device.get(), vk::ShaderType::FRAGMENT, fragment_shader_bytes));
         }
 
+        // Create render pass and graphics pipeline
         render_pass = std::make_unique<vk::RenderPass>(vk::RenderPass::create_render_pass(logical_device.get(), swap_chain->get_format()));
         pipeline = std::make_unique<vk::Pipeline>(vk::Pipeline::create_pipeline(logical_device.get(), *render_pass, swap_chain->get_extent(), shaders));
+
+        // Create framebuffers for swapchain images
+        const auto& swap_chain_extent = swap_chain->get_extent();
+        for (const auto& image_view : swap_chain->get_image_views()) {
+            framebuffers.emplace_back(vk::Framebuffer::create_from_image_view(logical_device.get(), *render_pass, image_view, swap_chain_extent));
+        }
+
+        // Create command pool and allocate command buffer
+        command_pool = std::make_unique<vk::CommandPool>(vk::CommandPool::create_command_pool(logical_device.get(), physical_device->get_queue_family_indices()));
+        command_buffer = command_pool->allocate_buffer();
+
+        // Create semaphores and fences required for swapping framebuffers
+        image_available_semaphore = std::make_unique<vk::Semaphore>(vk::Semaphore::create(logical_device.get()));
+        render_finished_semaphore = std::make_unique<vk::Semaphore>(vk::Semaphore::create(logical_device.get()));
+        in_flight_fence = std::make_unique<vk::Fence>(vk::Fence::create(logical_device.get(), true));
     }
 
     const vk::Instance& Renderer::get_vulkan_instance() const {
         return *instance;
+    }
+
+    void Renderer::begin_frame() const {
+        // Wait for the previous frame to finish
+        in_flight_fence->wait_for_and_reset();
+
+        VkCommandBufferBeginInfo command_buffer_begin_info{};
+        command_buffer_begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+        if (vkBeginCommandBuffer(command_buffer, &command_buffer_begin_info) != VK_SUCCESS) {
+            throw std::runtime_error("Failed to start recording to Vulkan command buffer.");
+        }
+
+        VkClearValue clear_color{{{ 0.0f, 0.1f, 0.95f, 1.0f }}};
+        VkRenderPassBeginInfo render_pass_begin_info{};
+        render_pass_begin_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+        render_pass_begin_info.renderPass = render_pass->get_render_pass();
+        render_pass_begin_info.framebuffer = framebuffers[image_index].get_framebuffer();
+        render_pass_begin_info.renderArea.offset = { 0, 0 };
+        render_pass_begin_info.renderArea.extent = swap_chain->get_extent();
+        render_pass_begin_info.clearValueCount = 1;
+        render_pass_begin_info.pClearValues = &clear_color;
+        vkCmdBeginRenderPass(command_buffer, &render_pass_begin_info, VK_SUBPASS_CONTENTS_INLINE);
+        vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline->get_pipeline());
+
+        // Since the viewport and the scissor is dynamic we need to supply it each frame
+        const auto& extent = swap_chain->get_extent();
+        VkViewport viewport{};
+        viewport.width = static_cast<float>(extent.width);
+        viewport.height = static_cast<float>(extent.height);
+        viewport.minDepth = 0.0f;
+        viewport.maxDepth = 1.0f;
+        vkCmdSetViewport(command_buffer, 0, 1, &viewport);
+
+        VkRect2D scissor{};
+        scissor.offset = { 0, 0 };
+        scissor.extent = extent;
+        vkCmdSetScissor(command_buffer, 0, 1, &scissor);
+
+        // Render the hardcoded triangle in the vertex shader
+        vkCmdDraw(command_buffer, 3, 1, 0, 0);
+    }
+
+    void Renderer::end_frame() const {
+        vkCmdEndRenderPass(command_buffer);
+        if (vkEndCommandBuffer(command_buffer) != VK_SUCCESS) {
+            throw std::runtime_error("Failed to stop recording to Vulkan command buffer.");
+        }
     }
 
 }

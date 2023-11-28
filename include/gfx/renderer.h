@@ -5,10 +5,13 @@
 #include "gfx/vk/device.h"
 #include "gfx/vk/shader.h"
 #include "gfx/vk/pipeline.h"
+#include "gfx/vk/framebuffer.h"
+#include "gfx/vk/command.h"
+#include "gfx/vk/semaphore.h"
 
 #include <memory>
 #include <vector>
-
+#include <cstdint>
 namespace inf::gfx {
 
     struct Renderer {
@@ -17,8 +20,12 @@ namespace inf::gfx {
 
         const vk::Instance& get_vulkan_instance() const;
 
+        void begin_frame() const;
+        void end_frame() const;
+
     private:
 
+        std::uint8_t image_index;
         std::unique_ptr<vk::Instance> instance;
         std::unique_ptr<vk::Surface> surface;
         std::unique_ptr<vk::PhysicalDevice> physical_device;
@@ -27,6 +34,12 @@ namespace inf::gfx {
         std::vector<vk::Shader> shaders;
         std::unique_ptr<vk::RenderPass> render_pass;
         std::unique_ptr<vk::Pipeline> pipeline;
+        std::vector<vk::Framebuffer> framebuffers;
+        std::unique_ptr<vk::CommandPool> command_pool;
+        VkCommandBuffer command_buffer;
+        std::unique_ptr<vk::Semaphore> image_available_semaphore;
+        std::unique_ptr<vk::Semaphore> render_finished_semaphore;
+        std::unique_ptr<vk::Fence> in_flight_fence;
 
     };
 

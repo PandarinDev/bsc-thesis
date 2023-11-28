@@ -1,0 +1,34 @@
+#pragma once
+
+#include "gfx/vk/device.h"
+#include "gfx/vk/pipeline.h"
+
+#include <glad/vulkan.h>
+
+namespace inf::gfx::vk {
+
+    struct Framebuffer {
+
+        static Framebuffer create_from_image_view(
+            const LogicalDevice* device,
+            const RenderPass& render_pass,
+            const VkImageView& image_view,
+            const VkExtent2D& swap_chain_extent);
+
+        Framebuffer(const LogicalDevice* device, const VkFramebuffer& framebuffer);
+        ~Framebuffer();
+        Framebuffer(const Framebuffer&) = delete;
+        Framebuffer& operator=(const Framebuffer&) = delete;
+        Framebuffer(Framebuffer&&);
+        Framebuffer& operator=(Framebuffer&&);
+
+        VkFramebuffer get_framebuffer() const;
+
+    private:
+
+        const LogicalDevice* device;
+        VkFramebuffer framebuffer;
+
+    };
+
+}
