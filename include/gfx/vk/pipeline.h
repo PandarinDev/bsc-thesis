@@ -9,6 +9,9 @@
 
 namespace inf::gfx::vk {
 
+    struct Framebuffer;
+    struct CommandBuffer;
+
     struct RenderPass {
 
         static RenderPass create_render_pass(const LogicalDevice* device, VkFormat swap_chain_format);
@@ -21,6 +24,12 @@ namespace inf::gfx::vk {
         RenderPass& operator=(RenderPass&&);
 
         VkRenderPass get_render_pass() const;
+
+        void begin(
+            const Framebuffer& framebuffer,
+            const VkExtent2D& swap_chain_extent,
+            const CommandBuffer& command_buffer) const;
+        void end(const CommandBuffer& command_buffer) const;
 
     private:
 

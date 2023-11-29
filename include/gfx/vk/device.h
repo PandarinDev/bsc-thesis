@@ -43,8 +43,11 @@ namespace inf::gfx::vk {
         LogicalDevice& operator=(LogicalDevice&&);
 
         const VkDevice& get_device() const;
+        VkQueue get_graphics_queue() const;
+        VkQueue get_present_queue() const;
 
         SwapChain create_swap_chain(const Surface& surface) const;
+        void wait_until_idle() const;
 
     private:
 

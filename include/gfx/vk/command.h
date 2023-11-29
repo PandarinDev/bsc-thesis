@@ -1,10 +1,32 @@
 #pragma once
 
 #include "gfx/vk/device.h"
+#include "gfx/vk/semaphore.h"
 
 #include <glad/vulkan.h>
 
 namespace inf::gfx::vk {
+
+    struct CommandBuffer {
+
+        CommandBuffer(const VkCommandBuffer& command_buffer);
+
+        VkCommandBuffer get_command_buffer() const;
+
+        void reset() const;
+        void begin() const;
+        void end() const;
+        void submit(
+            VkQueue queue,
+            const Semaphore& wait_semaphore,
+            const Semaphore& signal_semaphore,
+            const Fence& in_flight_fence) const;
+
+    private:
+
+        VkCommandBuffer command_buffer;
+
+    };
 
     struct CommandPool {
 
@@ -20,7 +42,7 @@ namespace inf::gfx::vk {
         CommandPool& operator=(CommandPool&&);
 
         VkCommandPool get_command_pool() const;
-        VkCommandBuffer allocate_buffer() const;
+        CommandBuffer allocate_buffer() const;
 
     private:
 

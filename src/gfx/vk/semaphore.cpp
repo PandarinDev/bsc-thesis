@@ -38,6 +38,10 @@ namespace inf::gfx::vk {
         return *this;
     }
 
+    VkSemaphore Semaphore::get_semaphore() const {
+        return semaphore;
+    }
+
     Fence Fence::create(const LogicalDevice* device, bool create_signaled) {
         VkFenceCreateInfo fence_create_info{};
         fence_create_info.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
@@ -73,8 +77,12 @@ namespace inf::gfx::vk {
         return *this;
     }
 
+    VkFence Fence::get_fence() const {
+        return fence;
+    }
+
     void Fence::wait_for() const {
-        vkWaitForFences(device->get_device(), 1, &fence, VK_FALSE, std::numeric_limits<std::uint64_t>::max());
+        vkWaitForFences(device->get_device(), 1, &fence, VK_TRUE, std::numeric_limits<std::uint64_t>::max());
     }
 
     void Fence::reset() const {

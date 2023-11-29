@@ -13,7 +13,7 @@ namespace inf {
 
     struct Window {
 
-        Window(std::string_view title, int width, int height, bool vsync, bool full_screen);
+        Window(std::string_view title, int width, int height, bool full_screen);
         ~Window();
         Window(const Window&) = delete;
         Window& operator=(const Window&) = delete;
@@ -21,7 +21,6 @@ namespace inf {
         gfx::vk::Surface create_surface(const gfx::vk::Instance& instance) const;
 
         void poll_events() const;
-        void swap_buffers() const;
         bool should_close() const;
 
     private:

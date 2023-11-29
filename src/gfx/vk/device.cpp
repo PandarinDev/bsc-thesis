@@ -60,6 +60,18 @@ namespace inf::gfx::vk {
         return device;
     }
 
+    VkQueue LogicalDevice::get_graphics_queue() const {
+        VkQueue graphics_queue;
+        vkGetDeviceQueue(device, queue_family_indices.graphics_family.value(), 0, &graphics_queue);
+        return graphics_queue;
+    }
+
+    VkQueue LogicalDevice::get_present_queue() const {
+        VkQueue present_queue;
+        vkGetDeviceQueue(device, queue_family_indices.presentation_family.value(), 0, &present_queue);
+        return present_queue;
+    }
+
     SwapChain LogicalDevice::create_swap_chain(const Surface& surface) const {
         const auto surface_format = choose_surface_format();
         const auto present_mode = choose_present_mode();
@@ -108,6 +120,10 @@ namespace inf::gfx::vk {
             throw std::runtime_error("Failed to create Vulkan swap chain.");
         }
         return SwapChain(swap_chain, this, surface_format.format, extent);
+    }
+
+    void LogicalDevice::wait_until_idle() const {
+        vkDeviceWaitIdle(device);
     }
 
     VkSurfaceFormatKHR LogicalDevice::choose_surface_format() const {

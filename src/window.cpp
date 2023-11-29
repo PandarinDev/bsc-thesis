@@ -7,7 +7,7 @@
 
 namespace inf {
 
-    Window::Window(std::string_view title, int width, int height, bool vsync, bool full_screen) {
+    Window::Window(std::string_view title, int width, int height, bool full_screen) {
         if (!glfwInit()) {
             throw std::runtime_error("Failed to initialize GLFW.");
         }
@@ -19,8 +19,6 @@ namespace inf {
         if (!handle) {
             throw std::runtime_error("Failed to create GLFW window.");
         }
-        glfwMakeContextCurrent(handle);
-        glfwSwapInterval(vsync ? 1 : 0);
     }
 
     Window::~Window() {
@@ -38,10 +36,6 @@ namespace inf {
 
     void Window::poll_events() const {
         glfwPollEvents();
-    }
-
-    void Window::swap_buffers() const {
-        glfwSwapBuffers(handle);
     }
 
     bool Window::should_close() const {

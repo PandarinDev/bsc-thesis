@@ -3,6 +3,7 @@
 
 #include <glad/vulkan.h>
 
+#include <limits>
 #include <stdexcept>
 
 namespace inf::gfx {
@@ -42,7 +43,7 @@ namespace inf::gfx {
 
         // Create command pool and allocate command buffer
         command_pool = std::make_unique<vk::CommandPool>(vk::CommandPool::create_command_pool(logical_device.get(), physical_device->get_queue_family_indices()));
-        command_buffer = command_pool->allocate_buffer();
+        command_buffer = std::make_unique<vk::CommandBuffer>(command_pool->allocate_buffer());
 
         // Create semaphores and fences required for swapping framebuffers
         image_available_semaphore = std::make_unique<vk::Semaphore>(vk::Semaphore::create(logical_device.get()));
@@ -54,50 +55,68 @@ namespace inf::gfx {
         return *instance;
     }
 
-    void Renderer::begin_frame() const {
+    const vk::LogicalDevice& Renderer::get_device() const {
+        return *logical_device;
+    }
+
+    void Renderer::begin_frame() {
         // Wait for the previous frame to finish
         in_flight_fence->wait_for_and_reset();
 
-        VkCommandBufferBeginInfo command_buffer_begin_info{};
-        command_buffer_begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-        if (vkBeginCommandBuffer(command_buffer, &command_buffer_begin_info) != VK_SUCCESS) {
-            throw std::runtime_error("Failed to start recording to Vulkan command buffer.");
-        }
+        // Acquire the next image in the swap chain
+        vkAcquireNextImageKHR(
+            logical_device->get_device(),
+            swap_chain->get_swap_chain(),
+            std::numeric_limits<std::uint64_t>::max(),
+            image_available_semaphore->get_semaphore(),
+            VK_NULL_HANDLE,
+            &image_index);
 
-        VkClearValue clear_color{{{ 0.0f, 0.1f, 0.95f, 1.0f }}};
-        VkRenderPassBeginInfo render_pass_begin_info{};
-        render_pass_begin_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-        render_pass_begin_info.renderPass = render_pass->get_render_pass();
-        render_pass_begin_info.framebuffer = framebuffers[image_index].get_framebuffer();
-        render_pass_begin_info.renderArea.offset = { 0, 0 };
-        render_pass_begin_info.renderArea.extent = swap_chain->get_extent();
-        render_pass_begin_info.clearValueCount = 1;
-        render_pass_begin_info.pClearValues = &clear_color;
-        vkCmdBeginRenderPass(command_buffer, &render_pass_begin_info, VK_SUBPASS_CONTENTS_INLINE);
-        vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline->get_pipeline());
-
-        // Since the viewport and the scissor is dynamic we need to supply it each frame
         const auto& extent = swap_chain->get_extent();
+        command_buffer->reset();
+        command_buffer->begin();
+
+        render_pass->begin(framebuffers[image_index], extent, *command_buffer);
+        vkCmdBindPipeline(command_buffer->get_command_buffer(), VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline->get_pipeline());
+        // Since the viewport and the scissor is dynamic we need to supply it each frame
         VkViewport viewport{};
+        viewport.x = 0.0f;
+        viewport.y = 0.0f;
         viewport.width = static_cast<float>(extent.width);
         viewport.height = static_cast<float>(extent.height);
         viewport.minDepth = 0.0f;
         viewport.maxDepth = 1.0f;
-        vkCmdSetViewport(command_buffer, 0, 1, &viewport);
+        vkCmdSetViewport(command_buffer->get_command_buffer(), 0, 1, &viewport);
 
         VkRect2D scissor{};
         scissor.offset = { 0, 0 };
         scissor.extent = extent;
-        vkCmdSetScissor(command_buffer, 0, 1, &scissor);
+        vkCmdSetScissor(command_buffer->get_command_buffer(), 0, 1, &scissor);
 
         // Render the hardcoded triangle in the vertex shader
-        vkCmdDraw(command_buffer, 3, 1, 0, 0);
+        vkCmdDraw(command_buffer->get_command_buffer(), 3, 1, 0, 0);
     }
 
     void Renderer::end_frame() const {
-        vkCmdEndRenderPass(command_buffer);
-        if (vkEndCommandBuffer(command_buffer) != VK_SUCCESS) {
-            throw std::runtime_error("Failed to stop recording to Vulkan command buffer.");
+        render_pass->end(*command_buffer);
+        command_buffer->end();
+        command_buffer->submit(
+            logical_device->get_graphics_queue(),
+            *image_available_semaphore,
+            *render_finished_semaphore,
+            *in_flight_fence);
+        
+        VkSemaphore render_finished_semaphore_handle = render_finished_semaphore->get_semaphore();
+        VkSwapchainKHR swap_chain_handle = swap_chain->get_swap_chain();
+        VkPresentInfoKHR present_info{};
+        present_info.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+        present_info.waitSemaphoreCount = 1;
+        present_info.pWaitSemaphores = &render_finished_semaphore_handle;
+        present_info.swapchainCount = 1;
+        present_info.pSwapchains = &swap_chain_handle;
+        present_info.pImageIndices = &image_index;
+        if (vkQueuePresentKHR(logical_device->get_present_queue(), &present_info) != VK_SUCCESS) {
+            throw std::runtime_error("Failed to present Vulkan image.");
         }
     }
 

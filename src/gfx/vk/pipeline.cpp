@@ -1,4 +1,6 @@
 #include "gfx/vk/pipeline.h"
+#include "gfx/vk/framebuffer.h"
+#include "gfx/vk/command.h"
 
 #include <utility>
 #include <stdexcept>
@@ -27,6 +29,14 @@ namespace inf::gfx::vk {
         subpass.colorAttachmentCount = 1;
         subpass.pColorAttachments = &color_attachment_reference;
 
+        VkSubpassDependency subpass_dependency{};
+        subpass_dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
+        subpass_dependency.dstSubpass = 0;
+        subpass_dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+        subpass_dependency.srcAccessMask = 0;
+        subpass_dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+        subpass_dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+
         // Create render pass
         VkRenderPassCreateInfo render_pass_create_info{};
         render_pass_create_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
@@ -34,6 +44,8 @@ namespace inf::gfx::vk {
         render_pass_create_info.pAttachments = &color_attachment;
         render_pass_create_info.subpassCount = 1;
         render_pass_create_info.pSubpasses = &subpass;
+        render_pass_create_info.dependencyCount = 1;
+        render_pass_create_info.pDependencies = &subpass_dependency;
 
         VkRenderPass render_pass;
         if (vkCreateRenderPass(device->get_device(), &render_pass_create_info, nullptr, &render_pass) != VK_SUCCESS) {
@@ -65,6 +77,27 @@ namespace inf::gfx::vk {
 
     VkRenderPass RenderPass::get_render_pass() const {
         return render_pass;
+    }
+
+    void RenderPass::begin(
+        const Framebuffer& framebuffer,
+        const VkExtent2D& swap_chain_extent,
+        const CommandBuffer& command_buffer) const {
+        static const VkClearValue clear_color{{{ 0.0f, 0.1f, 0.95f, 1.0f }}};
+
+        VkRenderPassBeginInfo render_pass_begin_info{};
+        render_pass_begin_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+        render_pass_begin_info.renderPass = render_pass;
+        render_pass_begin_info.framebuffer = framebuffer.get_framebuffer();
+        render_pass_begin_info.renderArea.offset = { 0, 0 };
+        render_pass_begin_info.renderArea.extent = swap_chain_extent;
+        render_pass_begin_info.clearValueCount = 1;
+        render_pass_begin_info.pClearValues = &clear_color;
+        vkCmdBeginRenderPass(command_buffer.get_command_buffer(), &render_pass_begin_info, VK_SUBPASS_CONTENTS_INLINE);
+    }
+
+    void RenderPass::end(const CommandBuffer& command_buffer) const {
+        vkCmdEndRenderPass(command_buffer.get_command_buffer());
     }
 
     Pipeline Pipeline::create_pipeline(
