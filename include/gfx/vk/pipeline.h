@@ -2,6 +2,7 @@
 
 #include "gfx/vk/device.h"
 #include "gfx/vk/shader.h"
+#include "gfx/vk/descriptor.h"
 
 #include <glad/vulkan.h>
 
@@ -44,6 +45,7 @@ namespace inf::gfx::vk {
             const LogicalDevice* device,
             const RenderPass& render_pass,
             const VkExtent2D& swap_chain_extent,
+            const DescriptorSetLayout& descriptor_set_layout,
             const std::vector<Shader>& shaders);
         
         Pipeline(const LogicalDevice* device, const VkPipelineLayout& layout, const VkPipeline& pipeline);
@@ -54,6 +56,7 @@ namespace inf::gfx::vk {
         Pipeline& operator=(Pipeline&&);
 
         VkPipeline get_pipeline() const;
+        VkPipelineLayout get_pipeline_layout() const;
 
     private:
 

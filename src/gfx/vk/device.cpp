@@ -260,6 +260,12 @@ namespace inf::gfx::vk {
         return LogicalDevice(logical_device, queue_family_indices, swap_chain_support);
     }
 
+    VkPhysicalDeviceMemoryProperties PhysicalDevice::query_memory_properties() const {
+        VkPhysicalDeviceMemoryProperties memory_properties;
+        vkGetPhysicalDeviceMemoryProperties(device, &memory_properties);
+        return memory_properties;
+    }
+
     SwapChainSupport PhysicalDevice::query_swap_chain_support(const Surface& surface) const {
         SwapChainSupport swap_chain_support;
         vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, surface.get_surface(), &swap_chain_support.surface_capabilities);

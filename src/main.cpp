@@ -1,4 +1,5 @@
 #include "window.h"
+#include "camera.h"
 #include "gfx/renderer.h"
 
 using namespace inf;
@@ -6,7 +7,8 @@ using namespace inf::gfx;
 
 int main() {
     Window window("Infinitown", 1600, 900, false);
-    Renderer renderer(window);
+    Camera camera(glm::vec3(), glm::normalize(glm::vec3(0.0f, 0.0f, -1.0f)));
+    Renderer renderer(window, camera);
 
     while (!window.should_close()) {
         window.poll_events();

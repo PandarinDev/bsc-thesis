@@ -104,6 +104,7 @@ namespace inf::gfx::vk {
         const LogicalDevice* device,
         const RenderPass& render_pass,
         const VkExtent2D& swap_chain_extent,
+        const DescriptorSetLayout& descriptor_set_layout,
         const std::vector<Shader>& shaders) {
         // Create shader stages
         std::vector<VkPipelineShaderStageCreateInfo> shader_stage_create_infos;
@@ -117,9 +118,12 @@ namespace inf::gfx::vk {
         }
         
         // Create pipeline layout
+        VkDescriptorSetLayout descriptor_set_layout_handle = descriptor_set_layout.get_descriptor_set_layout();
         VkPipelineLayoutCreateInfo layout_create_info{};
         layout_create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-        // TODO: Add shader uniform data here
+        layout_create_info.setLayoutCount = 1;
+        layout_create_info.pSetLayouts = &descriptor_set_layout_handle;
+
         VkPipelineLayout layout;
         if (vkCreatePipelineLayout(device->get_device(), &layout_create_info, nullptr, &layout) != VK_SUCCESS) {
             throw std::runtime_error("Failed to create Vulkan pipeline layout.");
@@ -245,6 +249,10 @@ namespace inf::gfx::vk {
 
     VkPipeline Pipeline::get_pipeline() const {
         return pipeline;
+    }
+
+    VkPipelineLayout Pipeline::get_pipeline_layout() const {
+        return layout;
     }
 
 }

@@ -25,6 +25,12 @@ namespace inf {
         glfwDestroyWindow(handle);
     }
 
+    glm::ivec2 Window::get_size() const {
+        glm::ivec2 size;
+        glfwGetWindowSize(handle, &size.x, &size.y);
+        return size;
+    }
+
     gfx::vk::Surface Window::create_surface(const gfx::vk::Instance& instance) const {
         VkSurfaceKHR surface;
         if (glfwCreateWindowSurface(instance.get_instance(), handle, nullptr, &surface) != VK_SUCCESS) {

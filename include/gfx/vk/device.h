@@ -71,6 +71,8 @@ namespace inf::gfx::vk {
         const QueueFamilyIndices& get_queue_family_indices() const;
         LogicalDevice create_logical_device(const Surface& surface) const;
 
+        VkPhysicalDeviceMemoryProperties query_memory_properties() const;
+
         // This is only a valid operation if the physical device supports the surface format
         SwapChainSupport query_swap_chain_support(const Surface& surface) const;
 
