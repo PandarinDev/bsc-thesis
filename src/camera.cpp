@@ -13,4 +13,20 @@ namespace inf {
         return glm::lookAt(position, position + direction, up);
     }
 
+    const glm::vec3& Camera::get_position() const {
+        return position;
+    }
+
+    const glm::vec3& Camera::get_direction() const {
+        return direction;
+    }
+
+    void Camera::set_position(const glm::vec3& position) {
+        this->position = position;
+    }
+
+    void Camera::set_direction(const glm::vec3& direction) {
+        this->direction = direction;
+    }
+
 }

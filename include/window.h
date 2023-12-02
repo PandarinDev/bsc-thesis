@@ -19,6 +19,7 @@ namespace inf {
         Window(const Window&) = delete;
         Window& operator=(const Window&) = delete;
 
+        GLFWwindow* get_handle() const;
         glm::ivec2 get_size() const;
         gfx::vk::Surface create_surface(const gfx::vk::Instance& instance) const;
 

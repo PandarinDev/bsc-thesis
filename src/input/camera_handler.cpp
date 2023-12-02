@@ -1,0 +1,59 @@
+#include "input/camera_handler.h"
+
+#include <glm/glm.hpp>
+#include <glm/vec3.hpp>
+
+#include <cmath>
+
+namespace inf::input {
+
+    static constexpr float CAMERA_SPEED = 1.0f;
+    static constexpr float CAMERA_SENSITIVITY = 1.0f;
+
+    CameraHandler::CameraHandler(Camera& camera) : camera(camera) {}
+
+    void CameraHandler::handle_input(
+        const float delta_time,
+        const KeyFunction& is_key_down,
+        const KeyFunction&,
+        const glm::vec2& mouse_delta) {
+        // Handle camera movement using the W,A,S,D and Q,E (up/down) keys
+        glm::vec3 translation{};
+        if (is_key_down(GLFW_KEY_W)) {
+            translation.z -= CAMERA_SPEED;
+        }
+        if (is_key_down(GLFW_KEY_S)) {
+            translation.z += CAMERA_SPEED;
+        }
+        if (is_key_down(GLFW_KEY_A)) {
+            translation.x -= CAMERA_SPEED;
+        }
+        if (is_key_down(GLFW_KEY_D)) {
+            translation.x += CAMERA_SPEED;
+        }
+        if (is_key_down(GLFW_KEY_Q)) {
+            translation.y += CAMERA_SPEED;
+        }
+        if (is_key_down(GLFW_KEY_E)) {
+            translation.y -= CAMERA_SPEED;
+        }
+        translation *= delta_time;
+        camera.set_position(camera.get_position() + translation);
+
+        // Handle camera rotation
+        auto direction = glm::normalize(camera.get_direction());
+        auto pitch = std::asinf(direction.y);
+        auto yaw = std::atan2f(direction.x, direction.z);
+
+        // Modify Euler angles according to mouse movement
+        pitch = std::clamp(pitch + mouse_delta.y * CAMERA_SENSITIVITY, static_cast<float>(-M_PI_4), static_cast<float>(M_PI_4));
+        yaw -= mouse_delta.x * CAMERA_SENSITIVITY;
+
+        // Build the new direction vector from the Euler angles
+        direction.x = std::sinf(yaw) * std::cosf(pitch);
+        direction.y = std::sinf(pitch);
+        direction.z = std::cosf(yaw) * std::cosf(pitch);
+        camera.set_direction(direction);
+    }
+
+}

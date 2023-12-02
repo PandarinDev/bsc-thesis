@@ -19,10 +19,15 @@ namespace inf {
         if (!handle) {
             throw std::runtime_error("Failed to create GLFW window.");
         }
+        glfwSetInputMode(handle, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
     }
 
     Window::~Window() {
         glfwDestroyWindow(handle);
+    }
+
+    GLFWwindow* Window::get_handle() const {
+        return handle;
     }
 
     glm::ivec2 Window::get_size() const {

@@ -2,15 +2,20 @@
 #include "camera.h"
 #include "timer.h"
 #include "gfx/renderer.h"
+#include "input/input_manager.h"
+#include "input/camera_handler.h"
 
 using namespace inf;
 using namespace inf::gfx;
+using namespace inf::input;
 
 int main() {
     Window window("Infinitown", 1600, 900, false);
     Timer timer;
-    Camera camera(glm::vec3(), glm::normalize(glm::vec3(0.0f, 0.0f, -1.0f)));
+    InputManager input_manager(window, timer);
+    Camera camera(glm::vec3(), glm::normalize(glm::vec3(0.0f, -1.0f, -1.0f)));
     Renderer renderer(window, camera);
+    input_manager.add_handler(std::make_unique<CameraHandler>(camera));
 
     // Build a test cube that we are going to render
     auto cube = Cube::build(renderer.get_physical_device(), &renderer.get_logical_device(), 1.0f, glm::vec3(1.0f, 0.0f, 0.0f));
@@ -23,6 +28,7 @@ int main() {
         cube.set_model_matrix(model_matrix);
 
         window.poll_events();
+        input_manager.update();
         renderer.begin_frame();
         renderer.render(cube);
         renderer.end_frame();
