@@ -2,7 +2,6 @@
 #include "utils/file_utils.h"
 
 #include <glad/vulkan.h>
-#include <glm/gtc/matrix_transform.hpp>
 
 #include <limits>
 #include <stdexcept>
@@ -10,8 +9,6 @@
 #include <iostream>
 
 namespace inf::gfx {
-
-    static constexpr std::uint8_t MAX_FRAMES_IN_FLIGHT = 2;
 
     Renderer::Renderer(const Window& window, const Camera& camera) :
         camera(camera), image_index(0), frame_index(0) {
@@ -70,19 +67,30 @@ namespace inf::gfx {
         descriptor_sets = descriptor_pool->allocate_sets_for_buffers(*descriptor_set_layout, uniform_buffer_handles);
 
         projection_matrix = glm::perspective(
-            glm::radians(65.0f),
+            FOVY,
             static_cast<float>(swap_chain_extent.width) / swap_chain_extent.height,
-            0.01f,
-            100.0f);
+            NEAR_PLANE,
+            FAR_PLANE);
         // Flip the Y axis to account for the degenerate coordinate system of Vulkan
         projection_matrix[1][1] *= -1.0f;
+
+        // Find the sides of the far plane
+        // TODO: Use this for world generation
+        const auto far_plane_blocks = glm::tan(FOVY / 2.0f) * FAR_PLANE * 2.0f;
+        const auto near_plane_blocks = glm::tan(FOVY / 2.0f) * NEAR_PLANE * 2.0f;
+        std::cout << "Far plane can fit " << far_plane_blocks << std::endl;
+        std::cout << "Near plane can fit " << near_plane_blocks << std::endl;
     }
 
     const vk::Instance& Renderer::get_vulkan_instance() const {
         return *instance;
     }
 
-    const vk::LogicalDevice& Renderer::get_device() const {
+    const vk::PhysicalDevice& Renderer::get_physical_device() const {
+        return *physical_device;
+    }
+
+    const vk::LogicalDevice& Renderer::get_logical_device() const {
         return *logical_device;
     }
 
@@ -125,14 +133,7 @@ namespace inf::gfx {
         scissor.extent = extent;
         vkCmdSetScissor(command_buffer.get_command_buffer(), 0, 1, &scissor);
 
-        // Upload uniform buffer data
-        Matrices matrices;
-        matrices.projection_matrix = projection_matrix;
-        matrices.view_matrix = camera.to_view_matrix();
-        matrices.model_matrix = glm::mat4(1.0f);
-        uniform_buffers[frame_index].upload(matrices);
-
-        // Bind descriptor sets and render the hardcoded triangle in the vertex shader
+        // Bind descriptor sets
         vkCmdBindDescriptorSets(
             command_buffer.get_command_buffer(),
             VK_PIPELINE_BIND_POINT_GRAPHICS,
@@ -140,7 +141,21 @@ namespace inf::gfx {
             0, 1,
             &descriptor_sets[frame_index],
             0, nullptr);
-        vkCmdDraw(command_buffer.get_command_buffer(), 3, 1, 0, 0);
+    }
+
+    void Renderer::render(const Mesh& mesh) {
+        // Upload uniform buffer data
+        Matrices matrices;
+        matrices.projection_matrix = projection_matrix;
+        matrices.view_matrix = camera.to_view_matrix();
+        matrices.model_matrix = mesh.get_model_matrix();
+        uniform_buffers[frame_index].upload(matrices);
+
+        static const VkDeviceSize offset = 0;
+        const auto command_buffer = command_buffers[frame_index].get_command_buffer();
+        const auto vertex_buffer = mesh.get_buffer().get_buffer();
+        vkCmdBindVertexBuffers(command_buffer, 0, 1, &vertex_buffer, &offset);
+        vkCmdDraw(command_buffer, mesh.get_number_of_vertices(), 1, 0, 0);
     }
 
     void Renderer::end_frame() {

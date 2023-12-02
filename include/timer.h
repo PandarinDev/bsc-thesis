@@ -9,6 +9,7 @@ namespace inf {
         Timer();
 
         void tick();
+        double get_time() const;
         double get_delta() const;
 
     private:

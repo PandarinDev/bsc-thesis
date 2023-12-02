@@ -2,7 +2,7 @@
 
 #include "window.h"
 #include "camera.h"
-#include "gfx/frustum.h"
+#include "gfx/geometry.h"
 #include "gfx/vk/instance.h"
 #include "gfx/vk/device.h"
 #include "gfx/vk/shader.h"
@@ -12,8 +12,11 @@
 #include "gfx/vk/semaphore.h"
 #include "gfx/vk/descriptor.h"
 #include "gfx/vk/buffer.h"
+#include "gfx/mesh.h"
 
+#define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #include <glm/matrix.hpp>
+#include <glm/gtc/matrix_transform.hpp>
 
 #include <memory>
 #include <vector>
@@ -29,14 +32,21 @@ namespace inf::gfx {
 
     struct Renderer {
 
+        static constexpr std::uint8_t MAX_FRAMES_IN_FLIGHT = 2;
+        static constexpr float FOVY = glm::radians(65.0f);
+        static constexpr float NEAR_PLANE = 0.01f;
+        static constexpr float FAR_PLANE = 100.0f;
+
         Renderer(const Window& window, const Camera& camera);
 
         const vk::Instance& get_vulkan_instance() const;
-        const vk::LogicalDevice& get_device() const;
+        const vk::PhysicalDevice& get_physical_device() const;
+        const vk::LogicalDevice& get_logical_device() const;
 
         Frustum build_frustum() const;
 
         void begin_frame();
+        void render(const Mesh& mesh);
         void end_frame();
 
     private:

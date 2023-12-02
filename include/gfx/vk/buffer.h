@@ -7,7 +7,8 @@
 namespace inf::gfx::vk {
 
     enum class BufferType {
-        UNIFORM_BUFFER = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT
+        UNIFORM_BUFFER = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+        VERTEX_BUFFER = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT
     };
 
     struct MappedBuffer {
@@ -32,9 +33,11 @@ namespace inf::gfx::vk {
         VkBuffer get_buffer() const;
 
         template<typename T>
-        void upload(const T& value) {
+        void upload(const T& value) const {
             std::memcpy(data, &value, sizeof(value));
         }
+
+        void upload(const void* data, std::size_t size) const;
 
     private:
 

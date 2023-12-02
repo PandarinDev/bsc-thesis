@@ -1,6 +1,27 @@
-#include "gfx/frustum.h"
+#include "gfx/geometry.h"
 
 namespace inf::gfx {
+
+    Line2D::Line2D(float slope, float offset) :
+        slope(slope),
+        offset(offset) {}
+
+    std::optional<float> Line2D::intersect(const Line2D& other) const {
+        // Handle the case if the lines are parallel
+        if (slope == other.slope) {
+            // If their offset is the same the lines intersect everywhere, simply return x = 0
+            if (offset == other.offset) {
+                return 0.0f;
+            }
+            // Otherwise the lines intersect nowhere
+            return std::nullopt;
+        }
+        return (offset - other.offset) / (other.slope - slope);
+    }
+
+    glm::vec2 Line2D::point_at(float x) const {
+        return glm::vec2(x, slope * x + offset);
+    }
 
     Plane::Plane(const glm::vec4& vec) :
         normal(glm::vec3(vec)),

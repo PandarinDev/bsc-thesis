@@ -109,4 +109,8 @@ namespace inf::gfx::vk {
         return buffer;
     }
 
+    void MappedBuffer::upload(const void* data, std::size_t size) const {
+        std::memcpy(this->data, data, size);
+    }
+
 }

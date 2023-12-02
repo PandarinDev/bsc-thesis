@@ -32,6 +32,10 @@ namespace inf {
         last_frame = time;
     }
 
+    double Timer::get_time() const {
+        return glfwGetTime();
+    }
+
     double Timer::get_delta() const {
         return delta;
     }
