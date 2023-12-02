@@ -2,6 +2,7 @@
 
 #include "gfx/vk/device.h"
 #include "gfx/vk/pipeline.h"
+#include "gfx/vk/image.h"
 
 #include <glad/vulkan.h>
 
@@ -12,7 +13,7 @@ namespace inf::gfx::vk {
         static Framebuffer create_from_image_view(
             const LogicalDevice* device,
             const RenderPass& render_pass,
-            const VkImageView& image_view,
+            const ImageView& image_view,
             const VkExtent2D& swap_chain_extent);
 
         Framebuffer(const LogicalDevice* device, const VkFramebuffer& framebuffer);

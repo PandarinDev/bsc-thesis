@@ -6,8 +6,6 @@
 #include <limits>
 #include <stdexcept>
 
-#include <iostream>
-
 namespace inf::gfx {
 
     Renderer::Renderer(const Window& window, const Camera& camera) :
@@ -73,13 +71,6 @@ namespace inf::gfx {
             FAR_PLANE);
         // Flip the Y axis to account for the degenerate coordinate system of Vulkan
         projection_matrix[1][1] *= -1.0f;
-
-        // Find the sides of the far plane
-        // TODO: Use this for world generation
-        const auto far_plane_blocks = glm::tan(FOVY / 2.0f) * FAR_PLANE * 2.0f;
-        const auto near_plane_blocks = glm::tan(FOVY / 2.0f) * NEAR_PLANE * 2.0f;
-        std::cout << "Far plane can fit " << far_plane_blocks << std::endl;
-        std::cout << "Near plane can fit " << near_plane_blocks << std::endl;
     }
 
     const vk::Instance& Renderer::get_vulkan_instance() const {
@@ -143,7 +134,7 @@ namespace inf::gfx {
             0, nullptr);
     }
 
-    void Renderer::render(const Mesh& mesh) {
+    void Renderer::render(const Mesh& mesh) const {
         // Upload uniform buffer data
         Matrices matrices;
         matrices.projection_matrix = projection_matrix;

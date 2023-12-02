@@ -26,23 +26,9 @@ namespace inf::gfx::vk {
         // Query buffer memory requirements
         VkMemoryRequirements memory_requirements;
         vkGetBufferMemoryRequirements(logical_device->get_device(), buffer, &memory_requirements);
-
-        // Find an appropriate memory type that fulfills the buffer requirements
-        const auto memory_properties = physical_device.query_memory_properties();
-        std::optional<std::uint32_t> memory_type_index;
-        for (std::uint32_t i = 0; i < memory_properties.memoryTypeCount; ++i) {
-            // First check if the memory type is supported for this type of buffer
-            if (!(memory_requirements.memoryTypeBits & (1 << i))) {
-                continue;
-            }
-            // Then check if the memory type supports the required properties, which in our case
-            // for a mapped buffer would be that the memory is host visible and host coherent
-            static constexpr auto memory_requirements = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
-            if ((memory_properties.memoryTypes[i].propertyFlags & memory_requirements) == memory_requirements) {
-                memory_type_index = i;
-                break;
-            }
-        }
+        const auto memory_type_index = physical_device.get_memory_type_index(
+            memory_requirements,
+            VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
         if (!memory_type_index.has_value()) {
             throw std::runtime_error("No suitable memory found for Vulkan mapped buffer.");
         }

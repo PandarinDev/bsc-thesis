@@ -266,6 +266,25 @@ namespace inf::gfx::vk {
         return memory_properties;
     }
 
+    std::optional<std::uint32_t> PhysicalDevice::get_memory_type_index(
+        const VkMemoryRequirements& requirements,
+        const VkMemoryPropertyFlags& properties) const {
+        const auto memory_properties = query_memory_properties();
+        std::optional<std::uint32_t> memory_type_index;
+        for (std::uint32_t i = 0; i < memory_properties.memoryTypeCount; ++i) {
+            // First check if the memory type is supported
+            if (!(requirements.memoryTypeBits & (1 << i))) {
+                continue;
+            }
+            // Then check if the memory type supports the required properties
+            if ((memory_properties.memoryTypes[i].propertyFlags & properties) == properties) {
+                memory_type_index = i;
+                break;
+            }
+        }
+        return memory_type_index;
+    }
+
     SwapChainSupport PhysicalDevice::query_swap_chain_support(const Surface& surface) const {
         SwapChainSupport swap_chain_support;
         vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, surface.get_surface(), &swap_chain_support.surface_capabilities);

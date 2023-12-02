@@ -46,7 +46,7 @@ namespace inf::gfx {
         Frustum build_frustum() const;
 
         void begin_frame();
-        void render(const Mesh& mesh);
+        void render(const Mesh& mesh) const;
         void end_frame();
 
     private:

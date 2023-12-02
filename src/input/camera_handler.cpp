@@ -10,13 +10,20 @@ namespace inf::input {
     static constexpr float CAMERA_SPEED = 1.0f;
     static constexpr float CAMERA_SENSITIVITY = 1.0f;
 
-    CameraHandler::CameraHandler(Camera& camera) : camera(camera) {}
+    CameraHandler::CameraHandler(Camera& camera) : camera(camera), enabled(false) {}
 
     void CameraHandler::handle_input(
         const float delta_time,
         const KeyFunction& is_key_down,
-        const KeyFunction&,
+        const KeyFunction& is_key_up,
         const glm::vec2& mouse_delta) {
+        if (is_key_up(GLFW_KEY_F)) {
+            enabled = !enabled;
+        }
+        if (!enabled) {
+            return;
+        }
+
         // Handle camera movement using the W,A,S,D and Q,E (up/down) keys
         glm::vec3 translation{};
         if (is_key_down(GLFW_KEY_W)) {

@@ -1,5 +1,7 @@
 #pragma once
 
+#include "gfx/vk/image.h"
+
 #include <glad/vulkan.h>
 
 #include <vector>
@@ -26,7 +28,7 @@ namespace inf::gfx::vk {
         const VkSwapchainKHR& get_swap_chain() const;
         VkFormat get_format() const;
         const VkExtent2D& get_extent() const;
-        const std::vector<VkImageView>& get_image_views() const;
+        const std::vector<ImageView>& get_image_views() const;
 
     private:
 
@@ -35,7 +37,7 @@ namespace inf::gfx::vk {
         VkFormat image_format;
         VkExtent2D image_extent;
         std::vector<VkImage> images;
-        std::vector<VkImageView> image_views;
+        std::vector<ImageView> image_views;
 
     };
 

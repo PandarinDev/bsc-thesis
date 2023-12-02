@@ -21,38 +21,15 @@ namespace inf::gfx::vk {
         vkGetSwapchainImagesKHR(device->get_device(), swap_chain, &num_images, images.data());
 
         // Create image views
-        image_views.resize(num_images);
-        for (std::size_t i = 0; i < image_views.size(); ++i) {
-            VkImageViewCreateInfo image_view_create_info{};
-            image_view_create_info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-            image_view_create_info.image = images[i];
-            image_view_create_info.viewType = VK_IMAGE_VIEW_TYPE_2D;
-            image_view_create_info.format = image_format;
-            image_view_create_info.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
-            image_view_create_info.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
-            image_view_create_info.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
-            image_view_create_info.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
-            image_view_create_info.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-            image_view_create_info.subresourceRange.baseMipLevel = 0;
-            image_view_create_info.subresourceRange.levelCount = 1;
-            image_view_create_info.subresourceRange.baseArrayLayer = 0;
-            image_view_create_info.subresourceRange.layerCount = 1;
-            
-            if (vkCreateImageView(device->get_device(), &image_view_create_info, nullptr, &image_views[i]) != VK_SUCCESS) {
-                throw std::runtime_error("Failed to create Vulkan image view.");
-            }
+        for (std::size_t i = 0; i < num_images; ++i) {
+            image_views.emplace_back(ImageView::create(device, images[i], image_format, VK_IMAGE_ASPECT_COLOR_BIT));
         }
     }
 
     SwapChain::~SwapChain() {
-        // If the device is nullptr this swap chain was already moved, nothing to clean up
-        if (!device) {
-            return;
+        if (device) {
+            vkDestroySwapchainKHR(device->get_device(), swap_chain, nullptr);
         }
-        for (const auto& image_view : image_views) {
-            vkDestroyImageView(device->get_device(), image_view, nullptr);
-        }
-        vkDestroySwapchainKHR(device->get_device(), swap_chain, nullptr);
     }
 
     SwapChain::SwapChain(SwapChain&& other) :
@@ -86,7 +63,7 @@ namespace inf::gfx::vk {
         return image_extent;
     }
 
-    const std::vector<VkImageView>& SwapChain::get_image_views() const {
+    const std::vector<ImageView>& SwapChain::get_image_views() const {
         return image_views;
     }
 

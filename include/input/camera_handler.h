@@ -18,6 +18,7 @@ namespace inf::input {
     private:
 
         Camera& camera;
+        bool enabled;
 
     };
 
