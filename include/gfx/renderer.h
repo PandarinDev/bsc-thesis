@@ -12,6 +12,7 @@
 #include "gfx/vk/semaphore.h"
 #include "gfx/vk/descriptor.h"
 #include "gfx/vk/buffer.h"
+#include "gfx/vk/depth_buffer.h"
 #include "gfx/mesh.h"
 
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
@@ -65,6 +66,7 @@ namespace inf::gfx {
         std::vector<VkDescriptorSet> descriptor_sets;
         std::unique_ptr<vk::RenderPass> render_pass;
         std::unique_ptr<vk::Pipeline> pipeline;
+        std::unique_ptr<vk::DepthBuffer> depth_buffer;
         std::vector<vk::Framebuffer> framebuffers;
         std::unique_ptr<vk::CommandPool> command_pool;
         std::vector<vk::CommandBuffer> command_buffers;

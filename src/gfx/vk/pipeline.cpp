@@ -3,13 +3,14 @@
 #include "gfx/vk/command.h"
 #include "gfx/vk/vertex.h"
 
+#include <array>
 #include <utility>
 #include <stdexcept>
 
 namespace inf::gfx::vk {
 
     RenderPass RenderPass::create_render_pass(const LogicalDevice* device, VkFormat swap_chain_format) {
-        // Create a color attachment for the render pass
+        // Create a color attachment
         VkAttachmentDescription color_attachment{};
         color_attachment.format = swap_chain_format;
         color_attachment.samples = VK_SAMPLE_COUNT_1_BIT;
@@ -24,25 +25,51 @@ namespace inf::gfx::vk {
         color_attachment_reference.attachment = 0;
         color_attachment_reference.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
+        // Create a depth attachment
+        VkAttachmentDescription depth_attachment{};
+        depth_attachment.format = VK_FORMAT_D32_SFLOAT;
+        depth_attachment.samples = VK_SAMPLE_COUNT_1_BIT;
+        depth_attachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+        depth_attachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+        depth_attachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+        depth_attachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+        depth_attachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+        depth_attachment.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
+        VkAttachmentReference depth_attachment_reference{};
+        depth_attachment_reference.attachment = 1;
+        depth_attachment_reference.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
         // Create subpass
         VkSubpassDescription subpass{};
         subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
         subpass.colorAttachmentCount = 1;
         subpass.pColorAttachments = &color_attachment_reference;
+        subpass.pDepthStencilAttachment = &depth_attachment_reference;
 
         VkSubpassDependency subpass_dependency{};
         subpass_dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
         subpass_dependency.dstSubpass = 0;
-        subpass_dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+        subpass_dependency.srcStageMask =
+            VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT |
+            VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
         subpass_dependency.srcAccessMask = 0;
-        subpass_dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-        subpass_dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+        subpass_dependency.dstStageMask =
+            VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT |
+            VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
+        subpass_dependency.dstAccessMask =
+            VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT |
+            VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
 
         // Create render pass
+        std::array<VkAttachmentDescription, 2> attachments {
+            color_attachment,
+            depth_attachment
+        };
         VkRenderPassCreateInfo render_pass_create_info{};
         render_pass_create_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
-        render_pass_create_info.attachmentCount = 1;
-        render_pass_create_info.pAttachments = &color_attachment;
+        render_pass_create_info.attachmentCount = 2;
+        render_pass_create_info.pAttachments = attachments.data();
         render_pass_create_info.subpassCount = 1;
         render_pass_create_info.pSubpasses = &subpass;
         render_pass_create_info.dependencyCount = 1;
@@ -84,7 +111,9 @@ namespace inf::gfx::vk {
         const Framebuffer& framebuffer,
         const VkExtent2D& swap_chain_extent,
         const CommandBuffer& command_buffer) const {
-        static const VkClearValue clear_color{{{ 0.0f, 0.1f, 0.95f, 1.0f }}};
+        std::array<VkClearValue, 2> clear_values;
+        clear_values[0].color = {{ 0.0f, 0.1f, 0.95f, 1.0f }};
+        clear_values[1].depthStencil = { 1.0f, 0 };
 
         VkRenderPassBeginInfo render_pass_begin_info{};
         render_pass_begin_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
@@ -92,8 +121,8 @@ namespace inf::gfx::vk {
         render_pass_begin_info.framebuffer = framebuffer.get_framebuffer();
         render_pass_begin_info.renderArea.offset = { 0, 0 };
         render_pass_begin_info.renderArea.extent = swap_chain_extent;
-        render_pass_begin_info.clearValueCount = 1;
-        render_pass_begin_info.pClearValues = &clear_color;
+        render_pass_begin_info.clearValueCount = 2;
+        render_pass_begin_info.pClearValues = clear_values.data();
         vkCmdBeginRenderPass(command_buffer.get_command_buffer(), &render_pass_begin_info, VK_SUBPASS_CONTENTS_INLINE);
     }
 
@@ -206,6 +235,15 @@ namespace inf::gfx::vk {
         dynamic_state_create_info.dynamicStateCount = 2;
         dynamic_state_create_info.pDynamicStates = dynamic_states;
 
+        // Depth & stencil state
+        VkPipelineDepthStencilStateCreateInfo depth_stencil_create_info{};
+        depth_stencil_create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
+        depth_stencil_create_info.depthTestEnable = VK_TRUE;
+        depth_stencil_create_info.depthWriteEnable = VK_TRUE;
+        depth_stencil_create_info.depthCompareOp = VK_COMPARE_OP_LESS_OR_EQUAL;
+        depth_stencil_create_info.depthBoundsTestEnable = VK_FALSE;
+        depth_stencil_create_info.stencilTestEnable = VK_FALSE;
+
         // Create graphics pipeline
         VkGraphicsPipelineCreateInfo pipeline_create_info{};
         pipeline_create_info.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
@@ -221,6 +259,7 @@ namespace inf::gfx::vk {
         pipeline_create_info.layout = layout;
         pipeline_create_info.renderPass = render_pass.get_render_pass();
         pipeline_create_info.subpass = 0;
+        pipeline_create_info.pDepthStencilState = &depth_stencil_create_info;
 
         VkPipeline pipeline;
         if (vkCreateGraphicsPipelines(device->get_device(), VK_NULL_HANDLE, 1, &pipeline_create_info, nullptr, &pipeline) != VK_SUCCESS) {

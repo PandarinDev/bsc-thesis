@@ -18,6 +18,7 @@ namespace inf {
     }
 
     void World::render(const gfx::Renderer& renderer) {
+        // TODO: Currently only the last block is getting rendered
         for (const auto& offset : block_offsets) {
             cube_mesh.set_model_matrix(glm::translate(glm::mat4(1.0f), glm::vec3(offset.x, 0.0f, -offset.y)));
             renderer.render(cube_mesh);

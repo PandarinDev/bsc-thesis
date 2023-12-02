@@ -14,6 +14,7 @@ namespace inf::gfx::vk {
             const LogicalDevice* device,
             const RenderPass& render_pass,
             const ImageView& image_view,
+            const ImageView& depth_image_view,
             const VkExtent2D& swap_chain_extent);
 
         Framebuffer(const LogicalDevice* device, const VkFramebuffer& framebuffer);

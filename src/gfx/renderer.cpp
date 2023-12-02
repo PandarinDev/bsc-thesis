@@ -40,10 +40,14 @@ namespace inf::gfx {
         render_pass = std::make_unique<vk::RenderPass>(vk::RenderPass::create_render_pass(logical_device.get(), swap_chain->get_format()));
         pipeline = std::make_unique<vk::Pipeline>(vk::Pipeline::create_pipeline(logical_device.get(), *render_pass, swap_chain->get_extent(), *descriptor_set_layout, shaders));
 
-        // Create framebuffers for swapchain images
+        // Create depth buffer
         const auto& swap_chain_extent = swap_chain->get_extent();
+        depth_buffer = std::make_unique<vk::DepthBuffer>(vk::DepthBuffer::create(logical_device.get(), *physical_device, swap_chain_extent));
+        const auto& depth_image_view = depth_buffer->get_image_view();
+
+        // Create framebuffers for swapchain images
         for (const auto& image_view : swap_chain->get_image_views()) {
-            framebuffers.emplace_back(vk::Framebuffer::create_from_image_view(logical_device.get(), *render_pass, image_view, swap_chain_extent));
+            framebuffers.emplace_back(vk::Framebuffer::create_from_image_view(logical_device.get(), *render_pass, image_view, depth_image_view, swap_chain_extent));
         }
 
         // Create a command pool, allocate command buffers and semaphores/fences required for swapping framebuffers

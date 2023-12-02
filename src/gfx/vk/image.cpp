@@ -76,6 +76,10 @@ namespace inf::gfx::vk {
         return *this;
     }
 
+    VkImage Image::get_image() const {
+        return image;
+    }
+
     ImageView ImageView::create(
         const LogicalDevice* device,
         VkImage image,

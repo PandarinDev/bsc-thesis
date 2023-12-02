@@ -1,5 +1,6 @@
 #include "gfx/vk/framebuffer.h"
 
+#include <array>
 #include <utility>
 
 namespace inf::gfx::vk {
@@ -8,13 +9,17 @@ namespace inf::gfx::vk {
         const LogicalDevice* device,
         const RenderPass& render_pass,
         const ImageView& image_view,
+        const ImageView& depth_image_view,
         const VkExtent2D& swap_chain_extent) {
-        VkImageView image_view_handle = image_view.get_image_view();
+        std::array<VkImageView, 2> image_view_handles {
+            image_view.get_image_view(),
+            depth_image_view.get_image_view()
+        };
         VkFramebufferCreateInfo framebuffer_create_info{};
         framebuffer_create_info.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
         framebuffer_create_info.renderPass = render_pass.get_render_pass();
-        framebuffer_create_info.attachmentCount = 1;
-        framebuffer_create_info.pAttachments = &image_view_handle;
+        framebuffer_create_info.attachmentCount = static_cast<std::uint32_t>(image_view_handles.size());
+        framebuffer_create_info.pAttachments = image_view_handles.data();
         framebuffer_create_info.width = swap_chain_extent.width;
         framebuffer_create_info.height = swap_chain_extent.height;
         framebuffer_create_info.layers = 1;
