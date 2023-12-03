@@ -3,6 +3,8 @@
 #include "gfx/vk/command.h"
 #include "gfx/vk/vertex.h"
 
+#include <glm/matrix.hpp>
+
 #include <array>
 #include <utility>
 #include <stdexcept>
@@ -147,12 +149,21 @@ namespace inf::gfx::vk {
             shader_stage_create_infos.emplace_back(std::move(shader_stage_create_info));
         }
         
+        // Allocate space for push constants
+        // TODO: This should be a function parameter (a vector of push constant ranges)
+        VkPushConstantRange push_constant{};
+        push_constant.offset = 0;
+        push_constant.size = sizeof(glm::mat4);
+        push_constant.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+
         // Create pipeline layout
         VkDescriptorSetLayout descriptor_set_layout_handle = descriptor_set_layout.get_descriptor_set_layout();
         VkPipelineLayoutCreateInfo layout_create_info{};
         layout_create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
         layout_create_info.setLayoutCount = 1;
         layout_create_info.pSetLayouts = &descriptor_set_layout_handle;
+        layout_create_info.pushConstantRangeCount = 1;
+        layout_create_info.pPushConstantRanges = &push_constant;
 
         VkPipelineLayout layout;
         if (vkCreatePipelineLayout(device->get_device(), &layout_create_info, nullptr, &layout) != VK_SUCCESS) {

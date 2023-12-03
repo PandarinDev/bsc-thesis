@@ -28,7 +28,6 @@ namespace inf::gfx {
     struct Matrices {
         glm::mat4 projection_matrix;
         glm::mat4 view_matrix;
-        glm::mat4 model_matrix;
     };
 
     struct Renderer {

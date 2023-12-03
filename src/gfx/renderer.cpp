@@ -136,15 +136,22 @@ namespace inf::gfx {
             0, 1,
             &descriptor_sets[frame_index],
             0, nullptr);
-    }
 
-    void Renderer::render(const Mesh& mesh) const {
         // Upload uniform buffer data
         Matrices matrices;
         matrices.projection_matrix = projection_matrix;
         matrices.view_matrix = camera.to_view_matrix();
-        matrices.model_matrix = mesh.get_model_matrix();
         uniform_buffers[frame_index].upload(matrices);
+    }
+
+    void Renderer::render(const Mesh& mesh) const {
+        // Push model matrix
+        vkCmdPushConstants(
+            command_buffers[frame_index].get_command_buffer(),
+            pipeline->get_pipeline_layout(),
+            VK_SHADER_STAGE_VERTEX_BIT,
+            0, sizeof(glm::mat4),
+            &mesh.get_model_matrix());
 
         static const VkDeviceSize offset = 0;
         const auto command_buffer = command_buffers[frame_index].get_command_buffer();
