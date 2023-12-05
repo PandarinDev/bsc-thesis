@@ -3,12 +3,15 @@
 #include "timer.h"
 #include "world.h"
 #include "gfx/renderer.h"
+#include "gfx/obj_loader.h"
 #include "input/input_manager.h"
 #include "input/camera_handler.h"
+#include "utils/file_utils.h"
 
 using namespace inf;
 using namespace inf::gfx;
 using namespace inf::input;
+using namespace inf::utils;
 
 int main() {
     Window window("Infinitown", 1600, 900, false);
@@ -18,8 +21,14 @@ int main() {
     Renderer renderer(window, camera);
     input_manager.add_handler(std::make_unique<CameraHandler>(camera));
 
-    // Build a test cube that we are going to render and instantiate the world
-    World world(Cube::build(renderer.get_physical_device(), &renderer.get_logical_device(), 1.0f, glm::vec3(1.0f, 0.0f, 0.0f)));
+    // Load a test model that we are going to use as a basic block for our world
+    const auto materials = ObjLoader::load_materials(FileUtils::read_string("assets/meshes/house.mtl"));
+    auto house = ObjLoader::load_mesh(
+        renderer.get_physical_device(),
+        &renderer.get_logical_device(),
+        materials,
+        FileUtils::read_string("assets/meshes/house.obj"));
+    World world(std::move(house));
     while (!window.should_close()) {
         timer.tick();
         window.poll_events();

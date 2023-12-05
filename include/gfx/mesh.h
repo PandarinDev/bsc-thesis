@@ -26,16 +26,4 @@ namespace inf::gfx {
 
     };
 
-    struct Cube {
-
-        static Mesh build(
-            const vk::PhysicalDevice& physical_device,
-            const vk::LogicalDevice* logical_device,
-            float size,
-            const glm::vec3& color);
-
-        Cube() = delete;
-
-    };
-
 }

@@ -2,8 +2,9 @@
 
 namespace inf::gfx::vk {
 
-    Vertex::Vertex(const glm::vec3& position, const glm::vec3& color) :
+    Vertex::Vertex(const glm::vec3& position, const glm::vec3& normal, const glm::vec3& color) :
         position(position),
+        normal(normal),
         color(color) {}
 
     VkVertexInputBindingDescription Vertex::get_binding_description() {
@@ -15,8 +16,8 @@ namespace inf::gfx::vk {
         return binding_description;
     }
 
-    std::array<VkVertexInputAttributeDescription, 2> Vertex::get_attribute_descriptions() {
-        std::array<VkVertexInputAttributeDescription, 2> attribute_descriptions;
+    std::array<VkVertexInputAttributeDescription, 3> Vertex::get_attribute_descriptions() {
+        std::array<VkVertexInputAttributeDescription, 3> attribute_descriptions;
 
         // Position (vec3)
         auto& position_attribute = attribute_descriptions[0];
@@ -25,10 +26,17 @@ namespace inf::gfx::vk {
         position_attribute.format = VK_FORMAT_R32G32B32_SFLOAT;
         position_attribute.offset = offsetof(Vertex, position);
 
+        // Normal (vec3)
+        auto& normal_attribute = attribute_descriptions[1];
+        normal_attribute.binding = 0;
+        normal_attribute.location = 1;
+        normal_attribute.format = VK_FORMAT_R32G32B32_SFLOAT;
+        normal_attribute.offset = offsetof(Vertex, normal);
+
         // Color (vec3)
-        auto& color_attribute = attribute_descriptions[1];
+        auto& color_attribute = attribute_descriptions[2];
         color_attribute.binding = 0;
-        color_attribute.location = 1;
+        color_attribute.location = 2;
         color_attribute.format = VK_FORMAT_R32G32B32_SFLOAT;
         color_attribute.offset = offsetof(Vertex, color);
 
