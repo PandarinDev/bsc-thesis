@@ -3,7 +3,7 @@
 #include <glm/glm.hpp>
 #include <glm/vec3.hpp>
 
-#include <cmath>
+#include <algorithm>
 
 namespace inf::input {
 

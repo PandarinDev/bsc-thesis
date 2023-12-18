@@ -1,6 +1,8 @@
 #include "window.h"
 
+#ifdef __APPLE__
 #define GLFW_EXPOSE_NATIVE_COCOA
+#endif
 #include <GLFW/glfw3native.h>
 
 #include <stdexcept>

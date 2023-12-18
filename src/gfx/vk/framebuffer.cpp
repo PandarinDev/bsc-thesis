@@ -2,6 +2,7 @@
 
 #include <array>
 #include <utility>
+#include <stdexcept>
 
 namespace inf::gfx::vk {
 
