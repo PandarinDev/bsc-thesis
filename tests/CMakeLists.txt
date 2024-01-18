@@ -4,7 +4,7 @@ add_executable(infinitown-tests ${INFINITOWN_TEST_SRC_FILES}
     "../src/gfx/geometry.cpp"
     "../src/utils/string_utils.cpp")
 target_include_directories(infinitown-tests PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/../include")
-target_link_libraries(infinitown-tests PRIVATE Catch2::Catch2WithMain)
+target_link_libraries(infinitown-tests PRIVATE Catch2::Catch2WithMain glm::glm)
 if(MSVC)
     target_compile_options(infinitown-tests PRIVATE /W4 /WX)
 else()

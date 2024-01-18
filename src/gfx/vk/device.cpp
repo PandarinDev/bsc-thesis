@@ -99,21 +99,20 @@ namespace inf::gfx::vk {
         swap_chain_create_info.clipped = VK_TRUE;
 
         // If the graphics and present queues are different we set the sharing mode to concurrent
+        std::vector<std::uint32_t> queue_indices;
         if (queue_family_indices.graphics_family.value() != queue_family_indices.presentation_family.value()) {
-            std::vector<std::uint32_t> queue_indices = {
+            queue_indices = {
                 queue_family_indices.graphics_family.value(),
                 queue_family_indices.presentation_family.value()
             };
-            swap_chain_create_info.queueFamilyIndexCount = static_cast<std::uint32_t>(queue_indices.size());
-            swap_chain_create_info.pQueueFamilyIndices = queue_indices.data();
             swap_chain_create_info.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
         }
         else {
-            std::vector<std::uint32_t> queue_indices = { queue_family_indices.graphics_family.value() };
-            swap_chain_create_info.queueFamilyIndexCount = static_cast<std::uint32_t>(queue_indices.size());
-            swap_chain_create_info.pQueueFamilyIndices = queue_indices.data();
+            queue_indices = { queue_family_indices.graphics_family.value() };
             swap_chain_create_info.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
         }
+        swap_chain_create_info.queueFamilyIndexCount = static_cast<std::uint32_t>(queue_indices.size());
+        swap_chain_create_info.pQueueFamilyIndices = queue_indices.data();
 
         VkSwapchainKHR swap_chain;
         if (vkCreateSwapchainKHR(device, &swap_chain_create_info, nullptr, &swap_chain) != VK_SUCCESS) {

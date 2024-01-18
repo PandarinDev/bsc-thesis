@@ -1,27 +1,38 @@
 #include "world.h"
-
-#include <cmath>
+#include "gfx/assets.h"
 
 namespace inf {
 
-    World::World(gfx::Mesh&& cube_mesh) : cube_mesh(std::move(cube_mesh)) {
-        const auto tan_value = std::tanf(gfx::Renderer::FOVY / 2.0f);
-        // We slice up the frustum to block sized slices and decide how many blocks are visible in each row
-        for (float depth = std::floorf(gfx::Renderer::NEAR_PLANE); depth <= 10.0f; ++depth) {
-            const auto blocks_in_row = std::ceilf(tan_value * depth * 2.0f);
-            // Add the offsets for the row
-            const auto x_offset_start = -blocks_in_row * 0.5f;
-            for (std::uint32_t i = 0; i < blocks_in_row; ++i) {
-                block_offsets.emplace_back(glm::vec2(x_offset_start + i, depth));
-            }
+    Cell::Cell(const glm::ivec3& coordinates) : Cell(coordinates, CellType::UNDECIDED) {}
+
+    Cell::Cell(const glm::ivec3& coordinates, CellType type) :
+        coordinates(coordinates),
+        type(type) {}
+
+    World::World() : World({}, {}) {}
+
+    World::World(std::vector<Cell>&& cells, CellCache&& cell_cache) :
+        cells(std::move(cells)),
+        cell_cache(std::move(cell_cache)) {}
+
+    Cell& World::get_or_create_cell(const glm::ivec3& coordinate) {
+        const auto it = cell_cache.find(coordinate);
+        if (it != cell_cache.cend()) {
+            return *it->second;
         }
+        auto& cell = cells.emplace_back(coordinate);
+        cell_cache.emplace(coordinate, &cell);
+        return cell;
     }
 
     void World::render(const gfx::Renderer& renderer) {
-        // TODO: Currently only the last block is getting rendered
-        for (const auto& offset : block_offsets) {
-            cube_mesh.set_model_matrix(glm::translate(glm::mat4(1.0f), glm::vec3(offset.x, 0.0f, -offset.y)));
-            renderer.render(cube_mesh);
+        for (auto& cell : cells) {
+            if (cell.type == CellType::UNDECIDED) {
+                continue;
+            }
+            auto& mesh = gfx::Assets::get_mesh(cell.type);
+            mesh.set_model_matrix(glm::translate(glm::mat4(1.0f), glm::vec3(cell.coordinates)));
+            renderer.render(mesh);
         }
     }
 

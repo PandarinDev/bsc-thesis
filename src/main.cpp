@@ -2,11 +2,14 @@
 #include "camera.h"
 #include "timer.h"
 #include "world.h"
+#include "generator.h"
 #include "gfx/renderer.h"
-#include "gfx/obj_loader.h"
+#include "gfx/assets.h"
 #include "input/input_manager.h"
 #include "input/camera_handler.h"
 #include "utils/file_utils.h"
+
+#include <iostream>
 
 using namespace inf;
 using namespace inf::gfx;
@@ -17,18 +20,25 @@ int main() {
     Window window("Infinitown", 1600, 900, false);
     Timer timer;
     InputManager input_manager(window, timer);
+
+    const auto renderer_setup_start_time = timer.get_time();
     Camera camera(glm::vec3(0.0f, 2.0f, 0.0f), glm::normalize(glm::vec3(0.0f, -0.45f, -1.0f)));
+    const auto renderer_setup_elapsed_time = timer.get_time();
+    std::cout << "Renderer configuration & Vulkan setup took " << renderer_setup_elapsed_time << " seconds." << std::endl;
+
     Renderer renderer(window, camera);
     input_manager.add_handler(std::make_unique<CameraHandler>(camera));
 
-    // Load a test model that we are going to use as a basic block for our world
-    const auto materials = ObjLoader::load_materials(FileUtils::read_string("assets/meshes/house.mtl"));
-    auto house = ObjLoader::load_mesh(
-        renderer.get_physical_device(),
-        &renderer.get_logical_device(),
-        materials,
-        FileUtils::read_string("assets/meshes/house.obj"));
-    World world(std::move(house));
+    const auto asset_loading_start_time = timer.get_time();
+    Assets::initialize_assets(renderer.get_physical_device(), renderer.get_logical_device());
+    const auto asset_loading_elapsed_time = timer.get_time() - asset_loading_start_time;
+    std::cout << "Asset loading took " << asset_loading_elapsed_time << " seconds." << std::endl;
+
+    const auto generation_start_time = timer.get_time();
+    World world = WorldGenerator::generate_initial(renderer.build_frustum());
+    const auto generation_elapsed_time = timer.get_time() - generation_start_time;
+    std::cout << "World generation took " << generation_elapsed_time << " seconds." << std::endl;
+
     while (!window.should_close()) {
         timer.tick();
         window.poll_events();
@@ -39,6 +49,7 @@ int main() {
     }
     // Wait until the device becomes idle (flushes queues) to destroy in a well-defined state
     renderer.get_logical_device().wait_until_idle();
+    Assets::destroy_assets();
     glfwTerminate();
     return 0;
 }
