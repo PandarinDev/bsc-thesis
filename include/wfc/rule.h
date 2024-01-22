@@ -12,7 +12,7 @@ namespace inf::wfc {
         virtual ~Rule() = default;
 
         virtual bool matches(const ContextType& context, const InstanceType& instance) = 0;
-        virtual void apply(InstanceType& instance) = 0;
+        virtual void apply(ContextType& context, InstanceType& instance) = 0;
 
     };
 

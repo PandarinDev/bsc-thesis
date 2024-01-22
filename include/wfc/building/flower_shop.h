@@ -1,13 +1,14 @@
 #pragma once
 
 #include "world.h"
+#include "gfx/mesh.h"
 #include "wfc/rule.h"
 
 namespace inf::wfc::building {
 
-    struct HouseRule final : public Rule<World, Cell> {
+    struct FlowerShopRule : public Rule<World, Cell> {
 
-        HouseRule(
+        FlowerShopRule(
             const gfx::vk::PhysicalDevice& physical_device,
             const gfx::vk::LogicalDevice* logical_device);
 
@@ -21,10 +22,9 @@ namespace inf::wfc::building {
 
     };
 
+    struct FlowerShopMeshGenerator {
 
-    struct HouseMeshGenerator {
-
-        HouseMeshGenerator() = delete;
+        FlowerShopMeshGenerator() = delete;
 
         static gfx::Mesh generate_mesh(
             const gfx::vk::PhysicalDevice& physical_device,

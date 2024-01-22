@@ -1,5 +1,4 @@
 #include "world.h"
-#include "gfx/assets.h"
 
 namespace inf {
 
@@ -9,30 +8,26 @@ namespace inf {
         coordinates(coordinates),
         type(type) {}
 
-    World::World() : World({}, {}) {}
+    World::World() : World(std::vector<Cell>{}) {}
 
-    World::World(std::vector<Cell>&& cells, CellCache&& cell_cache) :
-        cells(std::move(cells)),
-        cell_cache(std::move(cell_cache)) {}
+    World::World(std::vector<Cell>&& cells) :
+        cells(std::move(cells)) {}
 
     Cell& World::get_or_create_cell(const glm::ivec3& coordinate) {
-        const auto it = cell_cache.find(coordinate);
-        if (it != cell_cache.cend()) {
-            return *it->second;
+        for (auto& cell : cells) {
+            if (cell.coordinates == coordinate) {
+                return cell;
+            }
         }
-        auto& cell = cells.emplace_back(coordinate);
-        cell_cache.emplace(coordinate, &cell);
-        return cell;
+        return cells.emplace_back(coordinate);
     }
 
     void World::render(const gfx::Renderer& renderer) {
         for (auto& cell : cells) {
-            if (cell.type == CellType::UNDECIDED) {
-                continue;
+            if (cell.mesh) {
+                cell.mesh->set_model_matrix(glm::translate(glm::mat4(1.0f), glm::vec3(cell.coordinates)));
+                renderer.render(*cell.mesh);
             }
-            auto& mesh = gfx::Assets::get_mesh(cell.type);
-            mesh.set_model_matrix(glm::translate(glm::mat4(1.0f), glm::vec3(cell.coordinates)));
-            renderer.render(mesh);
         }
     }
 

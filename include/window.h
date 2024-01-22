@@ -8,13 +8,25 @@
 #include <GLFW/glfw3.h>
 #include <glm/vec2.hpp>
 
+#include <variant>
 #include <string_view>
 
 namespace inf {
 
+    struct RelativeWindowSize {
+        float scale;
+    };
+
+    struct FixedWindowSize {
+        int width;
+        int height;
+    };
+
+    using WindowSize = std::variant<RelativeWindowSize, FixedWindowSize>;
+
     struct Window {
 
-        Window(std::string_view title, int width, int height, bool full_screen);
+        Window(std::string_view title, const WindowSize& window_size, bool full_screen);
         ~Window();
         Window(const Window&) = delete;
         Window& operator=(const Window&) = delete;

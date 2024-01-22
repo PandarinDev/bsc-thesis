@@ -9,12 +9,12 @@
 
 #include <vector>
 #include <memory>
-#include <unordered_map>
 
 namespace inf {
 
     enum class CellType {
         UNDECIDED,
+        FLOWER_SHOP,
         HOUSE
     };
 
@@ -22,18 +22,17 @@ namespace inf {
 
         glm::ivec3 coordinates;
         CellType type;
+        std::unique_ptr<gfx::Mesh> mesh;
 
         Cell(const glm::ivec3& coordinates);
         Cell(const glm::ivec3& coordinates, CellType type);
 
     };
 
-    using CellCache = std::unordered_map<glm::ivec3, Cell*>;
-
     struct World {
 
         World();
-        World(std::vector<Cell>&& cells, CellCache&& cell_cache);
+        World(std::vector<Cell>&& cells);
 
         Cell& get_or_create_cell(const glm::ivec3& coordinate);
 
@@ -41,8 +40,8 @@ namespace inf {
 
     private:
 
+        // TODO: Use some spatial data structure instead, this will be slow
         std::vector<Cell> cells;
-        CellCache cell_cache;
 
     };
 

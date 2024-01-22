@@ -4,7 +4,6 @@
 #include "world.h"
 #include "generator.h"
 #include "gfx/renderer.h"
-#include "gfx/assets.h"
 #include "input/input_manager.h"
 #include "input/camera_handler.h"
 #include "utils/file_utils.h"
@@ -17,25 +16,19 @@ using namespace inf::input;
 using namespace inf::utils;
 
 int main() {
-    Window window("Infinitown", 1600, 900, false);
+    Window window("Infinitown", RelativeWindowSize{ 0.75f }, false);
     Timer timer;
     InputManager input_manager(window, timer);
 
-    const auto renderer_setup_start_time = timer.get_time();
-    Camera camera(glm::vec3(0.0f, 2.0f, 0.0f), glm::normalize(glm::vec3(0.0f, -0.45f, -1.0f)));
-    const auto renderer_setup_elapsed_time = timer.get_time();
-    std::cout << "Renderer configuration & Vulkan setup took " << renderer_setup_elapsed_time << " seconds." << std::endl;
-
+    Camera camera(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, -1.0f));
     Renderer renderer(window, camera);
     input_manager.add_handler(std::make_unique<CameraHandler>(camera));
 
-    const auto asset_loading_start_time = timer.get_time();
-    Assets::initialize_assets(renderer.get_physical_device(), renderer.get_logical_device());
-    const auto asset_loading_elapsed_time = timer.get_time() - asset_loading_start_time;
-    std::cout << "Asset loading took " << asset_loading_elapsed_time << " seconds." << std::endl;
-
     const auto generation_start_time = timer.get_time();
-    World world = WorldGenerator::generate_initial(renderer.build_frustum());
+    World world = WorldGenerator::generate_initial(
+        renderer.build_frustum(),
+        renderer.get_physical_device(),
+        &renderer.get_logical_device());
     const auto generation_elapsed_time = timer.get_time() - generation_start_time;
     std::cout << "World generation took " << generation_elapsed_time << " seconds." << std::endl;
 
@@ -49,7 +42,6 @@ int main() {
     }
     // Wait until the device becomes idle (flushes queues) to destroy in a well-defined state
     renderer.get_logical_device().wait_until_idle();
-    Assets::destroy_assets();
     glfwTerminate();
     return 0;
 }

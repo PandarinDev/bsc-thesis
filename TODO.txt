@@ -1,8 +1,0 @@
-- [ ] Add buildings:
-    - [ ] House
-    - [ ] Apartment
-    - [ ] Flower shop
-    - [ ] Grocery store
-- [ ] Add vehicles:
-    - [ ] Car (variations)
-    - [ ] Truck
