@@ -4,21 +4,18 @@
 
 namespace inf {
 
+    static constexpr auto WORLD_INITIAL_WIDTH = 50;
+    static constexpr auto WORLD_INITIAL_HEIGHT = 50;
+
     World WorldGenerator::generate_initial(
-        const gfx::Frustum& frustum,
         const gfx::vk::PhysicalDevice& physical_device,
         const gfx::vk::LogicalDevice* logical_device) {
-        // TODO: Figure out how to determine the visible coordinates. This problem is not trivial as the
-        // size of the building blocks is not uniform. Some buildings are wider and/or taller than others.
-        std::vector<glm::ivec3> visible_coordinates;
-        for (int x = -3; x <= 3; ++x) {
-            visible_coordinates.emplace_back(x, 0.0f, -5.0f);
-        }
-        World world;
+        // TODO: Later on we only want to generate part of the world that is initially visible in the frustum.
+        // However, for now while we are exploring generation it is better to generate a meaningfully sized
+        // chunk of the world fully.
+        World world(WORLD_INITIAL_WIDTH, WORLD_INITIAL_HEIGHT);
         WorldGenerator generator(&world, physical_device, logical_device);
-        for (const auto& coordinate : visible_coordinates) {
-            generator.collapse(world.get_or_create_cell(coordinate));
-        }
+        generator.generate();
 
         return world;
     }
@@ -33,12 +30,30 @@ namespace inf {
         rules.emplace_back(std::make_unique<wfc::building::FlowerShopRule>(physical_device, logical_device));
     }
 
+    void WorldGenerator::generate() {
+        // TODO: For now we just mark the entire starting chunk as a residental district, but this is obviously not desired
+        world->add_district(District(
+            DistrictType::RESIDENTAL,
+            BoundingBox2D(0, 0, WORLD_INITIAL_WIDTH, WORLD_INITIAL_HEIGHT)));
+
+        // Collapse each cell in the initial cell set
+        for (std::size_t x = 0; x < WORLD_INITIAL_WIDTH; ++x) {
+            for (std::size_t y = 0; y < WORLD_INITIAL_HEIGHT; ++y) {
+                auto& cell = world->get_or_create_cell(glm::ivec3(x, 0, y));
+                collapse(cell);
+            }
+        }
+    }
+
     void WorldGenerator::collapse(Cell& cell) {
         std::vector<WorldRule*> matching_rules;
         for (const auto& rule : rules) {
             if (rule->matches(*world, cell)) {
                 matching_rules.emplace_back(rule.get());
             }
+        }
+        if (matching_rules.empty()) {
+            return;
         }
         // TODO: Take into account the rule weights
         std::uniform_int_distribution<std::size_t> distribution(0, matching_rules.size() - 1);

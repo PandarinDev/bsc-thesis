@@ -17,7 +17,6 @@ namespace inf {
     struct WorldGenerator {
 
         static World generate_initial(
-            const gfx::Frustum& frustum,
             const gfx::vk::PhysicalDevice& physical_device,
             const gfx::vk::LogicalDevice* logical_device);
 
@@ -26,13 +25,15 @@ namespace inf {
             const gfx::vk::PhysicalDevice& physical_device,
             const gfx::vk::LogicalDevice* logical_device);
 
-        void collapse(Cell& cell);
+        void generate();
 
     private:
 
         World* world;
         std::mt19937 random_engine;
         std::vector<std::unique_ptr<WorldRule>> rules;
+
+        void collapse(Cell& cell);
 
     };
 

@@ -89,10 +89,6 @@ namespace inf::gfx {
         return *logical_device;
     }
 
-    Frustum Renderer::build_frustum() const {
-        return Frustum(projection_matrix * camera.to_view_matrix());
-    }
-
     void Renderer::begin_frame() {
         // Wait for the previous frame to finish
         in_flight_fences[frame_index].wait_for_and_reset();

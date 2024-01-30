@@ -43,8 +43,6 @@ namespace inf::gfx {
         const vk::PhysicalDevice& get_physical_device() const;
         const vk::LogicalDevice& get_logical_device() const;
 
-        Frustum build_frustum() const;
-
         void begin_frame();
         void render(const Mesh& mesh) const;
         void end_frame();

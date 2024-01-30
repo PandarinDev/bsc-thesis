@@ -20,13 +20,12 @@ int main() {
     Timer timer;
     InputManager input_manager(window, timer);
 
-    Camera camera(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, -1.0f));
+    Camera camera(glm::vec3(25.0f, 2.0f, 0.0f), glm::vec3(0.0f, -0.5f, 1.0f));
     Renderer renderer(window, camera);
     input_manager.add_handler(std::make_unique<CameraHandler>(camera));
 
     const auto generation_start_time = timer.get_time();
     World world = WorldGenerator::generate_initial(
-        renderer.build_frustum(),
         renderer.get_physical_device(),
         &renderer.get_logical_device());
     const auto generation_elapsed_time = timer.get_time() - generation_start_time;

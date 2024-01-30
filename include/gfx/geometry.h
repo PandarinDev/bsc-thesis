@@ -1,50 +1,22 @@
 #pragma once
 
-#include <glm/vec2.hpp>
-#include <glm/vec3.hpp>
-#include <glm/matrix.hpp>
+#include "gfx/vk/vertex.h"
 
-#include <array>
-#include <optional>
+#include <glm/vec3.hpp>
+
+#include <vector>
 
 namespace inf::gfx {
 
-    struct Line2D {
+    struct Cube {
 
-        float slope;
-        float offset;
+        Cube() = delete;
 
-        Line2D(float slope, float offset);
-
-        std::optional<float> intersect(const Line2D& other) const;
-        glm::vec2 point_at(float x) const;
-
-    };
-
-    struct Plane {
-
-        glm::vec3 normal;
-        float distance;
-
-        Plane(const glm::vec4& vec);
-        Plane(const glm::vec3& normal, float distance);
-
-        glm::vec3 get_perpendicular(bool towards_z) const;
-
-    };
-
-    struct Frustum {
-
-        Frustum(const glm::mat4& view_projection_matrix);
-
-        bool is_inside(const glm::vec3& block_coordinate) const;
-
-    private:
-
-        static std::array<Plane, 6> extract_planes(const glm::mat4& view_projection_matrix);
-
-        glm::mat4 view_projection_matrix;
-        std::array<Plane, 6> planes;
+        static void add_to(
+            std::vector<vk::Vertex>& vertices,
+            const glm::vec3& from,
+            const glm::vec3& to,
+            const glm::vec3& color);
 
     };
 
