@@ -37,6 +37,11 @@ namespace inf::gfx::vk {
             std::memcpy(data, &value, sizeof(value));
         }
 
+        template<typename T>
+        void upload(const std::vector<T>& vec) const {
+            std::memcpy(data, vec.data(), vec.size() * sizeof(T));
+        }
+
         void upload(const void* data, std::size_t size) const;
 
     private:

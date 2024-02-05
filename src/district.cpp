@@ -1,11 +1,18 @@
 #include "district.h"
+#include "gfx/renderer.h"
 
 namespace inf {
 
     District::District(
         DistrictType type,
-        const BoundingBox2D& bounding_box) :
+        const std::pair<int, int>& capacity) :
         type(type),
-        bounding_box(bounding_box) {}
+        capacity(capacity) {}
+
+    void District::render(const gfx::Renderer& renderer) const {
+        for (const auto& building : buildings) {
+            renderer.render(building.mesh);
+        }
+    }
 
 }

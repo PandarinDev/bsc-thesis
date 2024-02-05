@@ -1,5 +1,6 @@
 #pragma once
 
+#include "common.h"
 #include "world.h"
 #include "camera.h"
 #include "wfc/rule.h"
@@ -12,28 +13,22 @@
 
 namespace inf {
 
-    using WorldRule = wfc::Rule<World, Cell>;
-
     struct WorldGenerator {
 
         static World generate_initial(
             const gfx::vk::PhysicalDevice& physical_device,
             const gfx::vk::LogicalDevice* logical_device);
 
-        WorldGenerator(
-            World* world,
+        WorldGenerator(World* world);
+
+        void generate(
             const gfx::vk::PhysicalDevice& physical_device,
             const gfx::vk::LogicalDevice* logical_device);
-
-        void generate();
 
     private:
 
         World* world;
-        std::mt19937 random_engine;
-        std::vector<std::unique_ptr<WorldRule>> rules;
-
-        void collapse(Cell& cell);
+        RandomGenerator random_engine;
 
     };
 

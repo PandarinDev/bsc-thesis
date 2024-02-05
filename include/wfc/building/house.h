@@ -1,32 +1,17 @@
 #pragma once
 
-#include "world.h"
-#include "wfc/rule.h"
+#include "common.h"
+#include "wfc/building/building.h"
+#include "gfx/vk/device.h"
 
 namespace inf::wfc::building {
 
-    struct HouseRule final : public Rule<World, Cell> {
+    struct HouseGenerator {
 
-        HouseRule(
-            const gfx::vk::PhysicalDevice& physical_device,
-            const gfx::vk::LogicalDevice* logical_device);
+        HouseGenerator() = delete;
 
-        bool matches(const World& world, const Cell& cell) override;
-        void apply(World& world, Cell& cell) override;
-
-    private:
-
-        const gfx::vk::PhysicalDevice& physical_device;
-        const gfx::vk::LogicalDevice* logical_device;
-
-    };
-
-
-    struct HouseMeshGenerator {
-
-        HouseMeshGenerator() = delete;
-
-        static gfx::Mesh generate_mesh(
+        static Building generate(
+            RandomGenerator& rng,
             const gfx::vk::PhysicalDevice& physical_device,
             const gfx::vk::LogicalDevice* logical_device);
 
