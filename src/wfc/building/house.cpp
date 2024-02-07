@@ -110,7 +110,7 @@ namespace inf::wfc::building {
             logical_device,
             gfx::vk::BufferType::VERTEX_BUFFER,
             vertices.size() * sizeof(gfx::vk::Vertex));
-        vertex_buffer.upload(vertex_buffer);
+        vertex_buffer.upload(vertices);
         gfx::Mesh mesh(std::move(vertex_buffer), vertices.size(), glm::mat4(1.0f));
         return Building(BuildingType::HOUSE, Direction::SOUTH, std::move(mesh));
     }
