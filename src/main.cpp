@@ -24,6 +24,11 @@ int main() {
     Renderer renderer(window, camera);
     input_manager.add_handler(std::make_unique<CameraHandler>(camera));
 
+    const auto asset_load_start_time = timer.get_time();
+    wfc::BuildingPatterns::initialize("assets/buildings");
+    const auto asset_load_elapsed_time = timer.get_time() - asset_load_start_time;
+    std::cout << "Asset loading took " << asset_load_elapsed_time << " seconds." << std::endl;
+
     const auto generation_start_time = timer.get_time();
     World world = WorldGenerator::generate_initial(
         renderer.get_physical_device(),

@@ -37,3 +37,11 @@ TEST_CASE("StringUtils::split()") {
     }
 
 }
+
+TEST_CASE("StringUtils::to_uppercase()") {
+
+    SECTION("Uppercases the input string") {
+        REQUIRE(StringUtils::to_uppercase("foobar") == "FOOBAR");
+    }
+
+}

@@ -2,14 +2,7 @@
 
 #include "common.h"
 #include "world.h"
-#include "camera.h"
-#include "wfc/rule.h"
-#include "gfx/geometry.h"
 #include "gfx/vk/device.h"
-
-#include <vector>
-#include <memory>
-#include <random>
 
 namespace inf {
 

@@ -3,6 +3,9 @@
     "dependencies": [
       "glfw3",
       "catch2",
-      "glm"
+      "glm",
+      "nlohmann-json",
+      "cpp-base64",
+      "magic-enum"
     ]
   }

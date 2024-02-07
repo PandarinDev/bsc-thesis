@@ -1,0 +1,29 @@
+{
+    "name": "house",
+    "dimensions": {
+        "width": {
+            "min": 5,
+            "max": 10
+        },
+        "depth": {
+            "min": 2,
+            "max": 6
+        },
+        "height": {
+            "min": 2,
+            "max": 2
+        }
+    },
+    "meshes": [
+        {
+            "name": "corner",
+            "data": "AAAAvwAAAD8AAAA/AACAvwAAAIAAAACAAAAAvwAAAL8AAAC/AACAvwAAAIAAAACAAAAAvwAAAL8AAAA/AACAvwAAAIAAAACAAAAAPwAAAD8AAAA/AAAAgAAAAIAAAIA/AAAAvwAAAL8AAAA/AAAAgAAAAIAAAIA/AAAAPwAAAL8AAAA/AAAAgAAAAIAAAIA/AAAAvwAAAD8AAAA/AACAvwAAAIAAAACAAAAAvwAAAD8AAAC/AACAvwAAAIAAAACAAAAAvwAAAL8AAAC/AACAvwAAAIAAAACAAAAAPwAAAD8AAAA/AAAAgAAAAIAAAIA/AAAAvwAAAD8AAAA/AAAAgAAAAIAAAIA/AAAAvwAAAL8AAAA/AAAAgAAAAIAAAIA/",
+            "filters": ["corner"]
+        },
+        {
+            "name": "wall",
+            "data": "AAAAPwAAAD8AAAA/AAAAgAAAAIAAAIA/AAAAvwAAAL8AAAA/AAAAgAAAAIAAAIA/AAAAPwAAAL8AAAA/AAAAgAAAAIAAAIA/AAAAPwAAAD8AAAA/AAAAgAAAAIAAAIA/AAAAvwAAAD8AAAA/AAAAgAAAAIAAAIA/AAAAvwAAAL8AAAA/AAAAgAAAAIAAAIA/",
+            "filters": ["edge"]
+        }
+    ]
+}

@@ -1,5 +1,8 @@
 #include "utils/string_utils.h"
 
+#include <cctype>
+#include <algorithm>
+
 namespace inf::utils {
 
     std::vector<std::string_view> StringUtils::split(std::string_view input, char delimiter) {
@@ -18,6 +21,12 @@ namespace inf::utils {
             result.emplace_back(input.substr(start_idx));
         }
 
+        return result;
+    }
+
+    std::string StringUtils::to_uppercase(std::string_view input) {
+        std::string result(input);
+        std::transform(result.begin(), result.end(), result.begin(), ::toupper);
         return result;
     }
 

@@ -1,10 +1,6 @@
 #include "generator.h"
-#include "wfc/building/house.h"
 
 namespace inf {
-
-    static constexpr auto WORLD_INITIAL_WIDTH = 50;
-    static constexpr auto WORLD_INITIAL_HEIGHT = 50;
 
     World WorldGenerator::generate_initial(
         const gfx::vk::PhysicalDevice& physical_device,
@@ -25,11 +21,7 @@ namespace inf {
         const gfx::vk::LogicalDevice* logical_device) {
         // TODO: For now we focus on building generation, so always generate a single district with a single building
         District district(DistrictType::RESIDENTAL, std::make_pair(1, 1));
-        district.buildings.emplace_back(wfc::building::HouseGenerator::generate(
-            random_engine,
-            physical_device,
-            logical_device
-        ));
+        district.buildings.emplace_back(wfc::BuildingPatterns::get_pattern("house")->instantiate(random_engine, physical_device, logical_device));
         world->districts.emplace_back(std::move(district));
     }
 

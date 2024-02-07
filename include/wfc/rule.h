@@ -9,49 +9,18 @@
 
 namespace inf::wfc {
 
-    template<typename ContextType, typename InstanceType>
-    struct Rule {
-
-        using MatchFunction = std::function<bool(const ContextType&, const InstanceType&)>;
-        using ApplyFunction = std::function<void(ContextType&, InstanceType&)>;
-
-        float weight;
-
-        Rule(const MatchFunction& match_rule, const ApplyFunction& apply_rule) :
-            Rule(match_rule, apply_rule, 1.0f) {}
-
-        Rule(const MatchFunction& match_rule, const ApplyFunction& apply_rule, float weight) :
-            match_rule(match_rule),
-            apply_rule(apply_rule),
-            weight(weight) {}
-
-        bool matches(const ContextType& context, const InstanceType& instance) const {
-            return match_rule(context, instance);
-        }
-
-        void apply(ContextType& context, InstanceType& instance) const {
-            apply_rule(context, instance);
-        }
-
-    private:
-
-        MatchFunction match_rule;
-        ApplyFunction apply_rule;
-
-    };
-
-    template<typename ContextType, typename InstanceType>
+    template<typename ContextType, typename InstanceType, typename RuleType>
     void wfc_collapse(
         RandomGenerator& rng,
         ContextType& context,
         std::vector<InstanceType>& cells,
-        const std::vector<Rule<ContextType, InstanceType>>& rules) {
+        const std::vector<RuleType>& rules) {
         std::unordered_set<InstanceType*> uncollapsed_cells;
         for (auto& cell : cells) {
             uncollapsed_cells.emplace(&cell);
         }
 
-        using Entropy = std::unordered_map<InstanceType*, std::vector<const Rule<ContextType, InstanceType>*>>;
+        using Entropy = std::unordered_map<InstanceType*, std::vector<const RuleType*>>;
         while (!uncollapsed_cells.empty()) {
             Entropy entropy;
             for (auto cell : uncollapsed_cells) {
@@ -62,7 +31,7 @@ namespace inf::wfc {
                             it = entropy.emplace(
                                 std::piecewise_construct,
                                 std::forward_as_tuple(cell),
-                                std::forward_as_tuple(std::vector<const Rule<ContextType, InstanceType>*>{})).first;
+                                std::forward_as_tuple(std::vector<const RuleType*>{})).first;
                         }
                         it->second.emplace_back(&rule);
                     }

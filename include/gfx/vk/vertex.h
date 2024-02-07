@@ -4,6 +4,8 @@
 #include <glad/vulkan.h>
 
 #include <array>
+#include <string>
+#include <vector>
 
 namespace inf::gfx::vk {
 
@@ -17,6 +19,7 @@ namespace inf::gfx::vk {
 
         static VkVertexInputBindingDescription get_binding_description();
         static std::array<VkVertexInputAttributeDescription, 3> get_attribute_descriptions();
+        static std::vector<Vertex> from_bytes(const std::string& bytes);
 
     };
 
