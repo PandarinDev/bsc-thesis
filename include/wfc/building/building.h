@@ -28,6 +28,7 @@ namespace inf::wfc {
         glm::ivec3 position;
         bool is_corner;
         bool is_edge;
+        float rotate_y;
         const BuildingMesh* mesh;
     };
 

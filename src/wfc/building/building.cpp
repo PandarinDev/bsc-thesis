@@ -6,6 +6,7 @@
 #include <nlohmann/json.hpp>
 #include <magic_enum.hpp>
 #include <cpp-base64/base64.h>
+#include <glm/gtc/matrix_transform.hpp>
 
 #include <fstream>
 #include <stdexcept>
@@ -58,22 +59,45 @@ namespace inf::wfc {
         for (std::size_t x = 0; x < width; ++x) {
             for (std::size_t y = 0; y < height; ++y) {
                 for (std::size_t z = 0; z < depth; ++z) {
-                    BuildingCell cell;
+                    BuildingCell cell{};
                     cell.position = glm::ivec3(x, y, z);
-                    cell.is_edge =
-                        x == 0 || x == width - 1 ||
-                        y == 0 || y == height - 1 ||
-                        z == 0 || z == depth - 1;
                     cell.is_corner =
                         (x == 0 || x == width - 1) &&
-                        (y == 0 || y == height - 1) &&
                         (z == 0 || z == depth - 1);
+                    cell.is_edge = !cell.is_corner &&
+                        (x == 0 || x == width - 1 ||
+                        z == 0 || z == depth - 1);
+                    // Apply corner rotations
+                    if (cell.is_corner) {
+                        if (x == width - 1 && z == 0) {
+                            cell.rotate_y = glm::radians(90.0f);
+                        }
+                        else if (x == width - 1 && z == depth - 1) {
+                            cell.rotate_y = glm::radians(180.0f);
+                        }
+                        else if (x == 0 && z == depth - 1) {
+                            cell.rotate_y = glm::radians(270.0f);
+                        }
+                    }
+                    // Apply edge rotations
+                    else if (cell.is_edge) {
+                        if (x == width - 1) {
+                            cell.rotate_y = glm::radians(90.0f);
+                        }
+                        else if (z == depth - 1) {
+                            cell.rotate_y = glm::radians(180.0f);
+                        }
+                        else if (x == 0) {
+                            cell.rotate_y = glm::radians(270.0f);
+                        }
+                    }
                     cell.mesh = nullptr;
                     cells.push_back(cell);
                 }
             }
         }
         wfc_collapse(rng, context, cells, meshes);
+        
 
         // Generate a mesh from the resulting cells
         std::vector<gfx::vk::Vertex> vertices;
@@ -81,7 +105,13 @@ namespace inf::wfc {
             if (!cell.mesh) {
                 continue;
             }
-            vertices.insert(vertices.end(), cell.mesh->vertices.cbegin(), cell.mesh->vertices.cend());
+            glm::mat4 transformation(1.0f);
+            transformation = glm::translate(transformation, glm::vec3(cell.position.x, cell.position.y, -cell.position.z));
+            transformation = glm::rotate(transformation, cell.rotate_y, glm::vec3(0.0f, 1.0f, 0.0f));
+            for (auto vertex : cell.mesh->vertices) {
+                vertex.position = glm::vec3(transformation * glm::vec4(vertex.position, 1.0f));
+                vertices.push_back(std::move(vertex));
+            }
         }
         auto vertex_buffer = gfx::vk::MappedBuffer::create(
             physical_device,
