@@ -5,6 +5,7 @@
 #include "gfx/vk/device.h"
 #include "gfx/vk/vertex.h"
 #include "wfc/rule.h"
+#include "bounding_box.h"
 
 #include <glm/vec3.hpp>
 
@@ -63,8 +64,9 @@ namespace inf::wfc {
     struct Building {
 
         gfx::Mesh mesh;
+        BoundingBox3D bounding_box;
 
-        Building(gfx::Mesh&& mesh);
+        Building(gfx::Mesh&& mesh, const BoundingBox3D& bounding_box);
 
     };
 

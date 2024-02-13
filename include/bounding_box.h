@@ -1,18 +1,17 @@
 #pragma once
 
-#include <glm/vec2.hpp>
+#include <glm/vec3.hpp>
 
 namespace inf {
 
-    struct BoundingBox2D {
+    struct BoundingBox3D {
 
-        glm::ivec2 lower;
-        glm::ivec2 higher;
+        glm::vec3 min;
+        glm::vec3 max;
 
-        BoundingBox2D(const glm::ivec2& lower, const glm::ivec2& higher);
-        BoundingBox2D(int low_x, int low_y, int high_x, int high_y);
+        BoundingBox3D(const glm::vec3& min, const glm::vec3& max);
 
-        bool contains(const glm::ivec2& coordinate) const;
+        void update(const glm::vec3& position);
 
     };
 

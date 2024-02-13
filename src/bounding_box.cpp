@@ -2,17 +2,16 @@
 
 namespace inf {
 
-    BoundingBox2D::BoundingBox2D(const glm::ivec2& lower, const glm::ivec2& higher) :
-        lower(lower), higher(higher) {}
+    BoundingBox3D::BoundingBox3D(const glm::vec3& min, const glm::vec3& max) :
+        min(min), max(max) {}
 
-    BoundingBox2D::BoundingBox2D(int low_x, int low_y, int high_x, int high_y) :
-        lower(low_x, low_y), higher(high_x, high_y) {}
-
-    bool BoundingBox2D::contains(const glm::ivec2& coordinate) const {
-        return coordinate.x >= lower.x &&
-            coordinate.y >= lower.y &&
-            coordinate.x <= higher.x &&
-            coordinate.y <= higher.y;
+    void BoundingBox3D::update(const glm::vec3& position) {
+        if (position.x < min.x) min.x = position.x;
+        if (position.y < min.y) min.y = position.y;
+        if (position.z < min.z) min.z = position.z;
+        if (position.x > max.x) max.x = position.x;
+        if (position.y > max.y) max.y = position.y;
+        if (position.z > max.z) max.z = position.z;
     }
 
 }

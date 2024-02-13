@@ -1,4 +1,4 @@
-#include "wfc/building/building.h"
+#include "wfc/building.h"
 #include "wfc/rule.h"
 #include "gfx/vk/vertex.h"
 #include "utils/string_utils.h"
@@ -114,16 +114,23 @@ namespace inf::wfc {
 
         // Generate a mesh from the resulting cells
         std::vector<gfx::vk::Vertex> vertices;
+        static constexpr auto float_max = std::numeric_limits<float>::max();
+        static constexpr auto float_min = std::numeric_limits<float>::min();
+
+        BoundingBox3D bounding_box(
+            glm::vec3(float_max, float_max, float_max),
+            glm::vec3(float_min, float_min, float_min));
         for (const auto& cell : cells) {
             if (!cell.mesh) {
                 continue;
             }
-            glm::mat4 transformation(1.0f);
-            transformation = glm::translate(transformation, glm::vec3(cell.position.x, cell.position.y, -cell.position.z));
-            transformation = glm::rotate(transformation, cell.rotate_y, glm::vec3(0.0f, 1.0f, 0.0f));
+            glm::mat4 rotation_matrix = glm::rotate(glm::mat4(1.0f), cell.rotate_y, glm::vec3(0.0f, 1.0f, 0.0f));
+            glm::mat4 transformation = glm::translate(glm::mat4(1.0f), glm::vec3(cell.position.x, cell.position.y, -cell.position.z)) * rotation_matrix;
             for (auto vertex : cell.mesh->vertices) {
                 vertex.position = glm::vec3(transformation * glm::vec4(vertex.position, 1.0f));
+                vertex.normal = glm::vec3(rotation_matrix * glm::vec4(vertex.normal, 1.0f));
                 vertices.push_back(std::move(vertex));
+                bounding_box.update(vertex.position);
             }
         }
         auto vertex_buffer = gfx::vk::MappedBuffer::create(
@@ -132,7 +139,7 @@ namespace inf::wfc {
             gfx::vk::BufferType::VERTEX_BUFFER,
             sizeof(gfx::vk::Vertex) * vertices.size());
         vertex_buffer.upload(vertices);
-        return Building(gfx::Mesh(std::move(vertex_buffer), vertices.size(), glm::mat4(1.0f)));
+        return Building(gfx::Mesh(std::move(vertex_buffer), vertices.size(), glm::mat4(1.0f)), bounding_box);
     }
 
     void BuildingPatterns::initialize(const std::filesystem::path& buildings_path) {
@@ -227,6 +234,7 @@ namespace inf::wfc {
         return &it->second;
     }
 
-    Building::Building(gfx::Mesh&& mesh) : mesh(std::move(mesh)) {}
+    Building::Building(gfx::Mesh&& mesh, const BoundingBox3D& bounding_box) :
+        mesh(std::move(mesh)), bounding_box(bounding_box) {}
 
 }

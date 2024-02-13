@@ -10,6 +10,9 @@ namespace inf {
         capacity(capacity) {}
 
     void District::render(const gfx::Renderer& renderer) const {
+        for (const auto& road : roads) {
+            renderer.render(road.mesh);
+        }
         for (const auto& building : buildings) {
             renderer.render(building.mesh);
         }
