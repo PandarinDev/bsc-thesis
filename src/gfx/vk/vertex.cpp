@@ -44,8 +44,7 @@ namespace inf::gfx::vk {
     }
 
     std::vector<Vertex> Vertex::from_bytes(const std::string& bytes_str) {
-        // TODO: There is currently no color data encoded in the binary format so we assume it to be black
-        static constexpr auto floats_per_vertex = 6;
+        static constexpr auto floats_per_vertex = 9;
         const auto num_vertices = bytes_str.size() / sizeof(float) / floats_per_vertex;
         const float* data = reinterpret_cast<const float*>(bytes_str.data());
         std::vector<Vertex> result;
@@ -53,7 +52,7 @@ namespace inf::gfx::vk {
             result.emplace_back(
                 glm::vec3(data[0], data[1], data[2]),
                 glm::vec3(data[3], data[4], data[5]),
-                glm::vec3(0.0f, 0.0f, 0.0f)
+                glm::vec3(data[6], data[7], data[8])
             );
             data += floats_per_vertex;
         }

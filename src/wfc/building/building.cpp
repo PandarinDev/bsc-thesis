@@ -15,25 +15,39 @@ namespace inf::wfc {
 
     std::unordered_map<std::string, BuildingPattern> BuildingPatterns::patterns;
 
+    bool EdgeBuildingPatternFilter::operator()(const BuildingContext&, const BuildingCell& cell) const {
+        return cell.is_edge;
+    }
+
+    bool CornerBuildingPatternFilter::operator()(const BuildingContext&, const BuildingCell& cell) const {
+        return cell.is_corner;
+    }
+
+    NegationBuildingPatternFilter::NegationBuildingPatternFilter(std::unique_ptr<BuildingPatternFilter> filter) :
+        filter(std::move(filter)) {}
+
+    bool NegationBuildingPatternFilter::operator()(const BuildingContext& context, const BuildingCell& cell) const {
+        return std::visit([&](auto&& callable) { return !callable(context, cell); }, *filter);
+    }
+
     BuildingMesh::BuildingMesh(
         const std::string& name,
         std::vector<gfx::vk::Vertex>&& vertices,
-        std::vector<BuildingPatternFilterType>&& filters) :
+        std::vector<BuildingPatternFilter>&& filters,
+        const std::optional<int>& height) :
         name(name),
         vertices(std::move(vertices)),
-        filters(std::move(filters)) {}
+        filters(std::move(filters)),
+        height(height) {}
 
-    bool BuildingMesh::matches(const BuildingContext&, const BuildingCell& cell) const {
+    bool BuildingMesh::matches(const BuildingContext& context, const BuildingCell& cell) const {
         bool all_filters_passed = true;
         for (const auto& filter : filters) {
-            switch (filter) {
-                case BuildingPatternFilterType::CORNER:
-                    all_filters_passed = all_filters_passed && cell.is_corner;
-                    break;
-                case BuildingPatternFilterType::EDGE:
-                    all_filters_passed = all_filters_passed && cell.is_edge;
-                    break;
-            }
+            all_filters_passed = all_filters_passed && std::visit([&](auto&& callable) { return callable(context, cell); }, filter);
+        }
+        // Apply height restriction if present
+        if (height.has_value()) {
+            all_filters_passed = all_filters_passed && cell.position.y == height.value();
         }
         return all_filters_passed;
     }
@@ -97,7 +111,6 @@ namespace inf::wfc {
             }
         }
         wfc_collapse(rng, context, cells, meshes);
-        
 
         // Generate a mesh from the resulting cells
         std::vector<gfx::vk::Vertex> vertices;
@@ -162,18 +175,46 @@ namespace inf::wfc {
                 auto vertices = gfx::vk::Vertex::from_bytes(base64_decode(data));
 
                 // Parse mesh filters
-                std::vector<BuildingPatternFilterType> filters;
-                for (const auto& filter : mesh_obj["filters"]) {
-                    const auto filter_str = utils::StringUtils::to_uppercase(filter.get<std::string>());
-                    const auto maybe_filter = magic_enum::enum_cast<BuildingPatternFilterType>(filter_str);
-                    if (!maybe_filter) {
-                        throw std::runtime_error("Failed to parse filter '" + filter_str + "'.");
+                std::vector<BuildingPatternFilter> filters;
+                for (const auto& filter_obj : mesh_obj["filters"]) {
+                    auto filter_str = utils::StringUtils::to_uppercase(filter_obj.get<std::string>());
+                    if (filter_str.empty()) {
+                        continue;
                     }
-                    filters.emplace_back(maybe_filter.value());
+                    // Check if the filter is negated
+                    bool negated = filter_str[0] == '!';
+                    if (negated) {
+                        filter_str = filter_str.substr(1);
+                    }
+                    const auto maybe_filter_type = magic_enum::enum_cast<BuildingPatternFilterType>(filter_str);
+                    if (!maybe_filter_type) {
+                        throw std::runtime_error("Failed to parse filter type '" + filter_str + "'.");
+                    }
+                    const auto filter_type = *maybe_filter_type;
+                    BuildingPatternFilter filter;
+                    switch (filter_type) {
+                        case BuildingPatternFilterType::CORNER:
+                            filter = CornerBuildingPatternFilter();
+                            break;
+                        case BuildingPatternFilterType::EDGE:
+                            filter = EdgeBuildingPatternFilter();
+                            break;
+                        default: throw std::runtime_error("Unhandled filter type for '" + filter_str + "'.");
+                    }
+                    if (negated) {
+                        filter = NegationBuildingPatternFilter(std::make_unique<BuildingPatternFilter>(std::move(filter)));
+                    }
+                    filters.emplace_back(std::move(filter));
+                }
+
+                // Parse height restriction if present
+                std::optional<int> height_restriction;
+                if (mesh_obj.contains("height")) {
+                    height_restriction = mesh_obj["height"].get<int>();
                 }
 
                 // Store the building mesh
-                pattern.meshes.emplace_back(mesh_name, std::move(vertices), std::move(filters));
+                pattern.meshes.emplace_back(mesh_name, std::move(vertices), std::move(filters), height_restriction);
             }
         }
     }

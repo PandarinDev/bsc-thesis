@@ -8,8 +8,11 @@
 
 #include <glm/vec3.hpp>
 
+#include <memory>
 #include <string>
 #include <vector>
+#include <variant>
+#include <optional>
 #include <filesystem>
 #include <unordered_map>
 
@@ -32,6 +35,31 @@ namespace inf::wfc {
         const BuildingMesh* mesh;
     };
 
+    struct EdgeBuildingPatternFilter {
+        bool operator()(const BuildingContext&, const BuildingCell&) const;
+    };
+
+    struct CornerBuildingPatternFilter {
+        bool operator()(const BuildingContext&, const BuildingCell&) const;
+    };
+
+    struct NegationBuildingPatternFilter;
+
+    using BuildingPatternFilter = std::variant<
+        EdgeBuildingPatternFilter,
+        CornerBuildingPatternFilter,
+        NegationBuildingPatternFilter>;
+
+    struct NegationBuildingPatternFilter {
+
+        // This needs to be pointer, otherwise the type starts depending on it's own size
+        std::unique_ptr<BuildingPatternFilter> filter;
+
+        NegationBuildingPatternFilter(std::unique_ptr<BuildingPatternFilter> filter);
+
+        bool operator()(const BuildingContext&, const BuildingCell&) const;
+    };
+
     struct Building {
 
         gfx::Mesh mesh;
@@ -44,12 +72,14 @@ namespace inf::wfc {
 
         std::string name;
         std::vector<gfx::vk::Vertex> vertices;
-        std::vector<BuildingPatternFilterType> filters;
+        std::vector<BuildingPatternFilter> filters;
+        std::optional<int> height;
 
         BuildingMesh(
             const std::string& name,
             std::vector<gfx::vk::Vertex>&& vertices,
-            std::vector<BuildingPatternFilterType>&& filters);
+            std::vector<BuildingPatternFilter>&& filters,
+            const std::optional<int>& height);
 
         bool matches(const BuildingContext& context, const BuildingCell& cell) const;
         void apply(BuildingContext& context, BuildingCell& cell) const;
