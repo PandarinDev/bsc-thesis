@@ -6,6 +6,8 @@
 #include "gfx/renderer.h"
 #include "input/input_manager.h"
 #include "input/camera_handler.h"
+#include "wfc/building.h"
+#include "wfc/ground.h"
 #include "utils/file_utils.h"
 
 #include <iostream>
@@ -26,6 +28,7 @@ int main() {
 
     const auto asset_load_start_time = timer.get_time();
     wfc::BuildingPatterns::initialize("assets/buildings");
+    wfc::GroundPatterns::initialize("assets/grounds", renderer.get_physical_device(), &renderer.get_logical_device());
     const auto asset_load_elapsed_time = timer.get_time() - asset_load_start_time;
     std::cout << "Asset loading took " << asset_load_elapsed_time << " seconds." << std::endl;
 
@@ -46,6 +49,9 @@ int main() {
     }
     // Wait until the device becomes idle (flushes queues) to destroy in a well-defined state
     renderer.get_logical_device().wait_until_idle();
+    // Ground pattern meshes are not dynamically generated, so they are statically stored.
+    // Hence, they need to be cleaned up explicitly before shutdown to avoid validation layers complaining.
+    wfc::GroundPatterns::deinitialize();
     glfwTerminate();
     return 0;
 }

@@ -1,6 +1,8 @@
 #include "district.h"
 #include "gfx/renderer.h"
 
+#include <limits>
+
 namespace inf {
 
     District::District(
@@ -9,12 +11,29 @@ namespace inf {
         type(type),
         capacity(capacity) {}
 
+    BoundingBox3D District::compute_bounding_box() const {
+        static constexpr auto float_min = std::numeric_limits<float>::min();
+        static constexpr auto float_max = std::numeric_limits<float>::max();
+        BoundingBox3D result(
+            glm::vec3(float_max, float_max, float_max),
+            glm::vec3(float_min, float_min, float_min));
+        for (const auto& building : buildings) {
+            const auto building_bb = building.get_bounding_box();
+            result.update(building_bb.min);
+            result.update(building_bb.max);
+        }
+        return result;
+    }
+
     void District::render(const gfx::Renderer& renderer) const {
-        for (const auto& road : roads) {
-            renderer.render(road.mesh);
+        // TODO: Ground meshes are not dynamically generated with WFC, so instead of assigning
+        // a mesh to each there should be a mesh pool that the instances choose from.
+        for (auto& ground : grounds) {
+            ground.mesh.set_model_matrix(glm::translate(glm::mat4(1.0f), ground.position));
+            renderer.render(ground.mesh);
         }
         for (const auto& building : buildings) {
-            renderer.render(building.mesh);
+            renderer.render(building.get_mesh());
         }
     }
 

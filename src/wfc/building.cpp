@@ -235,6 +235,25 @@ namespace inf::wfc {
     }
 
     Building::Building(gfx::Mesh&& mesh, const BoundingBox3D& bounding_box) :
-        mesh(std::move(mesh)), bounding_box(bounding_box) {}
+        Building(std::move(mesh), bounding_box, glm::vec3()) {}
+
+    Building::Building(gfx::Mesh&& mesh, const BoundingBox3D& bounding_box, const glm::vec3& position) :
+        mesh(std::move(mesh)), bounding_box(bounding_box), position(position) {}
+
+    const gfx::Mesh& Building::get_mesh() const {
+        return mesh;
+    }
+
+    BoundingBox3D Building::get_bounding_box() const {
+        BoundingBox3D result(bounding_box);
+        result.min += position;
+        result.max += position;
+        return result;
+    }
+    
+    void Building::set_position(const glm::vec3& position) {
+        this->position = position;
+        mesh.set_model_matrix(glm::translate(glm::mat4(1.0f), position));
+    }
 
 }

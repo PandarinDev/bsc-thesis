@@ -39,6 +39,7 @@ namespace inf::gfx {
         // Create render pass and graphics pipeline
         const auto& swap_chain_extent = swap_chain->get_extent();
         const auto is_msaa_2x_supported = physical_device->is_sample_count_supported(VK_SAMPLE_COUNT_2_BIT);
+        // TODO: There seems to be an issue with MSAA messing up the color space (and leaving black streaks when moving the camera fast)
         const auto sample_count = is_msaa_2x_supported ? VK_SAMPLE_COUNT_2_BIT : VK_SAMPLE_COUNT_1_BIT;
         render_pass = std::make_unique<vk::RenderPass>(vk::RenderPass::create_render_pass(
             logical_device.get(), swap_chain->get_format(), sample_count));

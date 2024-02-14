@@ -2,7 +2,7 @@
 
 #include "bounding_box.h"
 #include "wfc/building.h"
-#include "wfc/road.h"
+#include "wfc/ground.h"
 
 #include <vector>
 #include <utility>
@@ -22,12 +22,13 @@ namespace inf {
         DistrictType type;
         std::pair<int, int> capacity;
         std::vector<wfc::Building> buildings;
-        std::vector<wfc::Road> roads;
+        std::vector<wfc::Ground> grounds;
 
         District(
             DistrictType type,
             const std::pair<int, int>& capacity);
 
+        BoundingBox3D compute_bounding_box() const;
         void render(const gfx::Renderer& renderer) const;
 
     };

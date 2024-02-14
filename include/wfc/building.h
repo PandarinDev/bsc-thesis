@@ -63,10 +63,22 @@ namespace inf::wfc {
 
     struct Building {
 
+        Building(gfx::Mesh&& mesh, const BoundingBox3D& bounding_box);
+        Building(
+            gfx::Mesh&& mesh,
+            const BoundingBox3D& bounding_box,
+            const glm::vec3& position);
+
+        const gfx::Mesh& get_mesh() const;
+        BoundingBox3D get_bounding_box() const;
+
+        void set_position(const glm::vec3& position);
+
+    private:
+
         gfx::Mesh mesh;
         BoundingBox3D bounding_box;
-
-        Building(gfx::Mesh&& mesh, const BoundingBox3D& bounding_box);
+        glm::vec3 position;
 
     };
 
@@ -87,7 +99,6 @@ namespace inf::wfc {
         void apply(BuildingContext& context, BuildingCell& cell) const;
 
     };
-
 
     struct BuildingDimensions {
 
