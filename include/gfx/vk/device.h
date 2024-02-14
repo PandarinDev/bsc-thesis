@@ -79,6 +79,8 @@ namespace inf::gfx::vk {
         // This is only a valid operation if the physical device supports the surface format
         SwapChainSupport query_swap_chain_support(const Surface& surface) const;
 
+        bool is_sample_count_supported(VkSampleCountFlagBits sample_count_bits) const;
+
     private:
 
         VkPhysicalDevice device;

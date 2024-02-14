@@ -15,7 +15,10 @@ namespace inf::gfx::vk {
 
     struct RenderPass {
 
-        static RenderPass create_render_pass(const LogicalDevice* device, VkFormat swap_chain_format);
+        static RenderPass create_render_pass(
+            const LogicalDevice* device,
+            VkFormat swap_chain_format,
+            VkSampleCountFlagBits samples);
 
         RenderPass(const LogicalDevice* device, const VkRenderPass& render_pass);
         ~RenderPass();
@@ -46,7 +49,8 @@ namespace inf::gfx::vk {
             const RenderPass& render_pass,
             const VkExtent2D& swap_chain_extent,
             const DescriptorSetLayout& descriptor_set_layout,
-            const std::vector<Shader>& shaders);
+            const std::vector<Shader>& shaders,
+            VkSampleCountFlagBits samples);
         
         Pipeline(const LogicalDevice* device, const VkPipelineLayout& layout, const VkPipeline& pipeline);
         ~Pipeline();

@@ -1,6 +1,6 @@
 #include "gfx/vk/framebuffer.h"
 
-#include <array>
+#include <vector>
 #include <utility>
 #include <stdexcept>
 
@@ -11,11 +11,13 @@ namespace inf::gfx::vk {
         const RenderPass& render_pass,
         const ImageView& image_view,
         const ImageView& depth_image_view,
+        const ImageView* color_image_view,
         const VkExtent2D& swap_chain_extent) {
-        std::array<VkImageView, 2> image_view_handles {
-            image_view.get_image_view(),
-            depth_image_view.get_image_view()
-        };
+        // If a color image view is passed in explicitly it means that multisampling is used,
+        // and we should be using the regular image view as the resolve attachment (at position 2).
+        std::vector<VkImageView> image_view_handles = color_image_view
+            ? std::vector<VkImageView>{ color_image_view->get_image_view(), depth_image_view.get_image_view(), image_view.get_image_view() }
+            : std::vector<VkImageView>{ image_view.get_image_view(), depth_image_view.get_image_view() };
         VkFramebufferCreateInfo framebuffer_create_info{};
         framebuffer_create_info.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
         framebuffer_create_info.renderPass = render_pass.get_render_pass();

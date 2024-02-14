@@ -20,7 +20,8 @@ namespace inf::gfx::vk {
             std::uint32_t height,
             VkFormat format,
             VkImageTiling tiling,
-            VkImageUsageFlags usage);
+            VkImageUsageFlags usage,
+            VkSampleCountFlagBits samples);
 
         Image(const LogicalDevice* device, VkImage image, VkDeviceMemory image_memory);
         ~Image();

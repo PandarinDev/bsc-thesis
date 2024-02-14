@@ -6,22 +6,31 @@
 #include <glm/matrix.hpp>
 
 #include <array>
+#include <vector>
+#include <optional>
 #include <utility>
 #include <stdexcept>
 
 namespace inf::gfx::vk {
 
-    RenderPass RenderPass::create_render_pass(const LogicalDevice* device, VkFormat swap_chain_format) {
+    RenderPass RenderPass::create_render_pass(
+        const LogicalDevice* device,
+        VkFormat swap_chain_format,
+        VkSampleCountFlagBits samples) {
         // Create a color attachment
         VkAttachmentDescription color_attachment{};
         color_attachment.format = swap_chain_format;
-        color_attachment.samples = VK_SAMPLE_COUNT_1_BIT;
+        color_attachment.samples = samples;
         color_attachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
         color_attachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
         color_attachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
         color_attachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
         color_attachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-        color_attachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+        // If we are using multisampling the color attachment cannot be presented directly,
+        // we need to attach a resolve attachment instead where the samples will be resolved.
+        color_attachment.finalLayout = samples > VK_SAMPLE_COUNT_1_BIT
+            ? VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
+            : VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
 
         VkAttachmentReference color_attachment_reference{};
         color_attachment_reference.attachment = 0;
@@ -30,7 +39,7 @@ namespace inf::gfx::vk {
         // Create a depth attachment
         VkAttachmentDescription depth_attachment{};
         depth_attachment.format = VK_FORMAT_D32_SFLOAT;
-        depth_attachment.samples = VK_SAMPLE_COUNT_1_BIT;
+        depth_attachment.samples = samples;
         depth_attachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
         depth_attachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
         depth_attachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
@@ -42,12 +51,36 @@ namespace inf::gfx::vk {
         depth_attachment_reference.attachment = 1;
         depth_attachment_reference.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
+        // Create a resolve attachment if necessary because of multisampling
+        std::optional<VkAttachmentDescription> maybe_resolve_attachment;
+        std::optional<VkAttachmentReference> maybe_resolve_attachment_reference;
+        if (samples > VK_SAMPLE_COUNT_1_BIT) {
+            VkAttachmentDescription color_attachment_resolve{};
+            color_attachment_resolve.format = swap_chain_format;
+            color_attachment_resolve.samples = VK_SAMPLE_COUNT_1_BIT;
+            color_attachment_resolve.loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+            color_attachment_resolve.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+            color_attachment_resolve.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+            color_attachment_resolve.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+            color_attachment_resolve.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+            color_attachment_resolve.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+            maybe_resolve_attachment = std::move(color_attachment_resolve);
+
+            VkAttachmentReference resolve_attachment_reference{};
+            resolve_attachment_reference.attachment = 2;
+            resolve_attachment_reference.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;   
+            maybe_resolve_attachment_reference = std::move(resolve_attachment_reference);
+        }
+
         // Create subpass
         VkSubpassDescription subpass{};
         subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
         subpass.colorAttachmentCount = 1;
         subpass.pColorAttachments = &color_attachment_reference;
         subpass.pDepthStencilAttachment = &depth_attachment_reference;
+        if (maybe_resolve_attachment_reference.has_value()) {
+            subpass.pResolveAttachments = &maybe_resolve_attachment_reference.value();
+        }
 
         VkSubpassDependency subpass_dependency{};
         subpass_dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
@@ -63,14 +96,16 @@ namespace inf::gfx::vk {
             VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT |
             VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
 
+        // If we are using multisampling the color data needs to be written to the multisampled
+        // color attachment (0), so the color attachment needs to come first and the resolve
+        // attachment needs to be last.
+        std::vector<VkAttachmentDescription> attachments = maybe_resolve_attachment.has_value()
+            ? std::vector<VkAttachmentDescription>{ color_attachment, depth_attachment, maybe_resolve_attachment.value() }
+            : std::vector<VkAttachmentDescription>{ color_attachment, depth_attachment };
         // Create render pass
-        std::array<VkAttachmentDescription, 2> attachments {
-            color_attachment,
-            depth_attachment
-        };
         VkRenderPassCreateInfo render_pass_create_info{};
         render_pass_create_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
-        render_pass_create_info.attachmentCount = 2;
+        render_pass_create_info.attachmentCount = static_cast<std::uint32_t>(attachments.size());
         render_pass_create_info.pAttachments = attachments.data();
         render_pass_create_info.subpassCount = 1;
         render_pass_create_info.pSubpasses = &subpass;
@@ -137,7 +172,8 @@ namespace inf::gfx::vk {
         const RenderPass& render_pass,
         const VkExtent2D& swap_chain_extent,
         const DescriptorSetLayout& descriptor_set_layout,
-        const std::vector<Shader>& shaders) {
+        const std::vector<Shader>& shaders,
+        VkSampleCountFlagBits samples) {
         // Create shader stages
         std::vector<VkPipelineShaderStageCreateInfo> shader_stage_create_infos;
         for (const auto& shader : shaders) {
@@ -219,7 +255,7 @@ namespace inf::gfx::vk {
         VkPipelineMultisampleStateCreateInfo multisample_create_info{};
         multisample_create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
         multisample_create_info.sampleShadingEnable = VK_FALSE;
-        multisample_create_info.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
+        multisample_create_info.rasterizationSamples = samples;
 
         // Color blending
         VkPipelineColorBlendAttachmentState color_blend_attachment{};

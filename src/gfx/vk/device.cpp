@@ -303,6 +303,13 @@ namespace inf::gfx::vk {
         return swap_chain_support;
     }
 
+    bool PhysicalDevice::is_sample_count_supported(VkSampleCountFlagBits sample_count_bits) const {
+        const auto max_sample_count =
+            properties.limits.framebufferColorSampleCounts &
+            properties.limits.framebufferDepthSampleCounts;
+        return max_sample_count & sample_count_bits;
+    }
+
     PhysicalDevice Device::choose_optimal_device(const Instance& instance, const Surface& surface) {
         std::uint32_t device_count = 0;
         vkEnumeratePhysicalDevices(instance.get_instance(), &device_count, nullptr);

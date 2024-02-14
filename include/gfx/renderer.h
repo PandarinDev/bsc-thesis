@@ -63,6 +63,8 @@ namespace inf::gfx {
         std::vector<VkDescriptorSet> descriptor_sets;
         std::unique_ptr<vk::RenderPass> render_pass;
         std::unique_ptr<vk::Pipeline> pipeline;
+        std::unique_ptr<vk::Image> color_image;
+        std::unique_ptr<vk::ImageView> color_image_view;
         std::unique_ptr<vk::DepthBuffer> depth_buffer;
         std::vector<vk::Framebuffer> framebuffers;
         std::unique_ptr<vk::CommandPool> command_pool;

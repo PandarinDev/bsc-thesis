@@ -37,17 +37,40 @@ namespace inf::gfx {
         descriptor_set_layout = std::make_unique<vk::DescriptorSetLayout>(vk::DescriptorSetLayout::create(logical_device.get(), 0, vk::ShaderType::VERTEX));
 
         // Create render pass and graphics pipeline
-        render_pass = std::make_unique<vk::RenderPass>(vk::RenderPass::create_render_pass(logical_device.get(), swap_chain->get_format()));
-        pipeline = std::make_unique<vk::Pipeline>(vk::Pipeline::create_pipeline(logical_device.get(), *render_pass, swap_chain->get_extent(), *descriptor_set_layout, shaders));
+        const auto& swap_chain_extent = swap_chain->get_extent();
+        const auto is_msaa_2x_supported = physical_device->is_sample_count_supported(VK_SAMPLE_COUNT_2_BIT);
+        const auto sample_count = is_msaa_2x_supported ? VK_SAMPLE_COUNT_2_BIT : VK_SAMPLE_COUNT_1_BIT;
+        render_pass = std::make_unique<vk::RenderPass>(vk::RenderPass::create_render_pass(
+            logical_device.get(), swap_chain->get_format(), sample_count));
+        pipeline = std::make_unique<vk::Pipeline>(vk::Pipeline::create_pipeline(
+            logical_device.get(), *render_pass, swap_chain->get_extent(), *descriptor_set_layout, shaders, sample_count));
+
+        // Create a separate color image if necessary because of multisampling
+        // If not necessary (sample count = 1), we use the swapchain image instead.
+        if (sample_count > VK_SAMPLE_COUNT_1_BIT) {
+            color_image = std::make_unique<vk::Image>(vk::Image::create(
+                logical_device.get(),
+                *physical_device,
+                swap_chain_extent.width,
+                swap_chain_extent.height,
+                swap_chain->get_format(),
+                VK_IMAGE_TILING_OPTIMAL,
+                VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
+                sample_count));
+            
+            color_image_view = std::make_unique<vk::ImageView>(vk::ImageView::create(
+                logical_device.get(), color_image->get_image(), swap_chain->get_format(), VK_IMAGE_ASPECT_COLOR_BIT));
+        }
 
         // Create depth buffer
-        const auto& swap_chain_extent = swap_chain->get_extent();
-        depth_buffer = std::make_unique<vk::DepthBuffer>(vk::DepthBuffer::create(logical_device.get(), *physical_device, swap_chain_extent));
+        depth_buffer = std::make_unique<vk::DepthBuffer>(vk::DepthBuffer::create(
+            logical_device.get(), *physical_device, swap_chain_extent, sample_count));
         const auto& depth_image_view = depth_buffer->get_image_view();
 
         // Create framebuffers for swapchain images
         for (const auto& image_view : swap_chain->get_image_views()) {
-            framebuffers.emplace_back(vk::Framebuffer::create_from_image_view(logical_device.get(), *render_pass, image_view, depth_image_view, swap_chain_extent));
+            framebuffers.emplace_back(vk::Framebuffer::create_from_image_view(
+                logical_device.get(), *render_pass, image_view, depth_image_view, color_image_view.get(), swap_chain_extent));
         }
 
         // Create a command pool, allocate command buffers and semaphores/fences required for swapping framebuffers
