@@ -1,5 +1,7 @@
 #include "gfx/vk/descriptor.h"
 
+#include <array>
+#include <string>
 #include <utility>
 #include <stdexcept>
 
@@ -7,18 +9,11 @@ namespace inf::gfx::vk {
 
     DescriptorSetLayout DescriptorSetLayout::create(
         const LogicalDevice* device,
-        std::uint32_t binding,
-        ShaderType shader_type) {
-        VkDescriptorSetLayoutBinding layout_binding{};
-        layout_binding.binding = binding;
-        layout_binding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-        layout_binding.descriptorCount = 1;
-        layout_binding.stageFlags = static_cast<VkShaderStageFlags>(shader_type);
-
+        const std::vector<VkDescriptorSetLayoutBinding>& bindings) {
         VkDescriptorSetLayoutCreateInfo layout_create_info{};
         layout_create_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-        layout_create_info.bindingCount = 1;
-        layout_create_info.pBindings = &layout_binding;
+        layout_create_info.bindingCount = static_cast<std::uint32_t>(bindings.size());
+        layout_create_info.pBindings = bindings.data();
 
         VkDescriptorSetLayout descriptor_set_layout;
         if (vkCreateDescriptorSetLayout(device->get_device(), &layout_create_info, nullptr, &descriptor_set_layout) != VK_SUCCESS) {
@@ -52,14 +47,16 @@ namespace inf::gfx::vk {
     }
 
     DescriptorPool DescriptorPool::create(const LogicalDevice* device, std::uint32_t size) {
-        VkDescriptorPoolSize pool_size{};
-        pool_size.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-        pool_size.descriptorCount = size;
+        std::array<VkDescriptorPoolSize, 2> pool_sizes;
+        pool_sizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        pool_sizes[0].descriptorCount = size;
+        pool_sizes[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        pool_sizes[1].descriptorCount = size;
 
         VkDescriptorPoolCreateInfo pool_create_info{};
         pool_create_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-        pool_create_info.poolSizeCount = 1;
-        pool_create_info.pPoolSizes = &pool_size;
+        pool_create_info.poolSizeCount = static_cast<std::uint32_t>(pool_sizes.size());
+        pool_create_info.pPoolSizes = pool_sizes.data();
         pool_create_info.maxSets = size;
 
         VkDescriptorPool descriptor_pool;
@@ -94,41 +91,69 @@ namespace inf::gfx::vk {
         return descriptor_pool;
     }
 
-    std::vector<VkDescriptorSet> DescriptorPool::allocate_sets_for_buffers(
-        const DescriptorSetLayout& layout,
-        const std::vector<VkBuffer>& buffers) const {
-        std::vector<VkDescriptorSetLayout> layout_handles(buffers.size(), layout.get_descriptor_set_layout());
+    std::vector<VkDescriptorSet> DescriptorPool::allocate_sets(
+            const DescriptorSetLayout& layout,
+            std::vector<std::vector<VkWriteDescriptorSet>>& write_descriptor_sets,
+            std::uint32_t number_of_sets_to_create) const {
+        // Each set uses the same layout
+        std::vector<VkDescriptorSetLayout> layout_handles(number_of_sets_to_create, layout.get_descriptor_set_layout());
         VkDescriptorSetAllocateInfo set_allocate_info{};
         set_allocate_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
         set_allocate_info.descriptorPool = descriptor_pool;
-        set_allocate_info.descriptorSetCount = static_cast<std::uint32_t>(buffers.size());
+        set_allocate_info.descriptorSetCount = number_of_sets_to_create;
         set_allocate_info.pSetLayouts = layout_handles.data();
 
-        std::vector<VkDescriptorSet> descriptor_sets(buffers.size());
-        if (vkAllocateDescriptorSets(device->get_device(), &set_allocate_info, descriptor_sets.data()) != VK_SUCCESS) {
-            throw std::runtime_error("Failed to allocate Vulkan descriptor sets.");
+        std::vector<VkDescriptorSet> descriptor_sets(number_of_sets_to_create);
+        if (const auto result = vkAllocateDescriptorSets(
+            device->get_device(), &set_allocate_info, descriptor_sets.data()); result != VK_SUCCESS) {
+            throw std::runtime_error("Failed to allocate Vulkan descriptor sets: " + std::to_string(result));
         }
 
         // Update descriptors to point to their respective buffer
-        for (std::size_t i = 0; i < buffers.size(); ++i) {
-            VkDescriptorBufferInfo buffer_info{};
-            buffer_info.buffer = buffers[i];
-            buffer_info.offset = 0;
-            buffer_info.range = VK_WHOLE_SIZE;
+        for (std::size_t i = 0; i < number_of_sets_to_create; ++i) {
+            // Update write descriptor sets to point to the correct destination
+            for (auto& write_descriptor : write_descriptor_sets[i]) {
+                write_descriptor.dstSet = descriptor_sets[i];
+            }
 
-            VkWriteDescriptorSet write_descriptor_set{};
-            write_descriptor_set.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-            write_descriptor_set.dstSet = descriptor_sets[i];
-            write_descriptor_set.dstBinding = 0;
-            write_descriptor_set.dstArrayElement = 0;
-            write_descriptor_set.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-            write_descriptor_set.descriptorCount = 1;
-            write_descriptor_set.pBufferInfo = &buffer_info;
-
-            vkUpdateDescriptorSets(device->get_device(), 1, &write_descriptor_set, 0, nullptr);
+            vkUpdateDescriptorSets(
+                device->get_device(),
+                static_cast<std::uint32_t>(write_descriptor_sets[i].size()),
+                write_descriptor_sets[i].data(),
+                0, nullptr);
         }
 
         return descriptor_sets;
+    }
+
+    VkWriteDescriptorSet WriteDescriptorSet::create_for_buffer(
+        const VkDescriptorBufferInfo& buffer_info,
+        std::uint32_t binding) {
+        VkWriteDescriptorSet write_descriptor{};
+        write_descriptor.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        // Important: dstSet will be configured by allocateSets()
+        write_descriptor.dstBinding = binding;
+        write_descriptor.dstArrayElement = 0;
+        write_descriptor.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        write_descriptor.descriptorCount = 1;
+        write_descriptor.pBufferInfo = &buffer_info;
+
+        return write_descriptor;
+    }
+
+    VkWriteDescriptorSet WriteDescriptorSet::create_for_sampler(
+        const VkDescriptorImageInfo& image_info,
+        std::uint32_t binding) {
+        VkWriteDescriptorSet write_descriptor{};
+        write_descriptor.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        // Important: dstSet will be configured by allocateSets()
+        write_descriptor.dstBinding = binding;
+        write_descriptor.dstArrayElement = 0;
+        write_descriptor.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        write_descriptor.descriptorCount = 1;
+        write_descriptor.pImageInfo = &image_info;
+
+        return write_descriptor;
     }
 
 }

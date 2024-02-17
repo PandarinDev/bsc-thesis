@@ -19,6 +19,7 @@ namespace inf::gfx::vk {
             const LogicalDevice* device,
             VkFormat swap_chain_format,
             VkSampleCountFlagBits samples);
+        static RenderPass create_shadow_render_pass(const LogicalDevice* device);
 
         RenderPass(const LogicalDevice* device, const VkRenderPass& render_pass);
         ~RenderPass();
@@ -32,7 +33,8 @@ namespace inf::gfx::vk {
         void begin(
             const Framebuffer& framebuffer,
             const VkExtent2D& swap_chain_extent,
-            const CommandBuffer& command_buffer) const;
+            const CommandBuffer& command_buffer,
+            const std::vector<VkClearValue>& clear_values) const;
         void end(const CommandBuffer& command_buffer) const;
 
     private:

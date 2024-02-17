@@ -5,14 +5,15 @@
 
 #include <glad/vulkan.h>
 
+#include <vector>
+
 namespace inf::gfx::vk {
 
     struct DescriptorSetLayout {
 
         static DescriptorSetLayout create(
             const LogicalDevice* device,
-            std::uint32_t binding,
-            ShaderType shader_type);
+            const std::vector<VkDescriptorSetLayoutBinding>& bindings);
 
         DescriptorSetLayout(const LogicalDevice* device, const VkDescriptorSetLayout& descriptor_set_layout);
         ~DescriptorSetLayout();
@@ -43,14 +44,30 @@ namespace inf::gfx::vk {
 
         VkDescriptorPool get_descriptor_pool() const;
 
-        std::vector<VkDescriptorSet> allocate_sets_for_buffers(
+        std::vector<VkDescriptorSet> allocate_sets(
             const DescriptorSetLayout& layout,
-            const std::vector<VkBuffer>& buffers) const;
+            std::vector<std::vector<VkWriteDescriptorSet>>& write_descriptor_sets,
+            std::uint32_t number_of_sets_to_create) const;
 
     private:
 
         const LogicalDevice* device;
         VkDescriptorPool descriptor_pool;
+
+    };
+
+    struct WriteDescriptorSet {
+
+
+        static VkWriteDescriptorSet create_for_buffer(
+            const VkDescriptorBufferInfo& buffer_info,
+            std::uint32_t binding);
+
+        static VkWriteDescriptorSet create_for_sampler(
+            const VkDescriptorImageInfo& image_info,
+            std::uint32_t binding);
+            
+        WriteDescriptorSet() = delete;
 
     };
 

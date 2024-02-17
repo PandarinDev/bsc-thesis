@@ -13,6 +13,7 @@
 #include "gfx/vk/descriptor.h"
 #include "gfx/vk/buffer.h"
 #include "gfx/vk/depth_buffer.h"
+#include "gfx/vk/sampler.h"
 #include "gfx/mesh.h"
 
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
@@ -44,10 +45,19 @@ namespace inf::gfx {
         const vk::LogicalDevice& get_logical_device() const;
 
         void begin_frame();
-        void render(const Mesh& mesh) const;
+        void render(const Mesh& mesh);
         void end_frame();
 
     private:
+
+        // Because when we render the same mesh multiple times we modify the model matrix
+        // in between render calls, so the model matrix needs to be stored at the time of
+        // the render call.
+        // TODO: This would be solved (along with better performance) by moving to instanced rendering.
+        struct MeshToRender {
+            const Mesh* mesh;
+            const glm::mat4 model_matrix;
+        };
 
         const Camera& camera;
         std::uint32_t image_index;
@@ -58,22 +68,33 @@ namespace inf::gfx {
         std::unique_ptr<vk::LogicalDevice> logical_device;
         std::unique_ptr<vk::SwapChain> swap_chain;
         std::vector<vk::Shader> shaders;
+        std::vector<vk::Shader> shadow_map_shaders;
         std::unique_ptr<vk::DescriptorPool> descriptor_pool;
         std::unique_ptr<vk::DescriptorSetLayout> descriptor_set_layout;
+        std::unique_ptr<vk::DescriptorSetLayout> shadow_map_descriptor_set_layout;
         std::vector<VkDescriptorSet> descriptor_sets;
+        VkDescriptorSet shadow_map_descriptor_set;
         std::unique_ptr<vk::RenderPass> render_pass;
+        std::unique_ptr<vk::RenderPass> shadow_map_render_pass;
         std::unique_ptr<vk::Pipeline> pipeline;
+        std::unique_ptr<vk::Pipeline> shadow_map_pipeline;
         std::unique_ptr<vk::Image> color_image;
         std::unique_ptr<vk::ImageView> color_image_view;
         std::unique_ptr<vk::DepthBuffer> depth_buffer;
+        std::unique_ptr<vk::DepthBuffer> shadow_map_depth_buffer;
         std::vector<vk::Framebuffer> framebuffers;
+        std::unique_ptr<vk::Framebuffer> shadow_map_framebuffer;
+        std::unique_ptr<vk::Sampler> shadow_map_sampler;
         std::unique_ptr<vk::CommandPool> command_pool;
         std::vector<vk::CommandBuffer> command_buffers;
         std::vector<vk::Semaphore> image_available_semaphores;
         std::vector<vk::Semaphore> render_finished_semaphores;
         std::vector<vk::Fence> in_flight_fences;
         std::vector<vk::MappedBuffer> uniform_buffers;
+        std::unique_ptr<vk::MappedBuffer> shadow_map_uniform_buffer;
         glm::mat4 projection_matrix;
+        glm::mat4 shadow_map_projection_matrix;
+        std::vector<MeshToRender> meshes_to_draw;
 
     };
 

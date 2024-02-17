@@ -11,7 +11,8 @@ namespace inf::gfx::vk {
             const LogicalDevice* logical_device,
             const PhysicalDevice& physical_device,
             const VkExtent2D& swap_chain_extent,
-            VkSampleCountFlagBits samples);
+            VkSampleCountFlagBits samples,
+            bool is_sampled);
 
         DepthBuffer(Image&& image, ImageView&& image_view);
 

@@ -29,7 +29,7 @@ namespace inf {
             const std::pair<int, int>& capacity);
 
         BoundingBox3D compute_bounding_box() const;
-        void render(const gfx::Renderer& renderer) const;
+        void render(gfx::Renderer& renderer) const;
 
     };
 

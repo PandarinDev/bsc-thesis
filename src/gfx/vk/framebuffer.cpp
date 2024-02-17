@@ -34,6 +34,28 @@ namespace inf::gfx::vk {
         return Framebuffer(device, framebuffer);
     }
 
+    Framebuffer Framebuffer::create_for_shadow_map(
+        const LogicalDevice* device,
+        const RenderPass& render_pass,
+        const ImageView& image_view,
+        const VkExtent2D& extent) {
+        const auto image_view_handle = image_view.get_image_view();
+        VkFramebufferCreateInfo framebuffer_create_info{};
+        framebuffer_create_info.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+        framebuffer_create_info.renderPass = render_pass.get_render_pass();
+        framebuffer_create_info.attachmentCount = 1;
+        framebuffer_create_info.pAttachments = &image_view_handle;
+        framebuffer_create_info.width = extent.width;
+        framebuffer_create_info.height = extent.height;
+        framebuffer_create_info.layers = 1;
+
+        VkFramebuffer framebuffer;
+        if (vkCreateFramebuffer(device->get_device(), &framebuffer_create_info, nullptr, &framebuffer) != VK_SUCCESS) {
+            throw std::runtime_error("Failed to create Vulkan framebuffer for shadow map.");
+        }
+        return Framebuffer(device, framebuffer);
+    }
+
     Framebuffer::Framebuffer(const LogicalDevice* device, const VkFramebuffer& framebuffer) :
         device(device),
         framebuffer(framebuffer) {}

@@ -119,6 +119,56 @@ namespace inf::gfx::vk {
         return RenderPass(device, render_pass);
     }
 
+    RenderPass RenderPass::create_shadow_render_pass(const LogicalDevice* device) {
+        // Same as the regular depth attachment, except we want to store the results (and we don't do multisampling)
+        VkAttachmentDescription depth_attachment{};
+        depth_attachment.format = VK_FORMAT_D32_SFLOAT;
+        depth_attachment.samples = VK_SAMPLE_COUNT_1_BIT;
+        depth_attachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+        depth_attachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+        depth_attachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+        depth_attachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+        depth_attachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+        depth_attachment.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL;
+
+        VkAttachmentReference depth_attachment_reference{};
+        depth_attachment_reference.attachment = 0;
+        depth_attachment_reference.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
+        VkSubpassDescription subpass{};
+        subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+        subpass.pDepthStencilAttachment = &depth_attachment_reference;
+
+        VkSubpassDependency subpass_dependency{};
+        subpass_dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
+        subpass_dependency.dstSubpass = 0;
+        subpass_dependency.srcStageMask =
+            VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT |
+            VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
+        subpass_dependency.srcAccessMask = 0;
+        subpass_dependency.dstStageMask =
+            VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT |
+            VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
+        subpass_dependency.dstAccessMask =
+            VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT |
+            VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+        // Create render pass
+        VkRenderPassCreateInfo render_pass_create_info{};
+        render_pass_create_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
+        render_pass_create_info.attachmentCount = 1;
+        render_pass_create_info.pAttachments = &depth_attachment;
+        render_pass_create_info.subpassCount = 1;
+        render_pass_create_info.pSubpasses = &subpass;
+        render_pass_create_info.dependencyCount = 1;
+        render_pass_create_info.pDependencies = &subpass_dependency;
+
+        VkRenderPass render_pass;
+        if (vkCreateRenderPass(device->get_device(), &render_pass_create_info, nullptr, &render_pass) != VK_SUCCESS) {
+            throw std::runtime_error("Failed to create Vulkan render pass for shadow map.");
+        }
+        return RenderPass(device, render_pass);
+    }
+
     RenderPass::RenderPass(const LogicalDevice* device, const VkRenderPass& render_pass) :
         device(device),
         render_pass(render_pass) {}
@@ -147,18 +197,15 @@ namespace inf::gfx::vk {
     void RenderPass::begin(
         const Framebuffer& framebuffer,
         const VkExtent2D& swap_chain_extent,
-        const CommandBuffer& command_buffer) const {
-        std::array<VkClearValue, 2> clear_values;
-        clear_values[0].color = {{ 0.0f, 0.1f, 0.95f, 1.0f }};
-        clear_values[1].depthStencil = { 1.0f, 0 };
-
+        const CommandBuffer& command_buffer,
+        const std::vector<VkClearValue>& clear_values) const {
         VkRenderPassBeginInfo render_pass_begin_info{};
         render_pass_begin_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
         render_pass_begin_info.renderPass = render_pass;
         render_pass_begin_info.framebuffer = framebuffer.get_framebuffer();
         render_pass_begin_info.renderArea.offset = { 0, 0 };
         render_pass_begin_info.renderArea.extent = swap_chain_extent;
-        render_pass_begin_info.clearValueCount = 2;
+        render_pass_begin_info.clearValueCount = static_cast<std::uint32_t>(clear_values.size());
         render_pass_begin_info.pClearValues = clear_values.data();
         vkCmdBeginRenderPass(command_buffer.get_command_buffer(), &render_pass_begin_info, VK_SUBPASS_CONTENTS_INLINE);
     }

@@ -2,7 +2,7 @@
 
 namespace inf {
 
-    void World::render(const gfx::Renderer& renderer) {
+    void World::render(gfx::Renderer& renderer) {
         for (const auto& district : districts) {
             district.render(renderer);
         }

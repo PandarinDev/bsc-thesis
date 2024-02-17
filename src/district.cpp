@@ -25,7 +25,7 @@ namespace inf {
         return result;
     }
 
-    void District::render(const gfx::Renderer& renderer) const {
+    void District::render(gfx::Renderer& renderer) const {
         // TODO: Ground meshes are not dynamically generated with WFC, so instead of assigning
         // a mesh to each there should be a mesh pool that the instances choose from.
         for (auto& ground : grounds) {

@@ -6,7 +6,8 @@ namespace inf::gfx::vk {
         const LogicalDevice* logical_device,
         const PhysicalDevice& physical_device,
         const VkExtent2D& swap_chain_extent,
-        VkSampleCountFlagBits samples) {
+        VkSampleCountFlagBits samples,
+        bool is_sampled) {
         static constexpr auto depth_format = VK_FORMAT_D32_SFLOAT;
         auto image = Image::create(
             logical_device,
@@ -15,7 +16,9 @@ namespace inf::gfx::vk {
             swap_chain_extent.height,
             depth_format,
             VK_IMAGE_TILING_OPTIMAL,
-            VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
+            is_sampled
+                ? VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT
+                : VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
             samples);
         auto image_view = ImageView::create(
             logical_device,
