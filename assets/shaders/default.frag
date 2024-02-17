@@ -5,5 +5,6 @@ layout(location = 1) in vec3 fragNormal;
 layout(location = 0) out vec4 outColor;
 
 void main() {
-    outColor = vec4(fragColor, 1.0);
+    float lightFactor = max(dot(fragNormal, vec3(0.57735026919, 0.57735026919, 0.57735026919)), 0.2);
+    outColor = vec4(lightFactor * fragColor, 1.0);
 }
