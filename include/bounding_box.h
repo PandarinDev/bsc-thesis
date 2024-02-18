@@ -11,6 +11,7 @@ namespace inf {
 
         BoundingBox3D(const glm::vec3& min, const glm::vec3& max);
 
+        glm::vec3 center() const;
         void update(const glm::vec3& position);
 
     };

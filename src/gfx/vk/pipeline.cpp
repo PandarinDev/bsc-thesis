@@ -220,7 +220,8 @@ namespace inf::gfx::vk {
         const VkExtent2D& swap_chain_extent,
         const DescriptorSetLayout& descriptor_set_layout,
         const std::vector<Shader>& shaders,
-        VkSampleCountFlagBits samples) {
+        VkSampleCountFlagBits samples,
+        const std::optional<PipelineDepthBias>& depth_bias) {
         // Create shader stages
         std::vector<VkPipelineShaderStageCreateInfo> shader_stage_create_infos;
         for (const auto& shader : shaders) {
@@ -296,7 +297,9 @@ namespace inf::gfx::vk {
         raster_create_info.lineWidth = 1.0f;
         raster_create_info.cullMode = VK_CULL_MODE_BACK_BIT;
         raster_create_info.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
-        raster_create_info.depthBiasEnable = VK_FALSE;
+        raster_create_info.depthBiasEnable = depth_bias ? VK_TRUE : VK_FALSE;
+        raster_create_info.depthBiasConstantFactor = depth_bias ? depth_bias->constant_factor : 0.0f;
+        raster_create_info.depthBiasSlopeFactor = depth_bias ? depth_bias->slope_factor : 0.0f;
 
         // Multisampling
         VkPipelineMultisampleStateCreateInfo multisample_create_info{};

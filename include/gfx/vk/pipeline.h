@@ -7,6 +7,7 @@
 #include <glad/vulkan.h>
 
 #include <vector>
+#include <optional>
 
 namespace inf::gfx::vk {
 
@@ -44,6 +45,11 @@ namespace inf::gfx::vk {
 
     };
 
+    struct PipelineDepthBias {
+        float constant_factor;
+        float slope_factor;
+    };
+
     struct Pipeline {
 
         static Pipeline create_pipeline(
@@ -52,7 +58,8 @@ namespace inf::gfx::vk {
             const VkExtent2D& swap_chain_extent,
             const DescriptorSetLayout& descriptor_set_layout,
             const std::vector<Shader>& shaders,
-            VkSampleCountFlagBits samples);
+            VkSampleCountFlagBits samples,
+            const std::optional<PipelineDepthBias>& depth_bias);
         
         Pipeline(const LogicalDevice* device, const VkPipelineLayout& layout, const VkPipeline& pipeline);
         ~Pipeline();

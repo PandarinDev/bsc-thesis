@@ -60,9 +60,10 @@ namespace inf::gfx {
             logical_device.get(), swap_chain->get_format(), sample_count));
         shadow_map_render_pass = std::make_unique<vk::RenderPass>(vk::RenderPass::create_shadow_render_pass(logical_device.get()));
         pipeline = std::make_unique<vk::Pipeline>(vk::Pipeline::create_pipeline(
-            logical_device.get(), *render_pass, swap_chain->get_extent(), *descriptor_set_layout, shaders, sample_count));
+            logical_device.get(), *render_pass, swap_chain->get_extent(), *descriptor_set_layout, shaders, sample_count, std::nullopt));
         shadow_map_pipeline = std::make_unique<vk::Pipeline>(vk::Pipeline::create_pipeline(
-            logical_device.get(), *shadow_map_render_pass, swap_chain->get_extent(), *shadow_map_descriptor_set_layout, shadow_map_shaders, VK_SAMPLE_COUNT_1_BIT));
+            logical_device.get(), *shadow_map_render_pass, swap_chain->get_extent(), *shadow_map_descriptor_set_layout,
+            shadow_map_shaders, VK_SAMPLE_COUNT_1_BIT, gfx::vk::PipelineDepthBias{ 1.25f, 1.75f }));
 
         // Create a separate color image if necessary because of multisampling
         // If not necessary (sample count = 1), we use the swapchain image instead.
@@ -161,9 +162,9 @@ namespace inf::gfx {
         projection_matrix[1][1] *= -1.0f;
 
         // Because we are using directional shadows the projection needs to be orthographic
-        // TODO: This needs to be a separate, orthographic matrix, but that did not seem
-        // to work for some reason. Debug and fix this ASAP.
-        shadow_map_projection_matrix = projection_matrix;
+        // TODO: Left, right, top, bottom needs to be calculated dynamically to fit content.
+        float aspect_ratio = static_cast<float>(swap_chain_extent.width) / swap_chain_extent.height;
+        shadow_map_projection_matrix = glm::ortho(-20.0f, 20.0f, 20.0f / aspect_ratio, -20.0f / aspect_ratio, 0.01f, 100.0f);
     }
 
     const vk::Instance& Renderer::get_vulkan_instance() const {
@@ -186,7 +187,7 @@ namespace inf::gfx {
         meshes_to_draw.emplace_back(MeshToRender{ &mesh, mesh.get_model_matrix() });
     }
 
-    void Renderer::end_frame() {
+    void Renderer::end_frame(const BoundingBox3D& bounding_box) {
         // Wait for the previous frame to finish
         in_flight_fences[frame_index].wait_for_and_reset();
 
@@ -236,7 +237,12 @@ namespace inf::gfx {
         // Upload uniform buffer data
         Matrices shadow_map_matrices;
         shadow_map_matrices.projection_matrix = shadow_map_projection_matrix;
-        shadow_map_matrices.view_matrix = camera.to_view_matrix();
+        glm::mat4 sun_view_matrix = glm::lookAt(
+            glm::vec3(bounding_box.max.x + 2.5f, bounding_box.max.y + 12.0f, bounding_box.max.z),
+            bounding_box.center(),
+            glm::vec3(0.0f, 1.0f, 0.0f));
+        shadow_map_matrices.view_matrix = sun_view_matrix;
+        shadow_map_matrices.light_space_matrix = glm::mat4(1.0f);
         shadow_map_uniform_buffer->upload(shadow_map_matrices);
 
         const auto command_buffer_handle = command_buffer.get_command_buffer();
@@ -278,6 +284,7 @@ namespace inf::gfx {
         Matrices matrices;
         matrices.projection_matrix = projection_matrix;
         matrices.view_matrix = camera.to_view_matrix();
+        matrices.light_space_matrix = shadow_map_projection_matrix * sun_view_matrix;
         uniform_buffers[frame_index].upload(matrices);
 
         // Render the meshes

@@ -1,5 +1,10 @@
 #pragma once
 
+// In this particular case we want to make sure GLM is included first, to ensure depth [0; 1] is applied
+#define GLM_FORCE_DEPTH_ZERO_TO_ONE
+#include <glm/matrix.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+
 #include "window.h"
 #include "camera.h"
 #include "gfx/geometry.h"
@@ -15,10 +20,7 @@
 #include "gfx/vk/depth_buffer.h"
 #include "gfx/vk/sampler.h"
 #include "gfx/mesh.h"
-
-#define GLM_FORCE_DEPTH_ZERO_TO_ONE
-#include <glm/matrix.hpp>
-#include <glm/gtc/matrix_transform.hpp>
+#include "bounding_box.h"
 
 #include <memory>
 #include <vector>
@@ -29,6 +31,7 @@ namespace inf::gfx {
     struct Matrices {
         glm::mat4 projection_matrix;
         glm::mat4 view_matrix;
+        glm::mat4 light_space_matrix;
     };
 
     struct Renderer {
@@ -46,7 +49,7 @@ namespace inf::gfx {
 
         void begin_frame();
         void render(const Mesh& mesh);
-        void end_frame();
+        void end_frame(const BoundingBox3D& bounding_box);
 
     private:
 

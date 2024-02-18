@@ -5,6 +5,10 @@ namespace inf {
     BoundingBox3D::BoundingBox3D(const glm::vec3& min, const glm::vec3& max) :
         min(min), max(max) {}
 
+    glm::vec3 BoundingBox3D::center() const {
+        return (min + max) * 0.5f;
+    }
+
     void BoundingBox3D::update(const glm::vec3& position) {
         if (position.x < min.x) min.x = position.x;
         if (position.y < min.y) min.y = position.y;
