@@ -63,7 +63,7 @@ namespace inf::gfx {
             logical_device.get(), *render_pass, swap_chain->get_extent(), *descriptor_set_layout, shaders, sample_count, std::nullopt));
         shadow_map_pipeline = std::make_unique<vk::Pipeline>(vk::Pipeline::create_pipeline(
             logical_device.get(), *shadow_map_render_pass, swap_chain->get_extent(), *shadow_map_descriptor_set_layout,
-            shadow_map_shaders, VK_SAMPLE_COUNT_1_BIT, gfx::vk::PipelineDepthBias{ 1.25f, 1.75f }));
+            shadow_map_shaders, VK_SAMPLE_COUNT_1_BIT, gfx::vk::PipelineDepthBias{ 2.0f, 2.5f }));
 
         // Create a separate color image if necessary because of multisampling
         // If not necessary (sample count = 1), we use the swapchain image instead.
