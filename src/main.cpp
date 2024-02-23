@@ -48,6 +48,15 @@ int main() {
             renderer.begin_frame();
             world.render(renderer);
             renderer.end_frame(world.districts[0].compute_bounding_box());
+
+            std::size_t in_view_counter = 0;
+            for (const auto& building : world.districts[0].buildings) {
+                // The model matrix application is part of computing the building bounding box
+                if (renderer.is_in_view(building.get_bounding_box())) {
+                    ++in_view_counter;
+                }
+            }
+            std::cout << "There are " << in_view_counter << " buildings in view.\n";
         }
         // Wait until the device becomes idle (flushes queues) to destroy in a well-defined state
         renderer.get_logical_device().wait_until_idle();

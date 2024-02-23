@@ -1,6 +1,7 @@
 #pragma once
 
 #include <glm/vec3.hpp>
+#include <glm/matrix.hpp>
 
 namespace inf {
 
@@ -13,6 +14,8 @@ namespace inf {
 
         glm::vec3 center() const;
         void update(const glm::vec3& position);
+
+        BoundingBox3D apply(const glm::mat4& transformation) const;
 
     };
 

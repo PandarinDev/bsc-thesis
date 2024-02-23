@@ -51,6 +51,10 @@ namespace inf::gfx {
         void render(const Mesh& mesh);
         void end_frame(const BoundingBox3D& bounding_box);
 
+        bool is_in_view(const BoundingBox3D& bounding_box) const;
+        const glm::mat4& get_projection_matrix() const;
+        const glm::mat4& get_view_matrix() const;
+
     private:
 
         // Because when we render the same mesh multiple times we modify the model matrix

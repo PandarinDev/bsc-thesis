@@ -245,10 +245,7 @@ namespace inf::wfc {
     }
 
     BoundingBox3D Building::get_bounding_box() const {
-        BoundingBox3D result(bounding_box);
-        result.min += position;
-        result.max += position;
-        return result;
+        return bounding_box.apply(mesh.get_model_matrix());
     }
     
     void Building::set_position(const glm::vec3& position) {
