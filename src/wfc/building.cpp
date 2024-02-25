@@ -115,7 +115,7 @@ namespace inf::wfc {
         // Generate a mesh from the resulting cells
         std::vector<gfx::vk::Vertex> vertices;
         static constexpr auto float_max = std::numeric_limits<float>::max();
-        static constexpr auto float_min = std::numeric_limits<float>::min();
+        static constexpr auto float_min = std::numeric_limits<float>::lowest();
 
         BoundingBox3D bounding_box(
             glm::vec3(float_max, float_max, float_max),
@@ -247,7 +247,7 @@ namespace inf::wfc {
     BoundingBox3D Building::get_bounding_box() const {
         return bounding_box.apply(mesh.get_model_matrix());
     }
-    
+
     void Building::set_position(const glm::vec3& position) {
         this->position = position;
         mesh.set_model_matrix(glm::translate(glm::mat4(1.0f), position));

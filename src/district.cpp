@@ -12,7 +12,7 @@ namespace inf {
         capacity(capacity) {}
 
     BoundingBox3D District::compute_bounding_box() const {
-        static constexpr auto float_min = std::numeric_limits<float>::min();
+        static constexpr auto float_min = std::numeric_limits<float>::lowest();
         static constexpr auto float_max = std::numeric_limits<float>::max();
         BoundingBox3D result(
             glm::vec3(float_max, float_max, float_max),

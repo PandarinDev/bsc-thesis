@@ -331,25 +331,20 @@ namespace inf::gfx {
     bool Renderer::is_in_view(const BoundingBox3D& bounding_box) const {
         // We expect the bounding box to already have the model matrix applied
         const auto view_matrix = camera.to_view_matrix();
-        auto projected_min = projection_matrix * view_matrix * glm::vec4(bounding_box.min, 1.0f);
-        auto projected_max = projection_matrix * view_matrix * glm::vec4(bounding_box.max, 1.0f);
-        // Do perspective division
-        projected_min /= projected_min.w;
-        projected_max /= projected_max.w;
-        // Note that the Vulkan NDC is [-1,1] in all directions, except Z where it is [0,1]
-        return projected_min.x >= -1.0f &&
-            projected_min.y >= -1.0f &&
-            projected_min.z >= 0.0f &&
-            projected_max.x <= 1.0f &&
-            projected_max.y <= 1.0f &&
-            projected_max.z <= 1.0f;
+        const auto projected_bb = bounding_box.apply_and_transform_to_ndc(projection_matrix * view_matrix);
+
+        // TODO: Do we need to check Z? Those vertices are probably clipped
+        return !(projected_bb.max.x < -1.0f ||
+            projected_bb.min.x > 1.0f ||
+            projected_bb.max.y < -1.0f ||
+            projected_bb.min.y > 1.0f);
     }
 
     const glm::mat4& Renderer::get_projection_matrix() const {
         return projection_matrix;
     }
 
-    const glm::mat4& Renderer::get_view_matrix() const {
+    glm::mat4 Renderer::get_view_matrix() const {
         return camera.to_view_matrix();
     }
 

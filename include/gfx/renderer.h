@@ -53,7 +53,7 @@ namespace inf::gfx {
 
         bool is_in_view(const BoundingBox3D& bounding_box) const;
         const glm::mat4& get_projection_matrix() const;
-        const glm::mat4& get_view_matrix() const;
+        glm::mat4 get_view_matrix() const;
 
     private:
 

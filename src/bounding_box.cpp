@@ -21,8 +21,8 @@ namespace inf {
         if (position.z > max.z) max.z = position.z;
     }
 
-    BoundingBox3D BoundingBox3D::apply(const glm::mat4& transformation) const {
-        std::array<glm::vec3, 8> points = {
+    std::array<glm::vec3, 8> BoundingBox3D::get_points() const {
+        return {
             min,                            // Front bottom left
             glm::vec3(min.x, max.y, min.z), // Front top left
             glm::vec3(max.x, max.y, min.z), // Front top right
@@ -32,21 +32,49 @@ namespace inf {
             glm::vec3(max.x, min.y, max.z), // Back bottom right
             glm::vec3(min.x, max.y, max.z)  // Back top left
         };
-        static constexpr auto min_float = std::numeric_limits<float>::min();
-        static constexpr auto max_float = std::numeric_limits<float>::max();
-        glm::vec3 new_min(max_float, max_float, max_float);
-        glm::vec3 new_max(min_float, min_float, min_float);
-        for (const auto& point : points) {
-            const auto transformed = glm::vec3(transformation * glm::vec4(point, 1.0f));
-            if (transformed.x < new_min.x) new_min.x = transformed.x;
-            if (transformed.x > new_max.x) new_max.x = transformed.x;
-            if (transformed.y < new_min.y) new_min.y = transformed.y;
-            if (transformed.y > new_max.y) new_max.y = transformed.y;
-            if (transformed.z < new_min.z) new_min.z = transformed.z;
-            if (transformed.z > new_max.z) new_max.z = transformed.z;
-        }
+    }
 
-        return BoundingBox3D(new_min, new_max);
+    BoundingBox3D BoundingBox3D::apply(const glm::mat4& transformation) const {
+        static constexpr auto min_float = std::numeric_limits<float>::lowest();
+        static constexpr auto max_float = std::numeric_limits<float>::max();
+        
+        BoundingBox3D result(
+            glm::vec3(max_float, max_float, max_float),
+            glm::vec3(min_float, min_float, min_float)
+        );
+        const auto points = get_points();
+        for (const auto& point : points) {
+            auto transformed = transformation * glm::vec4(point, 1.0f);
+            result.update(glm::vec3(transformed));
+        }
+        return result;
+    }
+
+    BoundingBox3D BoundingBox3D::apply_and_transform_to_ndc(const glm::mat4& transformation) const {
+        static constexpr auto min_float = std::numeric_limits<float>::lowest();
+        static constexpr auto max_float = std::numeric_limits<float>::max();
+        static const auto is_clipped = [](const glm::vec4& point) {
+            return
+                point.x < -point.w || point.x > point.w ||
+                point.y < -point.w || point.y > point.w ||
+                point.z < -point.w || point.z > point.w;
+        };
+
+        BoundingBox3D result(
+            glm::vec3(max_float, max_float, max_float),
+            glm::vec3(min_float, min_float, min_float)
+        );
+        const auto points = get_points();
+        for (const auto& point : points) {
+            auto transformed = transformation * glm::vec4(point, 1.0f);
+            // Apply clipping manually
+            if (is_clipped(transformed)) {
+                continue;
+            }
+            transformed /= transformed.w;
+            result.update(glm::vec3(transformed));
+        }
+        return result;
     }
 
 }

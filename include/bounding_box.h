@@ -3,6 +3,8 @@
 #include <glm/vec3.hpp>
 #include <glm/matrix.hpp>
 
+#include <array>
+
 namespace inf {
 
     struct BoundingBox3D {
@@ -14,8 +16,10 @@ namespace inf {
 
         glm::vec3 center() const;
         void update(const glm::vec3& position);
+        std::array<glm::vec3, 8> get_points() const;
 
         BoundingBox3D apply(const glm::mat4& transformation) const;
+        BoundingBox3D apply_and_transform_to_ndc(const glm::mat4& transformation) const;
 
     };
 
