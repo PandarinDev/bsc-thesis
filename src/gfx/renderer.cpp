@@ -167,6 +167,10 @@ namespace inf::gfx {
         shadow_map_projection_matrix = glm::ortho(-20.0f, 20.0f, 20.0f / aspect_ratio, -20.0f / aspect_ratio, 0.01f, 100.0f);
     }
 
+    const Camera& Renderer::get_camera() const {
+        return camera;
+    }
+
     const vk::Instance& Renderer::get_vulkan_instance() const {
         return *instance;
     }

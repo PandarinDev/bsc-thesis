@@ -5,11 +5,7 @@
 
 namespace inf {
 
-    District::District(
-        DistrictType type,
-        const std::pair<int, int>& capacity) :
-        type(type),
-        capacity(capacity) {}
+    District::District(DistrictType type) : type(type) {}
 
     BoundingBox3D District::compute_bounding_box() const {
         static constexpr auto float_min = std::numeric_limits<float>::lowest();

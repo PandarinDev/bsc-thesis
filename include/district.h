@@ -20,13 +20,10 @@ namespace inf {
     struct District {
 
         DistrictType type;
-        std::pair<int, int> capacity;
         std::vector<wfc::Building> buildings;
         std::vector<wfc::Ground> grounds;
 
-        District(
-            DistrictType type,
-            const std::pair<int, int>& capacity);
+        District(DistrictType type);
 
         BoundingBox3D compute_bounding_box() const;
         void render(gfx::Renderer& renderer) const;

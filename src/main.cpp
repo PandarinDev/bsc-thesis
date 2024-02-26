@@ -35,9 +35,7 @@ int main() {
         std::cout << "Asset loading took " << asset_load_elapsed_time << " seconds." << std::endl;
 
         const auto generation_start_time = timer.get_time();
-        World world = WorldGenerator::generate_initial(
-            renderer.get_physical_device(),
-            &renderer.get_logical_device());
+        World world = WorldGenerator::generate_initial(renderer);
         const auto generation_elapsed_time = timer.get_time() - generation_start_time;
         std::cout << "World generation took " << generation_elapsed_time << " seconds." << std::endl;
 

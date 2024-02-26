@@ -1,209 +1,29 @@
 #include "gfx/geometry.h"
 
+#include <glm/glm.hpp>
+
 namespace inf::gfx {
 
-    void Cube::add_to(
-        std::vector<vk::Vertex>& vertices,
-        const glm::vec3& from,
-        const glm::vec3& to,
-        const glm::vec3& color) {
-        static const glm::vec3 NORMAL_FORWARD(0.0f, 0.0f, 1.0f);
-        static const glm::vec3 NORMAL_BACKWARD(0.0f, 0.0f, -1.0f);
-        static const glm::vec3 NORMAL_UP(0.0f, 1.0f, 0.0f);
-        static const glm::vec3 NORMAL_DOWN(0.0f, -1.0f, 0.0f);
-        static const glm::vec3 NORMAL_LEFT(-1.0f, 0.0f, 0.0f);
-        static const glm::vec3 NORMAL_RIGHT(1.0f, 0.0f, 0.0f);
-        // Front face
-        vertices.emplace_back(
-            glm::vec3(from.x, from.y, from.z),
-            NORMAL_FORWARD,
-            color
-        );
-        vertices.emplace_back(
-            glm::vec3(to.x, from.y, from.z),
-            NORMAL_FORWARD,
-            color
-        );
-        vertices.emplace_back(
-            glm::vec3(to.x, to.y, from.z),
-            NORMAL_FORWARD,
-            color
-        );
-        vertices.emplace_back(
-            glm::vec3(from.x, from.y, from.z),
-            NORMAL_FORWARD,
-            color
-        );
-        vertices.emplace_back(
-            glm::vec3(to.x, to.y, from.z),
-            NORMAL_FORWARD,
-            color
-        );
-        vertices.emplace_back(
-            glm::vec3(from.x, to.y, from.z),
-            NORMAL_FORWARD,
-            color
-        );
-        
-        // Back face
-        vertices.emplace_back(
-            glm::vec3(from.x, from.y, to.z),
-            NORMAL_BACKWARD,
-            color
-        );
-        vertices.emplace_back(
-            glm::vec3(to.x, to.y, to.z),
-            NORMAL_BACKWARD,
-            color
-        );
-        vertices.emplace_back(
-            glm::vec3(to.x, from.y, to.z),
-            NORMAL_BACKWARD,
-            color
-        );
-        vertices.emplace_back(
-            glm::vec3(from.x, from.y, to.z),
-            NORMAL_BACKWARD,
-            color
-        );
-        vertices.emplace_back(
-            glm::vec3(from.x, to.y, to.z),
-            NORMAL_BACKWARD,
-            color
-        );
-        vertices.emplace_back(
-            glm::vec3(to.x, to.y, to.z),
-            NORMAL_BACKWARD,
-            color
-        );
+    Plane::Plane(const glm::vec3& point, const glm::vec3& normal, float d) :
+        point(point), normal(normal), d(d) {}
 
-        // Top face
-        vertices.emplace_back(
-            glm::vec3(from.x, to.y, from.z),
-            NORMAL_UP,
-            color
-        );
-        vertices.emplace_back(
-            glm::vec3(to.x, to.y, from.z),
-            NORMAL_UP,
-            color
-        );
-        vertices.emplace_back(
-            glm::vec3(to.x, to.y, to.z),
-            NORMAL_UP,
-            color
-        );
-        vertices.emplace_back(
-            glm::vec3(from.x, to.y, from.z),
-            NORMAL_UP,
-            color
-        );
-        vertices.emplace_back(
-            glm::vec3(to.x, to.y, to.z),
-            NORMAL_UP,
-            color
-        );
-        vertices.emplace_back(
-            glm::vec3(from.x, to.y, to.z),
-            NORMAL_UP,
-            color
-        );
+    Ray::Ray(const glm::vec3& origin, const glm::vec3& direction) :
+        origin(origin), direction(direction) {}
 
-        // Bottom face
-        vertices.emplace_back(
-            glm::vec3(from.x, from.y, from.z),
-            NORMAL_DOWN,
-            color
-        );
-        vertices.emplace_back(
-            glm::vec3(to.x, from.y, to.z),
-            NORMAL_DOWN,
-            color
-        );
-        vertices.emplace_back(
-            glm::vec3(to.x, from.y, from.z),
-            NORMAL_DOWN,
-            color
-        );
-        vertices.emplace_back(
-            glm::vec3(from.x, from.y, from.z),
-            NORMAL_DOWN,
-            color
-        );
-        vertices.emplace_back(
-            glm::vec3(from.x, from.y, to.z),
-            NORMAL_DOWN,
-            color
-        );
-        vertices.emplace_back(
-            glm::vec3(to.x, from.y, to.z),
-            NORMAL_DOWN,
-            color
-        );
+    glm::vec3 Ray::point_at(float t) const {
+        return origin + direction * t;
+    }
 
-        // Left face
-        vertices.emplace_back(
-            glm::vec3(from.x, from.y, to.z),
-            NORMAL_LEFT,
-            color
-        );
-        vertices.emplace_back(
-            glm::vec3(from.x, from.y, from.z),
-            NORMAL_LEFT,
-            color
-        );
-        vertices.emplace_back(
-            glm::vec3(from.x, to.y, from.z),
-            NORMAL_LEFT,
-            color
-        );
-        vertices.emplace_back(
-            glm::vec3(from.x, from.y, to.z),
-            NORMAL_LEFT,
-            color
-        );
-        vertices.emplace_back(
-            glm::vec3(from.x, to.y, from.z),
-            NORMAL_LEFT,
-            color
-        );
-        vertices.emplace_back(
-            glm::vec3(from.x, to.y, to.z),
-            NORMAL_LEFT,
-            color
-        );
-
-        // Right face
-        vertices.emplace_back(
-            glm::vec3(to.x, from.y, to.z),
-            NORMAL_RIGHT,
-            color
-        );
-        vertices.emplace_back(
-            glm::vec3(to.x, to.y, from.z),
-            NORMAL_RIGHT,
-            color
-        );
-        vertices.emplace_back(
-            glm::vec3(to.x, from.y, from.z),
-            NORMAL_RIGHT,
-            color
-        );
-        vertices.emplace_back(
-            glm::vec3(to.x, from.y, to.z),
-            NORMAL_RIGHT,
-            color
-        );
-        vertices.emplace_back(
-            glm::vec3(to.x, to.y, to.z),
-            NORMAL_RIGHT,
-            color
-        );
-        vertices.emplace_back(
-            glm::vec3(to.x, to.y, from.z),
-            NORMAL_RIGHT,
-            color
-        );
+    std::optional<float> Ray::intersect(const Plane& plane) const {
+        static constexpr float threshold = 1e-6f;
+        const auto denominator = glm::dot(direction, plane.normal);
+        // If the ray and the plane are (almost) parallel we say that there is no intersection
+        if (denominator <= threshold) {
+            return std::nullopt;
+        }
+        const auto t = glm::dot(plane.point - origin, plane.normal) / denominator;
+        // If the intersection is backward compared to ray direction, throw it away
+        return t >= 0.0f ? t : 0.0f;
     }
 
 }

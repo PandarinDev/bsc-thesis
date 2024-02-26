@@ -1,22 +1,35 @@
 #pragma once
 
-#include "gfx/vk/vertex.h"
-
 #include <glm/vec3.hpp>
 
-#include <vector>
+#include <optional>
 
 namespace inf::gfx {
 
-    struct Cube {
+    struct Plane {
 
-        Cube() = delete;
+        // Parametric equation: dot(p - point, normal) + d = 0
 
-        static void add_to(
-            std::vector<vk::Vertex>& vertices,
-            const glm::vec3& from,
-            const glm::vec3& to,
-            const glm::vec3& color);
+        glm::vec3 point;
+        glm::vec3 normal;
+        float d;
+
+        Plane(const glm::vec3& point, const glm::vec3& normal, float d);
+
+    };
+
+    struct Ray {
+
+        // Parametric equation: o + t * d = p
+
+        glm::vec3 origin;
+        glm::vec3 direction;
+
+        Ray(const glm::vec3& origin, const glm::vec3& direction);
+
+        glm::vec3 point_at(float t) const;
+
+        std::optional<float> intersect(const Plane& plane) const;
 
     };
 

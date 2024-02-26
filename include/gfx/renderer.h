@@ -43,6 +43,7 @@ namespace inf::gfx {
 
         Renderer(const Window& window, const Camera& camera);
 
+        const Camera& get_camera() const;
         const vk::Instance& get_vulkan_instance() const;
         const vk::PhysicalDevice& get_physical_device() const;
         const vk::LogicalDevice& get_logical_device() const;
