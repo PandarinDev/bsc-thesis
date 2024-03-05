@@ -34,6 +34,18 @@ namespace inf {
         };
     }
 
+    float BoundingBox3D::width() const {
+        return max.x - min.x;
+    }
+
+    float BoundingBox3D::height() const {
+        return max.y - min.y;
+    }
+
+    float BoundingBox3D::depth() const {
+        return max.z - min.z;
+    }
+
     BoundingBox3D BoundingBox3D::apply(const glm::mat4& transformation) const {
         static constexpr auto min_float = std::numeric_limits<float>::lowest();
         static constexpr auto max_float = std::numeric_limits<float>::max();
@@ -75,6 +87,20 @@ namespace inf {
             result.update(glm::vec3(transformed));
         }
         return result;
+    }
+
+    bool BoundingBox3D::is_inside(const glm::vec3& point) const {
+        return point.x >= min.x && point.y >= min.y && point.z >= min.z &&
+            point.x <= max.x && point.y <= max.y && point.z <= max.z;
+    }
+
+    bool BoundingBox3D::collides(const BoundingBox3D& other) const {
+        static const auto overlaps = [](float min1, float min2, float max1, float max2) {
+            return max1 >= min2 && max2 >= min1;
+        };
+        return overlaps(min.x, other.min.x, max.x, other.max.x) &&
+            overlaps(min.y, other.min.y, max.y, other.max.y) &&
+            overlaps(min.z, other.min.z, max.z, other.max.z);
     }
 
 }

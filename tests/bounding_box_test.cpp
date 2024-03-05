@@ -33,6 +33,10 @@ TEST_CASE("BoundingBox3D::apply()") {
         const auto flipped_bb = bounding_box.apply(glm::scale(glm::mat4(1.0f), glm::vec3(-1.0f, -1.0f, -1.0f)));
         REQUIRE(flipped_bb.min == bounding_box.min);
         REQUIRE(flipped_bb.max == bounding_box.max);
+
+        const auto translated_bb = bounding_box.apply(glm::translate(glm::mat4(1.0f), glm::vec3(10.0f, 10.0f, 10.0f)));
+        REQUIRE(translated_bb.min == glm::vec3(0.0f, 0.0f, 0.0f));
+        REQUIRE(translated_bb.max == glm::vec3(20.0f, 20.0f, 20.0f));
     }
 
 }

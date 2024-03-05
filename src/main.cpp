@@ -24,7 +24,7 @@ int main() {
         Timer timer;
         InputManager input_manager(window, timer);
 
-        Camera camera(glm::vec3(0.0f, 2.0f, 2.0f), glm::vec3(0.0f, -0.5f, -1.0f));
+        Camera camera(glm::vec3(0.0f, 4.0f, 2.0f), glm::vec3(0.0f, -0.5f, -1.0f));
         Renderer renderer(window, camera);
         input_manager.add_handler(std::make_unique<CameraHandler>(camera));
 

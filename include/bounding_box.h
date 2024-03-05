@@ -17,9 +17,14 @@ namespace inf {
         glm::vec3 center() const;
         void update(const glm::vec3& position);
         std::array<glm::vec3, 8> get_points() const;
+        float width() const;
+        float height() const;
+        float depth() const;
 
         BoundingBox3D apply(const glm::mat4& transformation) const;
         BoundingBox3D apply_and_transform_to_ndc(const glm::mat4& transformation) const;
+        bool is_inside(const glm::vec3& point) const;
+        bool collides(const BoundingBox3D& other) const;
 
     };
 
