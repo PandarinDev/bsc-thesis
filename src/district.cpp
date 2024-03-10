@@ -7,6 +7,26 @@ namespace inf {
 
     District::District(DistrictType type) : type(type) {}
 
+    const std::vector<wfc::Building>& District::get_buildings() const {
+        return buildings;
+    }
+
+    void District::add_building(wfc::Building&& building) {
+        auto blocks = building.get_bounding_box().get_occupied_blocks();
+        occupied_blocks.insert(blocks.begin(), blocks.end());
+        buildings.emplace_back(std::move(building));
+    }
+
+    bool District::can_place(const BoundingBox3D& bb) const {
+        auto blocks = bb.get_occupied_blocks();
+        for (const auto& block : blocks) {
+            if (occupied_blocks.find(block) != occupied_blocks.cend()) {
+                return false;
+            }
+        }
+        return true;
+    }
+
     BoundingBox3D District::compute_bounding_box() const {
         static constexpr auto float_min = std::numeric_limits<float>::lowest();
         static constexpr auto float_max = std::numeric_limits<float>::max();

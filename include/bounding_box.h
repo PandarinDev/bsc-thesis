@@ -4,6 +4,7 @@
 #include <glm/matrix.hpp>
 
 #include <array>
+#include <vector>
 
 namespace inf {
 
@@ -17,6 +18,7 @@ namespace inf {
         glm::vec3 center() const;
         void update(const glm::vec3& position);
         std::array<glm::vec3, 8> get_points() const;
+        std::vector<glm::ivec3> get_occupied_blocks() const;
         float width() const;
         float height() const;
         float depth() const;

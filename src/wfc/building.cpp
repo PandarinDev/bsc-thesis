@@ -248,6 +248,10 @@ namespace inf::wfc {
         return bounding_box.apply(mesh.get_model_matrix());
     }
 
+    const glm::vec3& Building::get_position() const {
+        return position;
+    }
+
     void Building::set_position(const glm::vec3& position) {
         this->position = position;
         mesh.set_model_matrix(glm::translate(glm::mat4(1.0f), position));

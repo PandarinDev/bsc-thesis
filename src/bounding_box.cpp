@@ -1,6 +1,6 @@
 #include "bounding_box.h"
 
-#include <array>
+#include <cmath>
 #include <limits>
 
 namespace inf {
@@ -32,6 +32,24 @@ namespace inf {
             glm::vec3(max.x, min.y, max.z), // Back bottom right
             glm::vec3(min.x, max.y, max.z)  // Back top left
         };
+    }
+
+    std::vector<glm::ivec3> BoundingBox3D::get_occupied_blocks() const {
+        std::vector<glm::ivec3> result;
+        const auto min_x = static_cast<int>(std::floorf(min.x));
+        const auto max_x = static_cast<int>(std::ceilf(max.x));
+        const auto min_y = static_cast<int>(std::floorf(min.y));
+        const auto max_y = static_cast<int>(std::ceilf(max.y));
+        const auto min_z = static_cast<int>(std::floorf(min.z));
+        const auto max_z = static_cast<int>(std::ceilf(max.z));
+        for (int x = min_x; x < max_x; ++x) {
+            for (int y = min_y; y < max_y; ++y) {
+                for (int z = min_z; z < max_z; ++z) {
+                    result.emplace_back(x, y, z);
+                }
+            }
+        }
+        return result;
     }
 
     float BoundingBox3D::width() const {
