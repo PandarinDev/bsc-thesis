@@ -11,6 +11,7 @@ namespace inf {
 
         std::vector<District> districts;
 
+        void update(const gfx::Renderer& renderer);
         void render(gfx::Renderer& renderer);
 
     };

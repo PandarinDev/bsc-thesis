@@ -29,6 +29,8 @@ namespace inf {
         void add_building(wfc::Building&& building);
         bool can_place(const BoundingBox3D& bb) const;
         BoundingBox3D compute_bounding_box() const;
+        
+        void update(const gfx::Renderer& renderer);
         void render(gfx::Renderer& renderer) const;
 
     private:

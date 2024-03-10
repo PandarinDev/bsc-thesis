@@ -41,6 +41,17 @@ namespace inf {
         return result;
     }
 
+    void District::update(const gfx::Renderer& renderer) {
+        std::vector<wfc::Building> buildings_to_keep;
+        buildings_to_keep.reserve(buildings.size());
+        for (auto& building : buildings) {
+            if (renderer.is_in_view(building.get_bounding_box())) {
+                buildings_to_keep.emplace_back(std::move(building));
+            }
+        }
+        buildings = std::move(buildings_to_keep);
+    }
+
     void District::render(gfx::Renderer& renderer) const {
         // TODO: Ground meshes are not dynamically generated with WFC, so instead of assigning
         // a mesh to each there should be a mesh pool that the instances choose from.

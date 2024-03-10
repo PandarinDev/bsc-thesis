@@ -43,6 +43,10 @@ int main() {
             timer.tick();
             window.poll_events();
             input_manager.update();
+            // TODO: In world update currently we are deleting buildings that are out of view.
+            // The VkBuffers associated with those buildings however, might still be in use.
+            // We need to wait for the buffer to be not used anymore, before deleting a building.
+            world.update(renderer);
             renderer.begin_frame();
             world.render(renderer);
             renderer.end_frame(world.districts[0].compute_bounding_box());
