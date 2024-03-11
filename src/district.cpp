@@ -42,6 +42,7 @@ namespace inf {
     }
 
     void District::update(const gfx::Renderer& renderer) {
+        // Remove buildings that are no longer visible
         std::vector<wfc::Building> buildings_to_keep;
         buildings_to_keep.reserve(buildings.size());
         for (auto& building : buildings) {

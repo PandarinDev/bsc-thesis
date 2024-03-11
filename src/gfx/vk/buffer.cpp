@@ -70,6 +70,10 @@ namespace inf::gfx::vk {
 
     MappedBuffer::~MappedBuffer() {
         if (device) {
+            // We need to wait for the currently in-flight frame to finish, otherwise the buffer might still be in use
+            // TODO: This is really bad from a performance point of view. Instead we should be adding the handles to
+            // be freed to a collection and free them all at the end of the frame.
+            device->wait_until_idle();
             vkDestroyBuffer(device->get_device(), buffer, nullptr);
             // We do not need to unmap the memory as it is done implicitly when freeing it
             vkFreeMemory(device->get_device(), device_memory, nullptr);

@@ -8,16 +8,18 @@ namespace inf {
 
     struct WorldGenerator {
 
-        static World generate_initial(const gfx::Renderer& renderer);
+        WorldGenerator(RandomGenerator& random_engine, const gfx::Renderer& renderer);
 
-        WorldGenerator(World* world);
-
-        void generate(const gfx::Renderer& renderer);
+        World generate_initial();
+        void populate_district(District& district);
+        void populate_district_edges(District& district);
 
     private:
 
-        World* world;
-        RandomGenerator random_engine;
+        RandomGenerator& random_engine;
+        const gfx::Renderer& renderer;
+
+        wfc::Building generate_building();
 
     };
 

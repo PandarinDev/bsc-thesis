@@ -34,8 +34,14 @@ int main() {
         const auto asset_load_elapsed_time = timer.get_time() - asset_load_start_time;
         std::cout << "Asset loading took " << asset_load_elapsed_time << " seconds." << std::endl;
 
+        std::random_device random_device;
+        RandomGenerator random_engine;
+        random_engine.seed(random_device());
         const auto generation_start_time = timer.get_time();
-        World world = WorldGenerator::generate_initial(renderer);
+        WorldGenerator generator(random_engine, renderer);
+        World world = generator.generate_initial();
+        // TODO: When we'll have multiple districts this will obviously not work
+        auto& district = world.districts[0];
         const auto generation_elapsed_time = timer.get_time() - generation_start_time;
         std::cout << "World generation took " << generation_elapsed_time << " seconds." << std::endl;
 
@@ -43,13 +49,11 @@ int main() {
             timer.tick();
             window.poll_events();
             input_manager.update();
-            // TODO: In world update currently we are deleting buildings that are out of view.
-            // The VkBuffers associated with those buildings however, might still be in use.
-            // We need to wait for the buffer to be not used anymore, before deleting a building.
             world.update(renderer);
+            generator.populate_district_edges(district);
             renderer.begin_frame();
             world.render(renderer);
-            renderer.end_frame(world.districts[0].compute_bounding_box());
+            renderer.end_frame(district.compute_bounding_box());
         }
         // Wait until the device becomes idle (flushes queues) to destroy in a well-defined state
         renderer.get_logical_device().wait_until_idle();
