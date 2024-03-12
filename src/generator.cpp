@@ -53,7 +53,7 @@ namespace inf {
                 }
             };
 
-            static constexpr auto gap = 1.0f;
+            static constexpr auto gap = 2.0f;
             try_place(glm::vec3(std::floorf(center_position.x - new_building.get_bounding_box().width() - gap), 0.0f, center_position.z)); // Try to place the building to the left
             try_place(glm::vec3(std::ceilf(center_position.x + building.get_bounding_box().width() + gap), 0.0f, center_position.z));      // Try to place the building to the right
             try_place(glm::vec3(center_position.x, 0.0f, std::floorf(center_position.z - center_bb.depth() - gap)));                       // Try to place the building above
@@ -107,7 +107,6 @@ namespace inf {
             }
         }
 
-        // TODO: This does not seem to be working correctly at the moment.
         // TODO: With some cleverness this could be generalized so that populate_district() and populate_district_edges() share the core of the loop.
         for (std::size_t i = 0; i < buildings_to_place_around.size(); ++i) {
             const auto& building_index = buildings_to_place_around[i];
@@ -127,7 +126,7 @@ namespace inf {
                 }
             };
 
-            static constexpr auto gap = 1.0f;
+            static constexpr auto gap = 2.0f;
             try_place(glm::vec3(std::floorf(center_position.x - new_building.get_bounding_box().width() - gap), 0.0f, center_position.z)); // Try to place the building to the left
             try_place(glm::vec3(std::ceilf(center_position.x + building.get_bounding_box().width() + gap), 0.0f, center_position.z));      // Try to place the building to the right
             try_place(glm::vec3(center_position.x, 0.0f, std::floorf(center_position.z - center_bb.depth() - gap)));                       // Try to place the building above

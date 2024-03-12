@@ -44,13 +44,18 @@ namespace inf {
     void District::update(const gfx::Renderer& renderer) {
         // Remove buildings that are no longer visible
         std::vector<wfc::Building> buildings_to_keep;
+        std::unordered_set<glm::ivec3> new_occupied_blocks;
         buildings_to_keep.reserve(buildings.size());
         for (auto& building : buildings) {
-            if (renderer.is_in_view(building.get_bounding_box())) {
+            const auto bb = building.get_bounding_box();
+            if (renderer.is_in_view(bb)) {
+                const auto occupied = bb.get_occupied_blocks();
+                new_occupied_blocks.insert(occupied.cbegin(), occupied.cend());
                 buildings_to_keep.emplace_back(std::move(building));
             }
         }
         buildings = std::move(buildings_to_keep);
+        occupied_blocks = std::move(new_occupied_blocks);
     }
 
     void District::render(gfx::Renderer& renderer) const {
