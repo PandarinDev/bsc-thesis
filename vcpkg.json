@@ -6,6 +6,7 @@
       "glm",
       "nlohmann-json",
       "cpp-base64",
-      "magic-enum"
+      "magic-enum",
+      "vulkan-memory-allocator"
     ]
   }

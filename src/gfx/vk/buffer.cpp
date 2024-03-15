@@ -1,4 +1,7 @@
 #include "gfx/vk/buffer.h"
+#include "gfx/renderer.h"
+
+#include "vma.h"
 
 #include <utility>
 #include <stdexcept>
@@ -7,8 +10,8 @@
 namespace inf::gfx::vk {
 
     MappedBuffer MappedBuffer::create(
-        const PhysicalDevice& physical_device,
         const LogicalDevice* logical_device,
+        const MemoryAllocator* allocator,
         BufferType type,
         std::uint64_t size) {
         // Create the buffer
@@ -16,57 +19,30 @@ namespace inf::gfx::vk {
         buffer_create_info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
         buffer_create_info.size = size;
         buffer_create_info.usage = static_cast<VkBufferUsageFlags>(type);
-        buffer_create_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+        // buffer_create_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+
+        VmaAllocationCreateInfo allocation_info{};
+        allocation_info.usage = VMA_MEMORY_USAGE_AUTO;
+        allocation_info.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
 
         VkBuffer buffer;
-        if (vkCreateBuffer(logical_device->get_device(), &buffer_create_info, nullptr, &buffer) != VK_SUCCESS) {
+        VmaAllocation allocation;
+        if (vmaCreateBuffer(allocator->get_allocator(), &buffer_create_info, &allocation_info, &buffer, &allocation, nullptr) != VK_SUCCESS) {
             throw std::runtime_error("Failed to allocate Vulkan buffer.");
         }
 
-        // Query buffer memory requirements
-        VkMemoryRequirements memory_requirements;
-        vkGetBufferMemoryRequirements(logical_device->get_device(), buffer, &memory_requirements);
-        const auto memory_type_index = physical_device.get_memory_type_index(
-            memory_requirements,
-            VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-        if (!memory_type_index.has_value()) {
-            throw std::runtime_error("No suitable memory found for Vulkan mapped buffer.");
-        }
-
-        // Allocate the device memory
-        VkMemoryAllocateInfo allocate_info{};
-        allocate_info.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-        allocate_info.allocationSize = memory_requirements.size;
-        allocate_info.memoryTypeIndex = memory_type_index.value();
-
-        VkDeviceMemory device_memory;
-        if (vkAllocateMemory(logical_device->get_device(), &allocate_info, nullptr, &device_memory) != VK_SUCCESS) {
-            throw std::runtime_error("Failed to create Vulkan mapped buffer.");
-        }
-
-        // Bind the device memory to the buffer
-        if (vkBindBufferMemory(logical_device->get_device(), buffer, device_memory, 0) != VK_SUCCESS) {
-            throw std::runtime_error("Failed to bind Vulkan device memory to a mapped buffer.");
-        }
-
-        // Finally map the memory
-        void* data;
-        if (vkMapMemory(logical_device->get_device(), device_memory, 0, size, 0, &data) != VK_SUCCESS) {
-            throw std::runtime_error("Failed to map Vulkan device memory to host memory.");
-        }
-
-        return MappedBuffer(logical_device, buffer, device_memory, data);
+        return MappedBuffer(logical_device, allocator, buffer, allocation);
     }
 
     MappedBuffer::MappedBuffer(
         const LogicalDevice* device,
+        const MemoryAllocator* allocator,
         const VkBuffer& buffer,
-        const VkDeviceMemory& device_memory,
-        void* data) :
+        const VmaAllocation& allocation) :
         device(device),
+        allocator(allocator),
         buffer(buffer),
-        device_memory(device_memory),
-        data(data) {}
+        allocation(allocation) {}
 
     MappedBuffer::~MappedBuffer() {
         if (device) {
@@ -74,23 +50,21 @@ namespace inf::gfx::vk {
             // TODO: This is really bad from a performance point of view. Instead we should be adding the handles to
             // be freed to a collection and free them all at the end of the frame.
             device->wait_until_idle();
-            vkDestroyBuffer(device->get_device(), buffer, nullptr);
-            // We do not need to unmap the memory as it is done implicitly when freeing it
-            vkFreeMemory(device->get_device(), device_memory, nullptr);
+            vmaDestroyBuffer(allocator->get_allocator(), buffer, allocation);
         }
     }
 
     MappedBuffer::MappedBuffer(MappedBuffer&& other) :
         device(std::exchange(other.device, nullptr)),
-        buffer(std::exchange(other.buffer, VK_NULL_HANDLE)),
-        device_memory(std::exchange(other.device_memory, VK_NULL_HANDLE)),
-        data(std::exchange(other.data, nullptr)) {}
+        allocator(std::exchange(other.allocator, nullptr)),
+        buffer(std::exchange(other.buffer, nullptr)),
+        allocation(std::exchange(other.allocation, nullptr)) {}
 
     MappedBuffer& MappedBuffer::operator=(MappedBuffer&& other) {
         device = std::exchange(other.device, nullptr);
-        buffer = std::exchange(other.buffer, VK_NULL_HANDLE);
-        device_memory = std::exchange(other.device_memory, VK_NULL_HANDLE);
-        data = std::exchange(other.data, nullptr);
+        allocator = std::exchange(other.allocator, nullptr);
+        buffer = std::exchange(other.buffer, nullptr);
+        allocation = std::exchange(other.allocation, nullptr);
 
         return *this;
     }
@@ -100,7 +74,12 @@ namespace inf::gfx::vk {
     }
 
     void MappedBuffer::upload(const void* data, std::size_t size) const {
-        std::memcpy(this->data, data, size);
+        // TODO: This can be simplified to vmaCopyMemoryToAllocation in VMA 3.1.0
+        void* destination;
+        vmaMapMemory(allocator->get_allocator(), allocation, &destination);
+        std::memcpy(destination, data, size);
+        vmaUnmapMemory(allocator->get_allocator(), allocation);
+        vmaFlushAllocation(allocator->get_allocator(), allocation, 0, size);
     }
 
 }

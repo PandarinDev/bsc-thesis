@@ -1,5 +1,7 @@
 #pragma once
 
+#include "XoshiroCpp.h"
+
 #include <random>
 #include <type_traits>
 
@@ -17,6 +19,6 @@ namespace inf {
 
     };
 
-    using RandomGenerator = std::mt19937;
+    using RandomGenerator = XoshiroCpp::Xoshiro256Plus;
 
 }

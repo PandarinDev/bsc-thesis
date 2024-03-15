@@ -19,6 +19,7 @@
 #include "gfx/vk/buffer.h"
 #include "gfx/vk/depth_buffer.h"
 #include "gfx/vk/sampler.h"
+#include "gfx/vk/memory_allocator.h"
 #include "gfx/mesh.h"
 #include "bounding_box.h"
 
@@ -47,6 +48,7 @@ namespace inf::gfx {
         const vk::Instance& get_vulkan_instance() const;
         const vk::PhysicalDevice& get_physical_device() const;
         const vk::LogicalDevice& get_logical_device() const;
+        const vk::MemoryAllocator& get_memory_allocator() const;
 
         void begin_frame();
         void render(const Mesh& mesh);
@@ -74,6 +76,7 @@ namespace inf::gfx {
         std::unique_ptr<vk::Surface> surface;
         std::unique_ptr<vk::PhysicalDevice> physical_device;
         std::unique_ptr<vk::LogicalDevice> logical_device;
+        std::unique_ptr<vk::MemoryAllocator> memory_allocator;
         std::unique_ptr<vk::SwapChain> swap_chain;
         std::vector<vk::Shader> shaders;
         std::vector<vk::Shader> shadow_map_shaders;

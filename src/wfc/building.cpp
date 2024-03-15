@@ -61,8 +61,8 @@ namespace inf::wfc {
 
     Building BuildingPattern::instantiate(
         RandomGenerator& rng,
-        const gfx::vk::PhysicalDevice& physical_device,
-        const gfx::vk::LogicalDevice* logical_device) {
+        const gfx::vk::LogicalDevice* logical_device,
+        const gfx::vk::MemoryAllocator* allocator) {
         auto width = dimensions.width.to_distribution()(rng);
         auto height = dimensions.height.to_distribution()(rng);
         auto depth = dimensions.depth.to_distribution()(rng);
@@ -133,12 +133,13 @@ namespace inf::wfc {
                 bounding_box.update(vertex.position);
             }
         }
+
         auto vertex_buffer = gfx::vk::MappedBuffer::create(
-            physical_device,
             logical_device,
+            allocator,
             gfx::vk::BufferType::VERTEX_BUFFER,
             sizeof(gfx::vk::Vertex) * vertices.size());
-        vertex_buffer.upload(vertices);
+        vertex_buffer.upload(vertices.data(), vertices.size() * sizeof(gfx::vk::Vertex));
         return Building(gfx::Mesh(std::move(vertex_buffer), vertices.size(), glm::mat4(1.0f)), bounding_box);
     }
 

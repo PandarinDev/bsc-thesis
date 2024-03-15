@@ -9,13 +9,14 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-file(GLOB_RECURSE EXTERNAL_FILES "external/include/*.h" "external/src/*.c")
+file(GLOB_RECURSE EXTERNAL_FILES "external/include/*.h" "external/src/*.c" "external/src/*.cpp")
 file(GLOB_RECURSE INFINITOWN_SRC_FILES "src/*.cpp")
 file(GLOB_RECURSE INFINITOWN_HEADER_FILES "src/*.h")
 
 find_package(Catch2 CONFIG REQUIRED)
 find_package(glfw3 CONFIG REQUIRED)
 find_package(glm CONFIG REQUIRED)
+find_package(VulkanMemoryAllocator CONFIG REQUIRED)
 
 add_subdirectory(tests)
 
@@ -42,7 +43,7 @@ add_custom_target(infinitown-shaders DEPENDS ${INFINITOWN_SHADER_BINARY_FILES})
 
 add_executable(infinitown ${INFINITOWN_SRC_FILES} ${INFINITOWN_HEADER_FILES} ${INFINITOWN_SHADER_FILES} ${EXTERNAL_FILES})
 target_include_directories(infinitown PRIVATE "include" "external/include")
-target_link_libraries(infinitown PRIVATE glfw glm::glm)
+target_link_libraries(infinitown PRIVATE glfw glm::glm GPUOpen::VulkanMemoryAllocator)
 add_dependencies(infinitown infinitown-shaders)
 if(MSVC)
     # TODO: Add back /WX and disable C4458 warning

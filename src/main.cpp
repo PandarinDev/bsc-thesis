@@ -30,13 +30,12 @@ int main() {
 
         const auto asset_load_start_time = timer.get_time();
         wfc::BuildingPatterns::initialize("assets/buildings");
-        wfc::GroundPatterns::initialize("assets/grounds", renderer.get_physical_device(), &renderer.get_logical_device());
+        wfc::GroundPatterns::initialize("assets/grounds", &renderer.get_logical_device(), &renderer.get_memory_allocator());
         const auto asset_load_elapsed_time = timer.get_time() - asset_load_start_time;
         std::cout << "Asset loading took " << asset_load_elapsed_time << " seconds." << std::endl;
 
         std::random_device random_device;
-        RandomGenerator random_engine;
-        random_engine.seed(random_device());
+        RandomGenerator random_engine(random_device());
         const auto generation_start_time = timer.get_time();
         WorldGenerator generator(random_engine, renderer);
         World world = generator.generate_initial();

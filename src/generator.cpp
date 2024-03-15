@@ -137,8 +137,8 @@ namespace inf {
     wfc::Building WorldGenerator::generate_building() {
         return wfc::BuildingPatterns::get_pattern("house")->instantiate(
             random_engine,
-            renderer.get_physical_device(),
-            &renderer.get_logical_device());
+            &renderer.get_logical_device(),
+            &renderer.get_memory_allocator());
     }
 
 }

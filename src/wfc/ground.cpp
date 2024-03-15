@@ -18,8 +18,8 @@ namespace inf::wfc {
 
     void GroundPatterns::initialize(
         const std::filesystem::path& grounds_path,
-        const gfx::vk::PhysicalDevice& physical_device,
-        const gfx::vk::LogicalDevice* logical_device) {
+        const gfx::vk::LogicalDevice* logical_device,
+        const gfx::vk::MemoryAllocator* allocator) {
         if (!std::filesystem::is_directory(grounds_path)) {
             throw std::runtime_error("Directory at '" + grounds_path.string() + "' does not exist.");
         }
@@ -40,8 +40,8 @@ namespace inf::wfc {
             const auto data = json_contents["data"].get<std::string>();
             auto vertices = gfx::vk::Vertex::from_bytes(base64_decode(data));
             auto vertex_buffer = gfx::vk::MappedBuffer::create(
-                physical_device, logical_device, gfx::vk::BufferType::VERTEX_BUFFER, vertices.size() * sizeof(gfx::vk::Vertex));
-            vertex_buffer.upload(vertices);
+                logical_device, allocator, gfx::vk::BufferType::VERTEX_BUFFER, vertices.size() * sizeof(gfx::vk::Vertex));
+            vertex_buffer.upload(vertices.data(), vertices.size() * sizeof(gfx::vk::Vertex));
             auto mesh = gfx::Mesh(std::move(vertex_buffer), vertices.size(), glm::mat4(1.0f));
             patterns.emplace(pattern_name, GroundPattern(pattern_name, std::move(mesh)));
             // TODO: Parse and add filters to the pattern

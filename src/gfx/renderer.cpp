@@ -21,6 +21,9 @@ namespace inf::gfx {
         if (!gladLoaderLoadVulkan(instance->get_instance(), physical_device->get_physical_device(), logical_device->get_device())) {
             throw std::runtime_error("Failed to reload Vulkan function pointers after device creation.");
         }
+        
+        memory_allocator = std::make_unique<vk::MemoryAllocator>(vk::MemoryAllocator::create(
+            instance->get_instance(), physical_device->get_physical_device(), logical_device->get_device()));
         swap_chain = std::make_unique<vk::SwapChain>(logical_device->create_swap_chain(*surface));
 
         // Load shaders
@@ -112,10 +115,10 @@ namespace inf::gfx {
             image_available_semaphores.emplace_back(vk::Semaphore::create(logical_device.get()));
             render_finished_semaphores.emplace_back(vk::Semaphore::create(logical_device.get()));
             in_flight_fences.emplace_back(vk::Fence::create(logical_device.get(), true));
-            uniform_buffers.emplace_back(vk::MappedBuffer::create(*physical_device, logical_device.get(), vk::BufferType::UNIFORM_BUFFER, sizeof(Matrices)));
+            uniform_buffers.emplace_back(vk::MappedBuffer::create(logical_device.get(), memory_allocator.get(), vk::BufferType::UNIFORM_BUFFER, sizeof(Matrices)));
         }
         shadow_map_uniform_buffer = std::make_unique<vk::MappedBuffer>(vk::MappedBuffer::create(
-            *physical_device, logical_device.get(), vk::BufferType::UNIFORM_BUFFER, sizeof(Matrices)));
+            logical_device.get(), memory_allocator.get(), vk::BufferType::UNIFORM_BUFFER, sizeof(Matrices)));
 
         // Allocate descriptor sets for the uniform buffers and the shadow map sampler
         std::vector<VkBuffer> uniform_buffer_handles(uniform_buffers.size());
@@ -183,6 +186,10 @@ namespace inf::gfx {
         return *logical_device;
     }
 
+    const vk::MemoryAllocator& Renderer::get_memory_allocator() const {
+        return *memory_allocator;
+    }
+
     void Renderer::begin_frame() {
         meshes_to_draw.clear();
     }
@@ -247,7 +254,7 @@ namespace inf::gfx {
             glm::vec3(0.0f, 1.0f, 0.0f));
         shadow_map_matrices.view_matrix = sun_view_matrix;
         shadow_map_matrices.light_space_matrix = glm::mat4(1.0f);
-        shadow_map_uniform_buffer->upload(shadow_map_matrices);
+        shadow_map_uniform_buffer->upload(&shadow_map_matrices, sizeof(Matrices));
 
         const auto command_buffer_handle = command_buffer.get_command_buffer();
         for (const auto& entry : meshes_to_draw) {
@@ -289,7 +296,7 @@ namespace inf::gfx {
         matrices.projection_matrix = projection_matrix;
         matrices.view_matrix = camera.to_view_matrix();
         matrices.light_space_matrix = shadow_map_projection_matrix * sun_view_matrix;
-        uniform_buffers[frame_index].upload(matrices);
+        uniform_buffers[frame_index].upload(&matrices, sizeof(Matrices));
 
         // Render the meshes
         for (const auto entry : meshes_to_draw) {
