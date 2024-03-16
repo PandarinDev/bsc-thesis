@@ -27,6 +27,7 @@ namespace inf {
         if (time - last_fps >= 1.0) {
             fps = frames;
             frames = 0;
+            last_fps = time;
         }
         delta = time - last_frame;
         last_frame = time;
@@ -38,6 +39,10 @@ namespace inf {
 
     double Timer::get_delta() const {
         return delta;
+    }
+
+    std::uint32_t Timer::get_fps() const {
+        return fps;
     }
 
 }

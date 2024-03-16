@@ -7,6 +7,10 @@
       "nlohmann-json",
       "cpp-base64",
       "magic-enum",
-      "vulkan-memory-allocator"
+      "vulkan-memory-allocator",
+      {
+        "name": "imgui",
+        "features": ["vulkan-binding", "glfw-binding"]
+      }
     ]
   }

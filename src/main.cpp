@@ -6,6 +6,7 @@
 #include "gfx/renderer.h"
 #include "input/input_manager.h"
 #include "input/camera_handler.h"
+#include "input/diagnostics_handler.h"
 #include "wfc/building.h"
 #include "wfc/ground.h"
 #include "utils/file_utils.h"
@@ -25,8 +26,11 @@ int main() {
         InputManager input_manager(window, timer);
 
         Camera camera(glm::vec3(0.0f, 4.0f, 2.0f), glm::vec3(0.0f, -0.5f, -1.0f));
-        Renderer renderer(window, camera);
+        Renderer renderer(window, camera, timer);
         input_manager.add_handler(std::make_unique<CameraHandler>(camera));
+        input_manager.add_handler(std::make_unique<DiagnosticsHandler>([&renderer](bool value) {
+            renderer.set_show_diagnostics(value);
+        }));
 
         const auto asset_load_start_time = timer.get_time();
         wfc::BuildingPatterns::initialize("assets/buildings");
@@ -56,6 +60,7 @@ int main() {
         }
         // Wait until the device becomes idle (flushes queues) to destroy in a well-defined state
         renderer.get_logical_device().wait_until_idle();
+        renderer.destroy_imgui();
         // Ground pattern meshes are not dynamically generated, so they are statically stored.
         // Hence, they need to be cleaned up explicitly before shutdown to avoid validation layers complaining.
         wfc::GroundPatterns::deinitialize();

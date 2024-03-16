@@ -1,6 +1,9 @@
 #include "gfx/renderer.h"
 #include "utils/file_utils.h"
 
+#include <imgui.h>
+#include <imgui_impl_vulkan.h>
+#include <imgui_impl_glfw.h>
 #include <glad/vulkan.h>
 
 #include <limits>
@@ -8,8 +11,8 @@
 
 namespace inf::gfx {
 
-    Renderer::Renderer(const Window& window, const Camera& camera) :
-        camera(camera), image_index(0), frame_index(0) {
+    Renderer::Renderer(const Window& window, const Camera& camera, const Timer& timer) :
+        camera(camera), timer(timer), image_index(0), frame_index(0), show_diagnostics(false) {
         if (!gladLoaderLoadVulkan(VK_NULL_HANDLE, VK_NULL_HANDLE, VK_NULL_HANDLE)) {
             throw std::runtime_error("Failed to load Vulkan function pointers.");
         }
@@ -42,7 +45,7 @@ namespace inf::gfx {
         }
 
         // Create descriptor pool and set layouts for shader uniform data
-        descriptor_pool = std::make_unique<vk::DescriptorPool>(vk::DescriptorPool::create(logical_device.get(), 3));
+        descriptor_pool = std::make_unique<vk::DescriptorPool>(vk::DescriptorPool::create(logical_device.get(), 4));
         descriptor_set_layout = std::make_unique<vk::DescriptorSetLayout>(vk::DescriptorSetLayout::create(
             logical_device.get(), {
                 VkDescriptorSetLayoutBinding{ 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT, nullptr },
@@ -168,6 +171,8 @@ namespace inf::gfx {
         // TODO: Left, right, top, bottom needs to be calculated dynamically to fit content.
         float aspect_ratio = static_cast<float>(swap_chain_extent.width) / swap_chain_extent.height;
         shadow_map_projection_matrix = glm::ortho(-20.0f, 20.0f, 20.0f / aspect_ratio, -20.0f / aspect_ratio, 0.01f, 100.0f);
+
+        init_imgui(window, sample_count);
     }
 
     const Camera& Renderer::get_camera() const {
@@ -190,8 +195,31 @@ namespace inf::gfx {
         return *memory_allocator;
     }
 
+    void Renderer::set_show_diagnostics(bool show) {
+        show_diagnostics = show;
+    }
+
     void Renderer::begin_frame() {
         meshes_to_draw.clear();
+        ImGui_ImplVulkan_NewFrame();
+        ImGui_ImplGlfw_NewFrame();
+        ImGui::NewFrame();
+
+        if (show_diagnostics) {
+            ImGui::Begin("Diagnostics");
+            ImGui::SetWindowSize({ 400, 100 });
+            ImGui::Text("FPS: %d", timer.get_fps());
+
+            const auto format_vec3 = [](const glm::vec3& vec) {
+                return "[" + std::to_string(vec.x) + ", " + std::to_string(vec.y) + ", " + std::to_string(vec.z) + "]";
+            };
+
+            const auto position = format_vec3(camera.get_position());
+            const auto direction = format_vec3(camera.get_direction());
+            ImGui::Text("Camera position: %s", position.c_str());
+            ImGui::Text("Camera direction: %s", direction.c_str());
+            ImGui::End();
+        }
     }
 
     void Renderer::render(const Mesh& mesh) {
@@ -315,6 +343,11 @@ namespace inf::gfx {
             vkCmdDraw(command_buffer_handle, static_cast<std::uint32_t>(mesh->get_number_of_vertices()), 1, 0, 0);
         }
 
+        // Render imgui data
+        ImGui::Render();
+        const auto draw_data = ImGui::GetDrawData();
+        ImGui_ImplVulkan_RenderDrawData(draw_data, command_buffer.get_command_buffer());
+
         render_pass->end(command_buffer);
         command_buffer.end();
         command_buffer.submit(
@@ -322,7 +355,7 @@ namespace inf::gfx {
             image_available_semaphores[frame_index],
             render_finished_semaphores[frame_index],
             in_flight_fences[frame_index]);
-        
+
         VkSemaphore render_finished_semaphore_handle = render_finished_semaphores[frame_index].get_semaphore();
         VkSwapchainKHR swap_chain_handle = swap_chain->get_swap_chain();
         VkPresentInfoKHR present_info{};
@@ -357,6 +390,33 @@ namespace inf::gfx {
 
     glm::mat4 Renderer::get_view_matrix() const {
         return camera.to_view_matrix();
+    }
+
+    void Renderer::destroy_imgui() {
+        ImGui_ImplVulkan_Shutdown();
+        ImGui_ImplGlfw_Shutdown();
+        ImGui::DestroyContext();
+    }
+
+    void Renderer::init_imgui(const Window& window, VkSampleCountFlagBits sample_count) {
+        IMGUI_CHECKVERSION();
+        ImGui::CreateContext();
+        ImGui_ImplGlfw_InitForVulkan(window.get_handle(), true);
+
+        const auto queue_family_indices = physical_device->get_queue_family_indices();
+        const auto& swap_chain_support = logical_device->get_swap_chain_support();
+
+        ImGui_ImplVulkan_InitInfo init_info{};
+        init_info.Instance = instance->get_instance();
+        init_info.PhysicalDevice = physical_device->get_physical_device();
+        init_info.Device = logical_device->get_device();
+        init_info.QueueFamily = queue_family_indices.graphics_family.value();
+        init_info.Queue = logical_device->get_graphics_queue();
+        init_info.DescriptorPool = descriptor_pool->get_descriptor_pool();
+        init_info.MinImageCount = swap_chain_support.surface_capabilities.minImageCount;
+        init_info.ImageCount = swap_chain_support.surface_capabilities.minImageCount + 1;
+        init_info.MSAASamples = sample_count;
+        ImGui_ImplVulkan_Init(&init_info, render_pass->get_render_pass());
     }
 
 }

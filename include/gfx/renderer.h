@@ -7,6 +7,7 @@
 
 #include "window.h"
 #include "camera.h"
+#include "timer.h"
 #include "gfx/geometry.h"
 #include "gfx/vk/instance.h"
 #include "gfx/vk/device.h"
@@ -42,13 +43,14 @@ namespace inf::gfx {
         static constexpr float NEAR_PLANE = 0.01f;
         static constexpr float FAR_PLANE = 100.0f;
 
-        Renderer(const Window& window, const Camera& camera);
+        Renderer(const Window& window, const Camera& camera, const Timer& timer);
 
         const Camera& get_camera() const;
         const vk::Instance& get_vulkan_instance() const;
         const vk::PhysicalDevice& get_physical_device() const;
         const vk::LogicalDevice& get_logical_device() const;
         const vk::MemoryAllocator& get_memory_allocator() const;
+        void set_show_diagnostics(bool show);
 
         void begin_frame();
         void render(const Mesh& mesh);
@@ -57,6 +59,8 @@ namespace inf::gfx {
         bool is_in_view(const BoundingBox3D& bounding_box) const;
         const glm::mat4& get_projection_matrix() const;
         glm::mat4 get_view_matrix() const;
+
+        void destroy_imgui();
 
     private:
 
@@ -70,6 +74,7 @@ namespace inf::gfx {
         };
 
         const Camera& camera;
+        const Timer& timer;
         std::uint32_t image_index;
         std::uint8_t frame_index;
         std::unique_ptr<vk::Instance> instance;
@@ -106,6 +111,9 @@ namespace inf::gfx {
         glm::mat4 projection_matrix;
         glm::mat4 shadow_map_projection_matrix;
         std::vector<MeshToRender> meshes_to_draw;
+        bool show_diagnostics;
+
+        void init_imgui(const Window& window, VkSampleCountFlagBits sample_count);
 
     };
 

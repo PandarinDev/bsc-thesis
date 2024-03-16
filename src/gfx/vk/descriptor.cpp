@@ -58,6 +58,7 @@ namespace inf::gfx::vk {
         pool_create_info.poolSizeCount = static_cast<std::uint32_t>(pool_sizes.size());
         pool_create_info.pPoolSizes = pool_sizes.data();
         pool_create_info.maxSets = size;
+        pool_create_info.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
 
         VkDescriptorPool descriptor_pool;
         if (vkCreateDescriptorPool(device->get_device(), &pool_create_info, nullptr, &descriptor_pool) != VK_SUCCESS) {

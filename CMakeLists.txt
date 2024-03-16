@@ -17,6 +17,7 @@ find_package(Catch2 CONFIG REQUIRED)
 find_package(glfw3 CONFIG REQUIRED)
 find_package(glm CONFIG REQUIRED)
 find_package(VulkanMemoryAllocator CONFIG REQUIRED)
+find_package(imgui CONFIG REQUIRED)
 
 add_subdirectory(tests)
 
@@ -43,7 +44,7 @@ add_custom_target(infinitown-shaders DEPENDS ${INFINITOWN_SHADER_BINARY_FILES})
 
 add_executable(infinitown ${INFINITOWN_SRC_FILES} ${INFINITOWN_HEADER_FILES} ${INFINITOWN_SHADER_FILES} ${EXTERNAL_FILES})
 target_include_directories(infinitown PRIVATE "include" "external/include")
-target_link_libraries(infinitown PRIVATE glfw glm::glm GPUOpen::VulkanMemoryAllocator)
+target_link_libraries(infinitown PRIVATE glfw glm::glm GPUOpen::VulkanMemoryAllocator imgui::imgui)
 add_dependencies(infinitown infinitown-shaders)
 if(MSVC)
     # TODO: Add back /WX and disable C4458 warning

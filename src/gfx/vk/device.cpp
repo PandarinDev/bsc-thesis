@@ -72,6 +72,10 @@ namespace inf::gfx::vk {
         return present_queue;
     }
 
+    const SwapChainSupport& LogicalDevice::get_swap_chain_support() const {
+        return swap_chain_support;
+    }
+
     SwapChain LogicalDevice::create_swap_chain(const Surface& surface) const {
         const auto surface_format = choose_surface_format();
         const auto present_mode = choose_present_mode();

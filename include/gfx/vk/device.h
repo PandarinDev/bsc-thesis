@@ -45,6 +45,7 @@ namespace inf::gfx::vk {
         const VkDevice& get_device() const;
         VkQueue get_graphics_queue() const;
         VkQueue get_present_queue() const;
+        const SwapChainSupport& get_swap_chain_support() const;
 
         SwapChain create_swap_chain(const Surface& surface) const;
         void wait_until_idle() const;

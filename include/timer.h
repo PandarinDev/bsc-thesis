@@ -11,6 +11,7 @@ namespace inf {
         void tick();
         double get_time() const;
         double get_delta() const;
+        std::uint32_t get_fps() const;
 
     private:
 
