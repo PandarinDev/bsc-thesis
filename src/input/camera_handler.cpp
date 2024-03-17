@@ -9,6 +9,7 @@ namespace inf::input {
 
     static constexpr float CAMERA_SPEED = 1.0f;
     static constexpr float CAMERA_SENSITIVITY = 1.0f;
+    static constexpr glm::vec3 BACK_DIRECTION(0.0f, 0.0f, 1.0f);
 
     CameraHandler::CameraHandler(Camera& camera) : camera(camera), enabled(false) {}
 
@@ -21,6 +22,8 @@ namespace inf::input {
             enabled = !enabled;
         }
         if (!enabled) {
+            // If direct controls are not enabled simply move the camera slowly back
+            camera.set_position(camera.get_position() + BACK_DIRECTION * delta_time * CAMERA_SPEED);
             return;
         }
 

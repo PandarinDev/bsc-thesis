@@ -11,6 +11,10 @@
 
 namespace inf::gfx {
 
+    static constexpr std::uint32_t SHADOW_MAP_RESOLUTION_X = 4096;
+    static constexpr std::uint32_t SHADOW_MAP_RESOLUTION_Y = 4096;
+    static constexpr VkExtent2D SHADOW_MAP_EXTENT{ SHADOW_MAP_RESOLUTION_X, SHADOW_MAP_RESOLUTION_Y };
+
     Renderer::Renderer(const Window& window, const Camera& camera, const Timer& timer) :
         camera(camera), timer(timer), image_index(0), frame_index(0), show_diagnostics(false) {
         if (!gladLoaderLoadVulkan(VK_NULL_HANDLE, VK_NULL_HANDLE, VK_NULL_HANDLE)) {
@@ -68,15 +72,14 @@ namespace inf::gfx {
         pipeline = std::make_unique<vk::Pipeline>(vk::Pipeline::create_pipeline(
             logical_device.get(), *render_pass, swap_chain->get_extent(), *descriptor_set_layout, shaders, sample_count, std::nullopt));
         shadow_map_pipeline = std::make_unique<vk::Pipeline>(vk::Pipeline::create_pipeline(
-            logical_device.get(), *shadow_map_render_pass, swap_chain->get_extent(), *shadow_map_descriptor_set_layout,
+            logical_device.get(), *shadow_map_render_pass, SHADOW_MAP_EXTENT, *shadow_map_descriptor_set_layout,
             shadow_map_shaders, VK_SAMPLE_COUNT_1_BIT, gfx::vk::PipelineDepthBias{ 2.0f, 2.5f }));
 
         // Create a separate color image if necessary because of multisampling
         // If not necessary (sample count = 1), we use the swapchain image instead.
         if (sample_count > VK_SAMPLE_COUNT_1_BIT) {
             color_image = std::make_unique<vk::Image>(vk::Image::create(
-                logical_device.get(),
-                *physical_device,
+                memory_allocator.get(),
                 swap_chain_extent.width,
                 swap_chain_extent.height,
                 swap_chain->get_format(),
@@ -90,12 +93,12 @@ namespace inf::gfx {
 
         // Create depth buffer
         depth_buffer = std::make_unique<vk::DepthBuffer>(vk::DepthBuffer::create(
-            logical_device.get(), *physical_device, swap_chain_extent, sample_count, false));
+            logical_device.get(), memory_allocator.get(), swap_chain_extent, sample_count, false));
         const auto& depth_image_view = depth_buffer->get_image_view();
 
         // Create a separate depth buffer for the shadow map that will be sampled during the second render pass
         shadow_map_depth_buffer = std::make_unique<vk::DepthBuffer>(vk::DepthBuffer::create(
-            logical_device.get(), *physical_device, swap_chain_extent, VK_SAMPLE_COUNT_1_BIT, true));
+            logical_device.get(), memory_allocator.get(), SHADOW_MAP_EXTENT, VK_SAMPLE_COUNT_1_BIT, true));
 
         // Create framebuffers for swapchain images
         for (const auto& image_view : swap_chain->get_image_views()) {
@@ -105,7 +108,7 @@ namespace inf::gfx {
 
         // Create framebuffers for the shadow map
         shadow_map_framebuffer = std::make_unique<vk::Framebuffer>(vk::Framebuffer::create_for_shadow_map(
-            logical_device.get(), *shadow_map_render_pass, shadow_map_depth_buffer->get_image_view(), swap_chain_extent));
+            logical_device.get(), *shadow_map_render_pass, shadow_map_depth_buffer->get_image_view(), SHADOW_MAP_EXTENT));
 
         // Create a sampler for the shadow map
         shadow_map_sampler = std::make_unique<vk::Sampler>(vk::Sampler::create(logical_device.get()));
@@ -166,11 +169,6 @@ namespace inf::gfx {
             FAR_PLANE);
         // Flip the Y axis to account for the degenerate coordinate system of Vulkan
         projection_matrix[1][1] *= -1.0f;
-
-        // Because we are using directional shadows the projection needs to be orthographic
-        // TODO: Left, right, top, bottom needs to be calculated dynamically to fit content.
-        float aspect_ratio = static_cast<float>(swap_chain_extent.width) / swap_chain_extent.height;
-        shadow_map_projection_matrix = glm::ortho(-20.0f, 20.0f, 20.0f / aspect_ratio, -20.0f / aspect_ratio, 0.01f, 100.0f);
 
         init_imgui(window, sample_count);
     }
@@ -239,7 +237,6 @@ namespace inf::gfx {
             VK_NULL_HANDLE,
             &image_index);
 
-        const auto& extent = swap_chain->get_extent();
         const auto& command_buffer = command_buffers[frame_index];
         command_buffer.reset();
         command_buffer.begin();
@@ -247,22 +244,22 @@ namespace inf::gfx {
         // In the first render pass we render into a shadow map which will be sampled in the second render pass
         std::vector<VkClearValue> shadow_map_clear_values(1);
         shadow_map_clear_values[0].depthStencil = { 1.0f, 0 };
-        shadow_map_render_pass->begin(*shadow_map_framebuffer, extent, command_buffer, shadow_map_clear_values);
+        shadow_map_render_pass->begin(*shadow_map_framebuffer, SHADOW_MAP_EXTENT, command_buffer, shadow_map_clear_values);
         vkCmdBindPipeline(command_buffer.get_command_buffer(), VK_PIPELINE_BIND_POINT_GRAPHICS, shadow_map_pipeline->get_pipeline());
         // Since the viewport and the scissor is dynamic we need to supply it each frame
-        VkViewport viewport{};
-        viewport.x = 0.0f;
-        viewport.y = 0.0f;
-        viewport.width = static_cast<float>(extent.width);
-        viewport.height = static_cast<float>(extent.height);
-        viewport.minDepth = 0.0f;
-        viewport.maxDepth = 1.0f;
-        vkCmdSetViewport(command_buffer.get_command_buffer(), 0, 1, &viewport);
+        VkViewport shadow_map_viewport{};
+        shadow_map_viewport.x = 0.0f;
+        shadow_map_viewport.y = 0.0f;
+        shadow_map_viewport.width = static_cast<float>(SHADOW_MAP_EXTENT.width);
+        shadow_map_viewport.height = static_cast<float>(SHADOW_MAP_EXTENT.height);
+        shadow_map_viewport.minDepth = 0.0f;
+        shadow_map_viewport.maxDepth = 1.0f;
+        vkCmdSetViewport(command_buffer.get_command_buffer(), 0, 1, &shadow_map_viewport);
 
-        VkRect2D scissor{};
-        scissor.offset = { 0, 0 };
-        scissor.extent = extent;
-        vkCmdSetScissor(command_buffer.get_command_buffer(), 0, 1, &scissor);
+        VkRect2D shadow_map_scissor{};
+        shadow_map_scissor.offset = { 0, 0 };
+        shadow_map_scissor.extent = SHADOW_MAP_EXTENT;
+        vkCmdSetScissor(command_buffer.get_command_buffer(), 0, 1, &shadow_map_scissor);
 
         // Bind descriptor sets
         vkCmdBindDescriptorSets(
@@ -276,9 +273,12 @@ namespace inf::gfx {
         // Upload uniform buffer data
         Matrices shadow_map_matrices;
         shadow_map_matrices.projection_matrix = shadow_map_projection_matrix;
+        // Because we are using directional shadows the projection needs to be orthographic
+        shadow_map_projection_matrix = glm::ortho(-20.0f, 20.0f, 20.0f, -20.0f, NEAR_PLANE, FAR_PLANE);
+        const auto sun_position = camera.get_position() + glm::vec3(2.0f, 2.0f, 0.0f);
         glm::mat4 sun_view_matrix = glm::lookAt(
-            glm::vec3(bounding_box.max.x + 2.5f, bounding_box.max.y + 12.0f, bounding_box.max.z),
-            bounding_box.center(),
+            sun_position,
+            sun_position + glm::vec3(-0.65f, -0.54f, -0.54f),
             glm::vec3(0.0f, 1.0f, 0.0f));
         shadow_map_matrices.view_matrix = sun_view_matrix;
         shadow_map_matrices.light_space_matrix = glm::mat4(1.0f);
@@ -304,12 +304,25 @@ namespace inf::gfx {
         shadow_map_render_pass->end(command_buffer);
 
         // In the second render pass we render color data
+        const auto& extent = swap_chain->get_extent();
         std::vector<VkClearValue> clear_values(2);
         clear_values[0].color = {{ 0.0f, 0.1f, 0.95f, 1.0f }};
         clear_values[1].depthStencil = { 1.0f, 0 };
         render_pass->begin(framebuffers[image_index], extent, command_buffer, clear_values);
         vkCmdBindPipeline(command_buffer.get_command_buffer(), VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline->get_pipeline());
+
+        VkViewport viewport{};
+        viewport.x = 0.0f;
+        viewport.y = 0.0f;
+        viewport.width = static_cast<float>(extent.width);
+        viewport.height = static_cast<float>(extent.height);
+        viewport.minDepth = 0.0f;
+        viewport.maxDepth = 1.0f;
         vkCmdSetViewport(command_buffer.get_command_buffer(), 0, 1, &viewport);
+
+        VkRect2D scissor{};
+        scissor.offset = { 0, 0 };
+        scissor.extent = extent;
         vkCmdSetScissor(command_buffer.get_command_buffer(), 0, 1, &scissor);
         vkCmdBindDescriptorSets(
             command_buffer.get_command_buffer(),

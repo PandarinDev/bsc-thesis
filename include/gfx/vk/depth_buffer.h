@@ -9,8 +9,8 @@ namespace inf::gfx::vk {
 
         static DepthBuffer create(
             const LogicalDevice* logical_device,
-            const PhysicalDevice& physical_device,
-            const VkExtent2D& swap_chain_extent,
+            const MemoryAllocator* allocator,
+            const VkExtent2D& extent,
             VkSampleCountFlagBits samples,
             bool is_sampled);
 

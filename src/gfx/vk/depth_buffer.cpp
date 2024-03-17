@@ -4,16 +4,15 @@ namespace inf::gfx::vk {
 
     DepthBuffer DepthBuffer::create(
         const LogicalDevice* logical_device,
-        const PhysicalDevice& physical_device,
-        const VkExtent2D& swap_chain_extent,
+        const MemoryAllocator* allocator,
+        const VkExtent2D& extent,
         VkSampleCountFlagBits samples,
         bool is_sampled) {
         static constexpr auto depth_format = VK_FORMAT_D32_SFLOAT;
         auto image = Image::create(
-            logical_device,
-            physical_device,
-            swap_chain_extent.width,
-            swap_chain_extent.height,
+            allocator,
+            extent.width,
+            extent.height,
             depth_format,
             VK_IMAGE_TILING_OPTIMAL,
             is_sampled

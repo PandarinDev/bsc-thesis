@@ -1,14 +1,15 @@
 #include "gfx/vk/image.h"
 #include "gfx/vk/device.h"
 
+#include <vma.h>
+
 #include <utility>
 #include <stdexcept>
 
 namespace inf::gfx::vk {
 
     Image Image::create(
-        const LogicalDevice* logical_device,
-        const PhysicalDevice& physical_device,
+        const MemoryAllocator* allocator,
         std::uint32_t width,
         std::uint32_t height,
         VkFormat format,
@@ -30,49 +31,37 @@ namespace inf::gfx::vk {
         image_create_info.samples = samples;
         image_create_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
+        VmaAllocationCreateInfo allocate_info{};
+        allocate_info.usage = VMA_MEMORY_USAGE_AUTO;
+
         VkImage image;
-        if (vkCreateImage(logical_device->get_device(), &image_create_info, nullptr, &image) != VK_SUCCESS) {
+        VmaAllocation allocation;        
+        if (vmaCreateImage(allocator->get_allocator(), &image_create_info, &allocate_info, &image, &allocation, nullptr) != VK_SUCCESS) {
             throw std::runtime_error("Failed to create Vulkan image.");
         }
-
-        VkMemoryRequirements memory_requirements;
-        vkGetImageMemoryRequirements(logical_device->get_device(), image, &memory_requirements);
-
-        const auto memory_type_index = physical_device.get_memory_type_index(memory_requirements, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-        VkMemoryAllocateInfo allocate_info{};
-        allocate_info.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-        allocate_info.allocationSize = memory_requirements.size;
-        allocate_info.memoryTypeIndex = memory_type_index.value();
-        VkDeviceMemory image_memory;
-        if (vkAllocateMemory(logical_device->get_device(), &allocate_info, nullptr, &image_memory) != VK_SUCCESS) {
-            throw std::runtime_error("Failed to allocate memory for Vulkan image.");
-        }
-        vkBindImageMemory(logical_device->get_device(), image, image_memory, 0);
-
-        return Image(logical_device, image, image_memory);
+        return Image(allocator, image, allocation);
     }
 
-    Image::Image(const LogicalDevice* device, VkImage image, VkDeviceMemory image_memory) :
-        device(device),
+    Image::Image(const MemoryAllocator* allocator, VkImage image, VmaAllocation allocation) :
+        allocator(allocator),
         image(image),
-        image_memory(image_memory) {}
+        allocation(allocation) {}
 
     Image::~Image() {
-        if (device) {
-            vkDestroyImage(device->get_device(), image, nullptr);
-            vkFreeMemory(device->get_device(), image_memory, nullptr);
+        if (allocator) {
+            vmaDestroyImage(allocator->get_allocator(), image, allocation);
         }
     }
 
     Image::Image(Image&& other) :
-        device(std::exchange(other.device, nullptr)),
-        image(std::exchange(other.image, VK_NULL_HANDLE)),
-        image_memory(std::exchange(other.image_memory, VK_NULL_HANDLE)) {}
+        allocator(std::exchange(other.allocator, nullptr)),
+        image(std::exchange(other.image, nullptr)),
+        allocation(std::exchange(other.allocation, nullptr)) {}
 
     Image& Image::operator=(Image&& other) {
-        device = std::exchange(other.device, nullptr);
-        image = std::exchange(other.image, VK_NULL_HANDLE);
-        image_memory = std::exchange(other.image_memory, VK_NULL_HANDLE);
+        allocator = std::exchange(other.allocator, nullptr);
+        image = std::exchange(other.image, nullptr);
+        allocation = std::exchange(other.allocation, nullptr);
 
         return *this;
     }

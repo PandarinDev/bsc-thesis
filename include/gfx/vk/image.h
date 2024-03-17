@@ -1,5 +1,7 @@
 #pragma once
 
+#include "gfx/vk/memory_allocator.h"
+
 #include <glad/vulkan.h>
 
 #include <cstdint>
@@ -14,8 +16,7 @@ namespace inf::gfx::vk {
     struct Image {
 
         static Image create(
-            const LogicalDevice* logical_device,
-            const PhysicalDevice& physical_device,
+            const MemoryAllocator* allocator,
             std::uint32_t width,
             std::uint32_t height,
             VkFormat format,
@@ -23,7 +24,7 @@ namespace inf::gfx::vk {
             VkImageUsageFlags usage,
             VkSampleCountFlagBits samples);
 
-        Image(const LogicalDevice* device, VkImage image, VkDeviceMemory image_memory);
+        Image(const MemoryAllocator* allocator, VkImage image, VmaAllocation allocation);
         ~Image();
         Image(const Image&) = delete;
         Image& operator=(const Image&) = delete;
@@ -34,9 +35,9 @@ namespace inf::gfx::vk {
 
     private:
 
-        const LogicalDevice* device;
+        const MemoryAllocator* allocator;
         VkImage image;
-        VkDeviceMemory image_memory;
+        VmaAllocation allocation;
 
     };
 

@@ -1,8 +1,7 @@
 #pragma once
 
-#include "vma.h"
-
-#include "gfx/vk/device.h"
+#include <glad/vulkan.h>
+#include <vma.h>
 
 namespace inf::gfx::vk {
 
