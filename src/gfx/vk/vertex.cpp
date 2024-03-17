@@ -7,17 +7,24 @@ namespace inf::gfx::vk {
         normal(normal),
         color(color) {}
 
-    VkVertexInputBindingDescription Vertex::get_binding_description() {
-        VkVertexInputBindingDescription binding_description{};
-        binding_description.binding = 0;
-        binding_description.stride = sizeof(Vertex);
-        binding_description.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+    std::array<VkVertexInputBindingDescription, 2> Vertex::get_binding_descriptions() {
+        std::array<VkVertexInputBindingDescription, 2> binding_descriptions;
 
-        return binding_description;
+        auto& per_vertex_binding_description = binding_descriptions[0];
+        per_vertex_binding_description.binding = 0;
+        per_vertex_binding_description.stride = sizeof(Vertex);
+        per_vertex_binding_description.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+
+        auto& per_instance_binding_description = binding_descriptions[1];
+        per_instance_binding_description.binding = 1;
+        per_instance_binding_description.stride = sizeof(glm::vec3);
+        per_instance_binding_description.inputRate = VK_VERTEX_INPUT_RATE_INSTANCE;
+
+        return binding_descriptions;
     }
 
-    std::array<VkVertexInputAttributeDescription, 3> Vertex::get_attribute_descriptions() {
-        std::array<VkVertexInputAttributeDescription, 3> attribute_descriptions;
+    std::array<VkVertexInputAttributeDescription, 4> Vertex::get_attribute_descriptions() {
+        std::array<VkVertexInputAttributeDescription, 4> attribute_descriptions;
 
         // Position (vec3)
         auto& position_attribute = attribute_descriptions[0];
@@ -39,6 +46,13 @@ namespace inf::gfx::vk {
         color_attribute.location = 2;
         color_attribute.format = VK_FORMAT_R32G32B32_SFLOAT;
         color_attribute.offset = offsetof(Vertex, color);
+
+        // Position (vec3) - per instance
+        auto& instance_position = attribute_descriptions[3];
+        instance_position.binding = 1;
+        instance_position.location = 3;
+        instance_position.format = VK_FORMAT_R32G32B32_SFLOAT;
+        instance_position.offset = 0;
 
         return attribute_descriptions;
     }

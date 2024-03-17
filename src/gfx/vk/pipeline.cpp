@@ -255,12 +255,12 @@ namespace inf::gfx::vk {
         }
 
         // Vertex input and assembly info creation
-        const auto vertex_binding_description = Vertex::get_binding_description();
+        const auto vertex_binding_description = Vertex::get_binding_descriptions();
         const auto vertex_attribute_descriptions = Vertex::get_attribute_descriptions();
         VkPipelineVertexInputStateCreateInfo vertex_input_create_info{};
         vertex_input_create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-        vertex_input_create_info.vertexBindingDescriptionCount = 1;
-        vertex_input_create_info.pVertexBindingDescriptions = &vertex_binding_description;
+        vertex_input_create_info.vertexBindingDescriptionCount = static_cast<std::uint32_t>(vertex_binding_description.size());
+        vertex_input_create_info.pVertexBindingDescriptions = vertex_binding_description.data();
         vertex_input_create_info.vertexAttributeDescriptionCount = static_cast<std::uint32_t>(vertex_attribute_descriptions.size());
         vertex_input_create_info.pVertexAttributeDescriptions = vertex_attribute_descriptions.data();
 

@@ -56,7 +56,7 @@ int main() {
             generator.populate_district_edges(district);
             renderer.begin_frame();
             world.render(renderer);
-            renderer.end_frame(district.compute_bounding_box());
+            renderer.end_frame();
         }
         // Wait until the device becomes idle (flushes queues) to destroy in a well-defined state
         renderer.get_logical_device().wait_until_idle();

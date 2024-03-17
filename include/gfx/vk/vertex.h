@@ -17,8 +17,8 @@ namespace inf::gfx::vk {
 
         Vertex(const glm::vec3& position, const glm::vec3& normal, const glm::vec3& color);
 
-        static VkVertexInputBindingDescription get_binding_description();
-        static std::array<VkVertexInputAttributeDescription, 3> get_attribute_descriptions();
+        static std::array<VkVertexInputBindingDescription, 2> get_binding_descriptions();
+        static std::array<VkVertexInputAttributeDescription, 4> get_attribute_descriptions();
         static std::vector<Vertex> from_bytes(const std::string& bytes);
 
     };

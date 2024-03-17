@@ -37,7 +37,6 @@ namespace inf {
 
         DistrictType type;
         std::vector<wfc::Building> buildings;
-        std::vector<wfc::Ground> grounds;
         std::unordered_set<glm::ivec3> occupied_blocks;
 
     };

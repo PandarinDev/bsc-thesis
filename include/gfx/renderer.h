@@ -54,7 +54,8 @@ namespace inf::gfx {
 
         void begin_frame();
         void render(const Mesh& mesh);
-        void end_frame(const BoundingBox3D& bounding_box);
+        void render_instanced(const Mesh& mesh, std::vector<glm::vec3>&& positions);
+        void end_frame();
 
         bool is_in_view(const BoundingBox3D& bounding_box) const;
         const glm::mat4& get_projection_matrix() const;
@@ -73,6 +74,11 @@ namespace inf::gfx {
             const glm::mat4 model_matrix;
         };
 
+        struct InstancedMeshToRender {
+            const Mesh* mesh;
+            std::vector<glm::vec3> positions;
+        };
+
         const Camera& camera;
         const Timer& timer;
         std::uint32_t image_index;
@@ -84,15 +90,18 @@ namespace inf::gfx {
         std::unique_ptr<vk::MemoryAllocator> memory_allocator;
         std::unique_ptr<vk::SwapChain> swap_chain;
         std::vector<vk::Shader> shaders;
+        std::vector<vk::Shader> instanced_shaders;
         std::vector<vk::Shader> shadow_map_shaders;
         std::unique_ptr<vk::DescriptorPool> descriptor_pool;
         std::unique_ptr<vk::DescriptorSetLayout> descriptor_set_layout;
+        std::unique_ptr<vk::DescriptorSetLayout> instanced_descriptor_set_layout;
         std::unique_ptr<vk::DescriptorSetLayout> shadow_map_descriptor_set_layout;
         std::vector<VkDescriptorSet> descriptor_sets;
         VkDescriptorSet shadow_map_descriptor_set;
         std::unique_ptr<vk::RenderPass> render_pass;
         std::unique_ptr<vk::RenderPass> shadow_map_render_pass;
         std::unique_ptr<vk::Pipeline> pipeline;
+        std::unique_ptr<vk::Pipeline> instanced_pipeline;
         std::unique_ptr<vk::Pipeline> shadow_map_pipeline;
         std::unique_ptr<vk::Image> color_image;
         std::unique_ptr<vk::ImageView> color_image_view;
@@ -110,7 +119,8 @@ namespace inf::gfx {
         std::unique_ptr<vk::MappedBuffer> shadow_map_uniform_buffer;
         glm::mat4 projection_matrix;
         glm::mat4 shadow_map_projection_matrix;
-        std::vector<MeshToRender> meshes_to_draw;
+        std::vector<MeshToRender> shadow_casters_to_render;
+        std::vector<InstancedMeshToRender> non_casters_to_render;
         bool show_diagnostics;
 
         void init_imgui(const Window& window, VkSampleCountFlagBits sample_count);

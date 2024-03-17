@@ -58,13 +58,23 @@ namespace inf {
         occupied_blocks = std::move(new_occupied_blocks);
     }
 
-    void District::render(gfx::Renderer& renderer) const {
-        // TODO: Ground meshes are not dynamically generated with WFC, so instead of assigning
-        // a mesh to each there should be a mesh pool that the instances choose from.
-        for (auto& ground : grounds) {
-            ground.mesh.set_model_matrix(glm::translate(glm::mat4(1.0f), ground.position));
-            renderer.render(ground.mesh);
+    void District::render(gfx::Renderer& renderer) const {        
+        const auto& grass_mesh = wfc::GroundPatterns::get_pattern("grass").mesh;
+        const auto bb = compute_bounding_box();
+        const auto min_x = std::floorf(bb.min.x);
+        const auto max_x = std::ceilf(bb.max.x);
+        const auto min_z = std::floorf(bb.min.z);
+        const auto max_z = std::ceilf(bb.max.z);
+        std::vector<glm::vec3> positions;
+        const auto num_ground_objects = static_cast<std::size_t>((max_x - min_x) * (max_z - min_z));
+        positions.reserve(num_ground_objects);
+        for (float x = min_x; x <= max_x; ++x) {
+            for (float z = min_z; z <= max_z; ++z) {
+                positions.emplace_back(x, 0.0f, z);
+            }
         }
+        renderer.render_instanced(grass_mesh, std::move(positions));
+
         for (const auto& building : buildings) {
             renderer.render(building.get_mesh());
         }
