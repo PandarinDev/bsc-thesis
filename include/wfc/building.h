@@ -86,13 +86,13 @@ namespace inf::wfc {
     struct BuildingMesh {
 
         std::string name;
-        std::vector<gfx::vk::Vertex> vertices;
+        std::vector<gfx::vk::VertexWithMaterialName> vertices;
         std::vector<BuildingPatternFilter> filters;
         std::optional<int> height;
 
         BuildingMesh(
             const std::string& name,
-            std::vector<gfx::vk::Vertex>&& vertices,
+            std::vector<gfx::vk::VertexWithMaterialName>&& vertices,
             std::vector<BuildingPatternFilter>&& filters,
             const std::optional<int>& height);
 
@@ -109,13 +109,19 @@ namespace inf::wfc {
 
     };
 
+    using BuildingMaterials = std::unordered_map<std::string, std::vector<glm::vec3>>;
+
     struct BuildingPattern {
 
         std::string name;
         BuildingDimensions dimensions;
+        BuildingMaterials materials;
         std::vector<BuildingMesh> meshes;
 
-        BuildingPattern(const std::string& name, const BuildingDimensions& dimensions);
+        BuildingPattern(
+            const std::string& name,
+            const BuildingDimensions& dimensions,
+            BuildingMaterials&& materials);
 
         Building instantiate(
             RandomGenerator& rng,

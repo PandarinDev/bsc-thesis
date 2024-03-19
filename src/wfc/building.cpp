@@ -32,7 +32,7 @@ namespace inf::wfc {
 
     BuildingMesh::BuildingMesh(
         const std::string& name,
-        std::vector<gfx::vk::Vertex>&& vertices,
+        std::vector<gfx::vk::VertexWithMaterialName>&& vertices,
         std::vector<BuildingPatternFilter>&& filters,
         const std::optional<int>& height) :
         name(name),
@@ -56,8 +56,11 @@ namespace inf::wfc {
         cell.mesh = this;
     }
 
-    BuildingPattern::BuildingPattern(const std::string& name, const BuildingDimensions& dimensions) :
-        name(name), dimensions(dimensions) {}
+    BuildingPattern::BuildingPattern(
+        const std::string& name,
+        const BuildingDimensions& dimensions,
+        BuildingMaterials&& materials) :
+        name(name), dimensions(dimensions), materials(std::move(materials)) {}
 
     Building BuildingPattern::instantiate(
         RandomGenerator& rng,
@@ -117,6 +120,15 @@ namespace inf::wfc {
         static constexpr auto float_max = std::numeric_limits<float>::max();
         static constexpr auto float_min = std::numeric_limits<float>::lowest();
 
+        // Choose a material for each material from the candidates
+        std::unordered_map<std::string, glm::vec3> chosen_materials;
+        for (const auto& material : materials) {
+            const auto& name = material.first;
+            const auto& candidates = material.second;
+            std::uniform_int_distribution<std::size_t> candidate_distribution(0, candidates.size() - 1);
+            chosen_materials[name] = candidates[candidate_distribution(rng)];
+        }
+
         BoundingBox3D bounding_box(
             glm::vec3(float_max, float_max, float_max),
             glm::vec3(float_min, float_min, float_min));
@@ -129,7 +141,7 @@ namespace inf::wfc {
             for (auto vertex : cell.mesh->vertices) {
                 vertex.position = glm::vec3(transformation * glm::vec4(vertex.position, 1.0f));
                 vertex.normal = glm::vec3(rotation_matrix * glm::vec4(vertex.normal, 1.0f));
-                vertices.push_back(std::move(vertex));
+                vertices.emplace_back(vertex, chosen_materials.at(vertex.material_name));
                 bounding_box.update(vertex.position);
             }
         }
@@ -173,14 +185,24 @@ namespace inf::wfc {
             dimensions.depth.min = depth["min"].get<int>();
             dimensions.depth.max = depth["max"].get<int>();
 
-            auto& pattern = patterns.emplace(pattern_name, BuildingPattern(pattern_name, dimensions)).first->second;
+            // Parse materials
+            BuildingMaterials materials;
+            for (const auto& material_entry : json_contents["materials"].items()) {
+                auto& material_candidates = materials.emplace(material_entry.key(), std::vector<glm::vec3>{}).first->second;
+                for (const auto& candidate : material_entry.value()) {
+                    material_candidates.emplace_back(candidate[0].get<float>(), candidate[1].get<float>(), candidate[2].get<float>());
+                }
+            }
+
+            auto& pattern = patterns.emplace(pattern_name, BuildingPattern(pattern_name, dimensions, std::move(materials))).first->second;
             for (const auto& mesh_obj : json_contents["meshes"]) {
                 const auto mesh_name = mesh_obj["name"].get<std::string>();
 
                 // Parse mesh data
                 const auto data = mesh_obj["data"].get<std::string>();
+
                 // Data is base64 encoded, we need to decode it first then parse vertices from it
-                auto vertices = gfx::vk::Vertex::from_bytes(base64_decode(data));
+                auto vertices = gfx::vk::VertexWithMaterialName::from_bytes(base64_decode(data));
 
                 // Parse mesh filters
                 std::vector<BuildingPatternFilter> filters;

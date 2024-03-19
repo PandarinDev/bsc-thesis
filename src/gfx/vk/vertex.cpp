@@ -2,10 +2,35 @@
 
 namespace inf::gfx::vk {
 
+    VertexWithMaterialName::VertexWithMaterialName(const glm::vec3& position, const glm::vec3& normal, const std::string& material_name) :
+        position(position), normal(normal), material_name(material_name) {}
+
+    std::vector<VertexWithMaterialName> VertexWithMaterialName::from_bytes(const std::string& bytes) {
+        const char* data = bytes.data();
+        const char* end_ptr = bytes.data() + bytes.size();
+        std::vector<VertexWithMaterialName> result;
+        while (data < end_ptr) {
+            const auto get_float = [data](std::size_t offset) {
+                return *reinterpret_cast<const float*>(data + offset * sizeof(float));
+            };
+            std::uint8_t material_name_length = *reinterpret_cast<const std::uint8_t*>(data + 6 * sizeof(float));
+            result.emplace_back(
+                glm::vec3(get_float(0), get_float(1), get_float(2)),
+                glm::vec3(get_float(3), get_float(4), get_float(5)),
+                std::string(data + 6 * sizeof(float) + 1, material_name_length)
+            );
+            data += 6 * sizeof(float) + 1 + material_name_length;
+        }
+        return result;
+    }
+
     Vertex::Vertex(const glm::vec3& position, const glm::vec3& normal, const glm::vec3& color) :
         position(position),
         normal(normal),
         color(color) {}
+
+    Vertex::Vertex(const VertexWithMaterialName& other, const glm::vec3& color) :
+        position(other.position), normal(other.normal), color(color) {}
 
     std::array<VkVertexInputBindingDescription, 2> Vertex::get_binding_descriptions() {
         std::array<VkVertexInputBindingDescription, 2> binding_descriptions;

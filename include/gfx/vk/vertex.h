@@ -9,6 +9,20 @@
 
 namespace inf::gfx::vk {
 
+    // This is an intermediate structure that is "almost a vertex". It's material data needs to be filled out
+    // from the chosen material for the given material name of the building that the vertex belongs to.
+    struct VertexWithMaterialName {
+
+        glm::vec3 position;
+        glm::vec3 normal;
+        std::string material_name;
+
+        VertexWithMaterialName(const glm::vec3& position, const glm::vec3& normal, const std::string& material_name);
+
+        static std::vector<VertexWithMaterialName> from_bytes(const std::string& bytes);
+
+    };
+
     struct Vertex {
 
         glm::vec3 position;
@@ -16,6 +30,7 @@ namespace inf::gfx::vk {
         glm::vec3 color;
 
         Vertex(const glm::vec3& position, const glm::vec3& normal, const glm::vec3& color);
+        Vertex(const VertexWithMaterialName& other, const glm::vec3& color);
 
         static std::array<VkVertexInputBindingDescription, 2> get_binding_descriptions();
         static std::array<VkVertexInputAttributeDescription, 4> get_attribute_descriptions();
