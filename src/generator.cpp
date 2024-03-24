@@ -14,35 +14,26 @@ namespace inf {
     World WorldGenerator::generate_initial() {
         World world;
         auto& district = world.districts.emplace_back(DistrictType::RESIDENTAL);
-        const auto& camera = renderer.get_camera();
-        const gfx::Ray camera_ray(camera.get_position(), camera.get_direction());
-        const gfx::Plane ground_plane(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, -1.0f, 0.0f), 0.0f);
-        const auto maybe_intersection = camera_ray.intersect(ground_plane);
-        if (!maybe_intersection) {
-            throw std::runtime_error("Camera does not intersect ground plane.");
-        }
-        const auto intersection = glm::floor(camera_ray.point_at(maybe_intersection.value()));
-
-        // Place the initial building around which we'll start the generation
         std::deque<DistrictBuilding*> to_process;
-        {
-            auto initial_building = generate_building();
-            initial_building.set_position(intersection);
-            if (auto building = district.add_building(glm::ivec2(0, 0), std::move(initial_building)); building) {
-                to_process.emplace_back(building);
-            }
-        }
+        place_initial_building(district, to_process);
         populate_district(district, to_process);
         return world;
     }
 
     void WorldGenerator::populate_district(District& district) {
-        // Only start with buildings that have a missing neighbor
+        auto& buildings = district.get_buildings();
         std::deque<DistrictBuilding*> to_process;
-        for (auto& entry : district.get_buildings()) {
-            auto& building = entry.second;
-            if (!building.top || !building.right || !building.bottom || !building.left) {
-                to_process.emplace_back(&building);
+        // If there are no buildings that likely means that everything has been culled (e.g. looking up in freecam)
+        if (buildings.empty()) {
+            place_initial_building(district, to_process);
+        }
+        // Only start with buildings that have a missing neighbor
+        else {
+            for (auto& entry : buildings) {
+                auto& building = entry.second;
+                if (!building.top || !building.right || !building.bottom || !building.left) {
+                    to_process.emplace_back(&building);
+                }
             }
         }
         populate_district(district,  to_process);
@@ -53,6 +44,26 @@ namespace inf {
             random_engine,
             &renderer.get_logical_device(),
             &renderer.get_memory_allocator());
+    }
+
+    void WorldGenerator::place_initial_building(District& district, std::deque<DistrictBuilding*>& to_process) {
+        const auto& camera = renderer.get_camera();
+        const gfx::Ray camera_ray(camera.get_position(), camera.get_direction());
+        const gfx::Plane ground_plane(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, -1.0f, 0.0f), 0.0f);
+        const auto maybe_intersection = camera_ray.intersect(ground_plane);
+        if (!maybe_intersection) {
+            return;
+        }
+        const auto intersection = glm::floor(camera_ray.point_at(maybe_intersection.value()));
+
+        // Place the initial building around which we'll start the generation
+        {
+            auto initial_building = generate_building();
+            initial_building.set_position(intersection);
+            if (auto building = district.add_building(glm::ivec2(0, 0), std::move(initial_building)); building) {
+                to_process.emplace_back(building);
+            }
+        }
     }
 
     void WorldGenerator::populate_district(District& district, std::deque<DistrictBuilding*>& to_process) {

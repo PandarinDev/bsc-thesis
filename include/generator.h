@@ -22,6 +22,7 @@ namespace inf {
 
         wfc::Building generate_building();
 
+        void place_initial_building(District& district, std::deque<DistrictBuilding*>& to_process);
         void populate_district(District& district, std::deque<DistrictBuilding*>& to_process);
 
     };

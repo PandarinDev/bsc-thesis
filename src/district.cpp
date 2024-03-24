@@ -29,6 +29,9 @@ namespace inf {
     BoundingBox3D District::compute_bounding_box() const {
         static constexpr auto float_min = std::numeric_limits<float>::lowest();
         static constexpr auto float_max = std::numeric_limits<float>::max();
+        if (buildings.empty()) {
+            return BoundingBox3D(glm::vec3(), glm::vec3());
+        }
         BoundingBox3D result(
             glm::vec3(float_max, float_max, float_max),
             glm::vec3(float_min, float_min, float_min));
