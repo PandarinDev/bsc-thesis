@@ -5,26 +5,25 @@
 
 namespace inf {
 
+    DistrictBuilding::DistrictBuilding(const glm::ivec2& position, wfc::Building&& building) :
+        position(position), building(std::move(building)), top(nullptr), right(nullptr), bottom(nullptr), left(nullptr) {}
+
     District::District(DistrictType type) : type(type) {}
 
-    const std::vector<wfc::Building>& District::get_buildings() const {
+    DistrictBuildings& District::get_buildings() {
         return buildings;
     }
 
-    void District::add_building(wfc::Building&& building) {
-        auto blocks = building.get_bounding_box().get_occupied_blocks();
-        occupied_blocks.insert(blocks.begin(), blocks.end());
-        buildings.emplace_back(std::move(building));
+    const DistrictBuildings& District::get_buildings() const {
+        return buildings;
     }
 
-    bool District::can_place(const BoundingBox3D& bb) const {
-        auto blocks = bb.get_occupied_blocks();
-        for (const auto& block : blocks) {
-            if (occupied_blocks.find(block) != occupied_blocks.cend()) {
-                return false;
-            }
-        }
-        return true;
+    DistrictBuilding* District::add_building(const glm::ivec2& position, wfc::Building&& building) {
+        auto blocks = building.get_bounding_box().get_occupied_blocks();
+        auto [it, inserted] = buildings.emplace(std::piecewise_construct,
+            std::forward_as_tuple(position),
+            std::forward_as_tuple(position, std::move(building)));
+        return inserted ? &it->second : nullptr;
     }
 
     BoundingBox3D District::compute_bounding_box() const {
@@ -33,7 +32,8 @@ namespace inf {
         BoundingBox3D result(
             glm::vec3(float_max, float_max, float_max),
             glm::vec3(float_min, float_min, float_min));
-        for (const auto& building : buildings) {
+        for (const auto& entry : buildings) {
+            const auto& building = entry.second.building;
             const auto building_bb = building.get_bounding_box();
             result.update(building_bb.min);
             result.update(building_bb.max);
@@ -43,19 +43,35 @@ namespace inf {
 
     void District::update(const gfx::Renderer& renderer) {
         // Remove buildings that are no longer visible
-        std::vector<wfc::Building> buildings_to_keep;
-        std::unordered_set<glm::ivec3> new_occupied_blocks;
-        buildings_to_keep.reserve(buildings.size());
-        for (auto& building : buildings) {
+        std::vector<glm::ivec2> keys_to_remove;
+        for (const auto& entry : buildings) {
+            const auto& building = entry.second.building;
             const auto bb = building.get_bounding_box();
-            if (renderer.is_in_view(bb)) {
-                const auto occupied = bb.get_occupied_blocks();
-                new_occupied_blocks.insert(occupied.cbegin(), occupied.cend());
-                buildings_to_keep.emplace_back(std::move(building));
+            // Stretch the bounding box in each direction to avoid pops (especially for shadows)
+            const BoundingBox3D stretched_bb(
+                bb.min + glm::vec3(-2.0f, 0.0f, -2.0f),
+                bb.max + glm::vec3(2.0f, 0.0f, 2.0f));
+            if (!renderer.is_in_view(stretched_bb)) {
+                const auto& position = entry.first;
+                keys_to_remove.emplace_back(position);
+                std::vector<std::pair<glm::ivec2, std::function<void(DistrictBuilding&)>>> to_update {
+                    { { 1, 0 }, [](DistrictBuilding& right_neighbor) { right_neighbor.left = nullptr; } },
+                    { { -1, 0 }, [](DistrictBuilding& left_neighbor) { left_neighbor.right = nullptr; } },
+                    { { 0, 1 }, [](DistrictBuilding& top_neighbor) { top_neighbor.bottom = nullptr; } },
+                    { { 0, -1 }, [](DistrictBuilding& bottom_neighbor) { bottom_neighbor.top = nullptr; } }
+                };
+                for (const auto& update : to_update) {
+                    const auto update_position = position + update.first;
+                    if (auto it = buildings.find(update_position); it != buildings.cend()) {
+                        update.second(it->second);
+                    }
+                }
             }
         }
-        buildings = std::move(buildings_to_keep);
-        occupied_blocks = std::move(new_occupied_blocks);
+
+        for (const auto& key : keys_to_remove) {
+            buildings.erase(key);
+        }
     }
 
     void District::render(gfx::Renderer& renderer) const {        
@@ -75,7 +91,8 @@ namespace inf {
         }
         renderer.render_instanced(grass_mesh, std::move(positions));
 
-        for (const auto& building : buildings) {
+        for (const auto& entry : buildings) {
+            const auto& building = entry.second.building;
             renderer.render(building.get_mesh());
         }
     }

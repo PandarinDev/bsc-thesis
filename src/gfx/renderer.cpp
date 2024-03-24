@@ -210,7 +210,7 @@ namespace inf::gfx {
         show_diagnostics = show;
     }
 
-    void Renderer::begin_frame() {
+    void Renderer::begin_frame(std::size_t num_buildings) {
         shadow_casters_to_render.clear();
         non_casters_to_render.clear();
         ImGui_ImplVulkan_NewFrame();
@@ -221,6 +221,7 @@ namespace inf::gfx {
             ImGui::Begin("Diagnostics");
             ImGui::SetWindowSize({ 400, 100 });
             ImGui::Text("FPS: %d", timer.get_fps());
+            ImGui::Text("Buildings: %d", num_buildings);
 
             const auto format_vec3 = [](const glm::vec3& vec) {
                 return "[" + std::to_string(vec.x) + ", " + std::to_string(vec.y) + ", " + std::to_string(vec.z) + "]";

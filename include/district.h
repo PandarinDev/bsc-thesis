@@ -6,7 +6,7 @@
 #include "utils/hash_utils.h"
 
 #include <vector>
-#include <utility>
+#include <unordered_map>
 #include <unordered_set>
 
 namespace inf {
@@ -19,15 +19,30 @@ namespace inf {
         RESIDENTAL
     };
 
+    struct DistrictBuilding {
+
+        glm::ivec2 position;        
+        wfc::Building building;
+        DistrictBuilding* top;
+        DistrictBuilding* right;
+        DistrictBuilding* bottom;
+        DistrictBuilding* left;
+
+        DistrictBuilding(const glm::ivec2& position, wfc::Building&& building);
+
+    };
+
+    using DistrictBuildings = std::unordered_map<glm::ivec2, DistrictBuilding>;
+
     struct District {
 
         District(DistrictType type);
         District(District&&) = default;
         District& operator=(District&&) = default;
 
-        const std::vector<wfc::Building>& get_buildings() const;
-        void add_building(wfc::Building&& building);
-        bool can_place(const BoundingBox3D& bb) const;
+        DistrictBuildings& get_buildings();
+        const DistrictBuildings& get_buildings() const;
+        DistrictBuilding* add_building(const glm::ivec2& position, wfc::Building&& building);
         BoundingBox3D compute_bounding_box() const;
         
         void update(const gfx::Renderer& renderer);
@@ -36,8 +51,7 @@ namespace inf {
     private:
 
         DistrictType type;
-        std::vector<wfc::Building> buildings;
-        std::unordered_set<glm::ivec3> occupied_blocks;
+        DistrictBuildings buildings;
 
     };
 

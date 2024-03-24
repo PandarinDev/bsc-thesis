@@ -40,3 +40,59 @@ TEST_CASE("BoundingBox3D::apply()") {
     }
 
 }
+
+TEST_CASE("BoundingBox3D::get_block_to_the_left()") {
+
+    SECTION("returns a 1x1x1 block to the left") {
+        const BoundingBox3D bounding_box(
+            glm::vec3(0.0f, 0.0f, 0.0f),
+            glm::vec3(1.0f, 1.0f, 1.0f)
+        );
+        const auto result = bounding_box.get_block_to_the_left();
+        REQUIRE(result.min == glm::vec3(-1.0f, 0.0f, 0.0f));
+        REQUIRE(result.max == glm::vec3(0.0f, 1.0f, 1.0f));
+    }
+
+}
+
+TEST_CASE("BoundingBox3D::get_block_to_the_right()") {
+
+    SECTION("returns a 1x1x1 block to the right") {
+        const BoundingBox3D bounding_box(
+            glm::vec3(0.0f, 0.0f, 0.0f),
+            glm::vec3(1.0f, 1.0f, 1.0f)
+        );
+        const auto result = bounding_box.get_block_to_the_right();
+        REQUIRE(result.min == glm::vec3(1.0f, 0.0f, 0.0f));
+        REQUIRE(result.max == glm::vec3(2.0f, 1.0f, 1.0f));
+    }
+
+}
+
+TEST_CASE("BoundingBox3D::get_block_above()") {
+
+    SECTION("returns a 1x1x1 block above") {
+        const BoundingBox3D bounding_box(
+            glm::vec3(0.0f, 0.0f, 0.0f),
+            glm::vec3(1.0f, 1.0f, 1.0f)
+        );
+        const auto result = bounding_box.get_block_above();
+        REQUIRE(result.min == glm::vec3(0.0f, 0.0f, -1.0f));
+        REQUIRE(result.max == glm::vec3(1.0f, 1.0f, 0.0f));
+    }
+
+}
+
+TEST_CASE("BoundingBox3D::get_block_below()") {
+
+    SECTION("returns a 1x1x1 block below") {
+        const BoundingBox3D bounding_box(
+            glm::vec3(0.0f, 0.0f, 0.0f),
+            glm::vec3(1.0f, 1.0f, 1.0f)
+        );
+        const auto result = bounding_box.get_block_below();
+        REQUIRE(result.min == glm::vec3(0.0f, 0.0f, 1.0f));
+        REQUIRE(result.max == glm::vec3(1.0f, 1.0f, 2.0f));
+    }
+
+}

@@ -4,6 +4,8 @@
 #include "world.h"
 #include "gfx/renderer.h"
 
+#include <deque>
+
 namespace inf {
 
     struct WorldGenerator {
@@ -12,7 +14,6 @@ namespace inf {
 
         World generate_initial();
         void populate_district(District& district);
-        void populate_district_edges(District& district);
 
     private:
 
@@ -20,6 +21,8 @@ namespace inf {
         const gfx::Renderer& renderer;
 
         wfc::Building generate_building();
+
+        void populate_district(District& district, std::deque<DistrictBuilding*>& to_process);
 
     };
 

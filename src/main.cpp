@@ -53,8 +53,8 @@ int main() {
             window.poll_events();
             input_manager.update();
             world.update(renderer);
-            generator.populate_district_edges(district);
-            renderer.begin_frame();
+            generator.populate_district(district);
+            renderer.begin_frame(district.get_buildings().size());
             world.render(renderer);
             renderer.end_frame();
         }

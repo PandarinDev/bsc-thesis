@@ -52,7 +52,7 @@ namespace inf::gfx {
         const vk::MemoryAllocator& get_memory_allocator() const;
         void set_show_diagnostics(bool show);
 
-        void begin_frame();
+        void begin_frame(std::size_t num_buildings);
         void render(const Mesh& mesh);
         void render_instanced(const Mesh& mesh, std::vector<glm::vec3>&& positions);
         void end_frame();
