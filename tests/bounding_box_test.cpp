@@ -43,7 +43,7 @@ TEST_CASE("BoundingBox3D::apply()") {
 
 TEST_CASE("BoundingBox3D::get_block_to_the_left()") {
 
-    SECTION("returns a 1x1x1 block to the left") {
+    SECTION("returns a block to the left") {
         const BoundingBox3D bounding_box(
             glm::vec3(0.0f, 0.0f, 0.0f),
             glm::vec3(1.0f, 1.0f, 1.0f)
@@ -57,7 +57,7 @@ TEST_CASE("BoundingBox3D::get_block_to_the_left()") {
 
 TEST_CASE("BoundingBox3D::get_block_to_the_right()") {
 
-    SECTION("returns a 1x1x1 block to the right") {
+    SECTION("returns a block to the right") {
         const BoundingBox3D bounding_box(
             glm::vec3(0.0f, 0.0f, 0.0f),
             glm::vec3(1.0f, 1.0f, 1.0f)
@@ -71,7 +71,7 @@ TEST_CASE("BoundingBox3D::get_block_to_the_right()") {
 
 TEST_CASE("BoundingBox3D::get_block_above()") {
 
-    SECTION("returns a 1x1x1 block above") {
+    SECTION("returns a block above") {
         const BoundingBox3D bounding_box(
             glm::vec3(0.0f, 0.0f, 0.0f),
             glm::vec3(1.0f, 1.0f, 1.0f)
@@ -85,7 +85,7 @@ TEST_CASE("BoundingBox3D::get_block_above()") {
 
 TEST_CASE("BoundingBox3D::get_block_below()") {
 
-    SECTION("returns a 1x1x1 block below") {
+    SECTION("returns a block below") {
         const BoundingBox3D bounding_box(
             glm::vec3(0.0f, 0.0f, 0.0f),
             glm::vec3(1.0f, 1.0f, 1.0f)
