@@ -22,9 +22,11 @@ namespace inf::input {
             const float delta_time,
             const KeyFunction& is_key_down,
             const KeyFunction& is_key_up,
-            const glm::vec2& mouse_delta) = 0;
+            const glm::vec2& mouse_coordinates,
+            const glm::vec2& mouse_delta,
+            const bool has_clicked) = 0;
 
-    }; 
+    };
 
     struct InputManager {
 
@@ -43,6 +45,7 @@ namespace inf::input {
         std::unordered_set<int> keys_down;
         std::unordered_set<int> keys_up;
         glm::vec2 last_mouse_coords;
+        int last_left_mouse_button_state;
 
     };
 

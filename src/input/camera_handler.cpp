@@ -11,19 +11,26 @@ namespace inf::input {
     static constexpr float CAMERA_SENSITIVITY = 1.0f;
     static constexpr glm::vec3 BACK_DIRECTION(0.0f, 0.0f, 1.0f);
 
-    CameraHandler::CameraHandler(Camera& camera) : camera(camera), enabled(false) {}
+    CameraHandler::CameraHandler(Context& context, Camera& camera) :
+        context(context), camera(camera) {}
 
     void CameraHandler::handle_input(
         const float delta_time,
         const KeyFunction& is_key_down,
         const KeyFunction& is_key_up,
-        const glm::vec2& mouse_delta) {
+        const glm::vec2& mouse_coordinates,
+        const glm::vec2& mouse_delta,
+        const bool has_clicked) {
         if (is_key_up(GLFW_KEY_F)) {
-            enabled = !enabled;
+            context.set_state(context.get_state() == State::FREECAM
+                ? State::PANNING
+                : State::FREECAM);
         }
-        if (!enabled) {
-            // If direct controls are not enabled simply move the camera slowly back
+        if (context.get_state() == State::PANNING) {
+            // If direct controls are not enabled simply pan the camera slowly back
             camera.set_position(camera.get_position() + BACK_DIRECTION * delta_time * CAMERA_SPEED);
+        }
+        if (context.get_state() != State::FREECAM) {
             return;
         }
 

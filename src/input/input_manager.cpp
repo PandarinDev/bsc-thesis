@@ -6,7 +6,8 @@ namespace inf::input {
         const Window& window,
         const Timer& timer) :
         window(window),
-        timer(timer) {}
+        timer(timer),
+        last_left_mouse_button_state(GLFW_RELEASE) {}
 
     void InputManager::update() {
         // Clear the list of released keys from the previous frame
@@ -33,6 +34,7 @@ namespace inf::input {
         double mouse_x, mouse_y;
         glfwGetCursorPos(window_handle, &mouse_x, &mouse_y);
         glm::vec2 mouse_coords(mouse_x, mouse_y);
+        glm::vec2 normalized_mouse_coords(mouse_coords.x / window_size.x, mouse_coords.y / window_size.y);
         glm::vec2 mouse_delta = mouse_coords - last_mouse_coords;
         // Flip Y as GLFW uses Y+ down
         mouse_delta.y *= -1.0f;
@@ -49,8 +51,11 @@ namespace inf::input {
         const auto is_key_up = [this](int key) {
             return keys_up.find(key) != keys_up.cend();
         };
+        int left_mouse_button_state = glfwGetMouseButton(window_handle, GLFW_MOUSE_BUTTON_LEFT);
+        bool has_clicked = last_left_mouse_button_state == GLFW_PRESS && left_mouse_button_state == GLFW_RELEASE;
+        last_left_mouse_button_state = left_mouse_button_state;
         for (const auto& handler : input_handlers) {
-            handler->handle_input(delta_time, is_key_down, is_key_up, mouse_delta);
+            handler->handle_input(delta_time, is_key_down, is_key_up, normalized_mouse_coords, mouse_delta, has_clicked);
         }
     }
 

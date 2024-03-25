@@ -14,7 +14,9 @@ namespace inf::input {
             const float delta_time,
             const KeyFunction& is_key_down,
             const KeyFunction& is_key_up,
-            const glm::vec2& mouse_delta) override;
+            const glm::vec2& mouse_coordinates,
+            const glm::vec2& mouse_delta,
+            const bool has_clicked) override;
 
     private:
 

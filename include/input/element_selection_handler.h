@@ -1,17 +1,23 @@
 #pragma once
 
-#define _USE_MATH_DEFINES
-#include <cmath>
-
 #include "context.h"
+#include "district.h"
 #include "camera.h"
 #include "input/input_manager.h"
 
+#include <glm/matrix.hpp>
+
+#include <functional>
+
 namespace inf::input {
 
-    struct CameraHandler final : public InputHandler {
+    struct ElementSelectionHandler final : public InputHandler {
 
-        CameraHandler(Context& context, Camera& camera);
+        ElementSelectionHandler(
+            Context& context,
+            const District& district,
+            const Camera& camera,
+            const glm::mat4& projection_matrix);
 
         void handle_input(
             const float delta_time,
@@ -24,7 +30,9 @@ namespace inf::input {
     private:
 
         Context& context;
-        Camera& camera;
+        const District& district;
+        const Camera& camera;
+        const glm::mat4 projection_matrix;
 
     };
 

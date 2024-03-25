@@ -2,11 +2,13 @@
 #include "camera.h"
 #include "timer.h"
 #include "world.h"
+#include "context.h"
 #include "generator.h"
 #include "gfx/renderer.h"
 #include "input/input_manager.h"
 #include "input/camera_handler.h"
 #include "input/diagnostics_handler.h"
+#include "input/element_selection_handler.h"
 #include "wfc/building.h"
 #include "wfc/ground.h"
 #include "utils/file_utils.h"
@@ -27,7 +29,10 @@ int main() {
 
         Camera camera(glm::vec3(0.0f, 4.0f, 2.0f), glm::vec3(0.0f, -0.5f, -1.0f));
         Renderer renderer(window, camera, timer);
-        input_manager.add_handler(std::make_unique<CameraHandler>(camera));
+        Context context([handle = window.get_handle()](bool captured) {
+            glfwSetInputMode(handle, GLFW_CURSOR, captured ? GLFW_CURSOR_DISABLED : GLFW_CURSOR_NORMAL);
+        });
+        input_manager.add_handler(std::make_unique<CameraHandler>(context, camera));
         input_manager.add_handler(std::make_unique<DiagnosticsHandler>([&renderer](bool value) {
             renderer.set_show_diagnostics(value);
         }));
@@ -47,6 +52,12 @@ int main() {
         auto& district = world.districts[0];
         const auto generation_elapsed_time = timer.get_time() - generation_start_time;
         std::cout << "World generation took " << generation_elapsed_time << " seconds." << std::endl;
+
+        input_manager.add_handler(std::make_unique<ElementSelectionHandler>(
+            context,            
+            district,
+            camera,
+            renderer.get_projection_matrix()));
 
         while (!window.should_close()) {
             timer.tick();
