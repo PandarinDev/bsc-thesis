@@ -210,7 +210,7 @@ namespace inf::gfx {
         show_diagnostics = show;
     }
 
-    void Renderer::begin_frame(std::size_t num_buildings) {
+    void Renderer::begin_frame(std::size_t num_districts, std::size_t num_buildings) {
         shadow_casters_to_render.clear();
         non_casters_to_render.clear();
         ImGui_ImplVulkan_NewFrame();
@@ -219,8 +219,9 @@ namespace inf::gfx {
 
         if (show_diagnostics) {
             ImGui::Begin("Diagnostics");
-            ImGui::SetWindowSize({ 400, 100 });
+            ImGui::SetWindowSize({ 400, 120 });
             ImGui::Text("FPS: %d", timer.get_fps());
+            ImGui::Text("Districts: %d", num_districts);
             ImGui::Text("Buildings: %d", num_buildings);
 
             const auto format_vec3 = [](const glm::vec3& vec) {

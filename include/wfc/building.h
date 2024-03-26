@@ -126,7 +126,9 @@ namespace inf::wfc {
         Building instantiate(
             RandomGenerator& rng,
             const gfx::vk::LogicalDevice* logical_device,
-            const gfx::vk::MemoryAllocator* allocator);
+            const gfx::vk::MemoryAllocator* allocator,
+            int max_width,
+            int max_depth);
 
     };
 

@@ -6,7 +6,7 @@
 #include "utils/hash_utils.h"
 
 #include <vector>
-#include <unordered_map>
+#include <optional>
 #include <unordered_set>
 
 namespace inf {
@@ -19,39 +19,43 @@ namespace inf {
         RESIDENTAL
     };
 
-    struct DistrictBuilding {
+    struct DistrictLot {
 
-        glm::ivec2 position;        
-        wfc::Building building;
-        DistrictBuilding* top;
-        DistrictBuilding* right;
-        DistrictBuilding* bottom;
-        DistrictBuilding* left;
+        glm::ivec2 position;
+        glm::ivec2 dimensions;
+        std::optional<wfc::Building> building;
 
-        DistrictBuilding(const glm::ivec2& position, wfc::Building&& building);
+        DistrictLot(
+            const glm::ivec2& position,
+            const glm::ivec2& dimensions,
+            std::optional<wfc::Building>&& building);
+
+        BoundingBox3D get_bounding_box(const glm::vec3& district_position) const;
 
     };
 
-    using DistrictBuildings = std::unordered_map<glm::ivec2, DistrictBuilding>;
-
     struct District {
 
-        District(DistrictType type);
+        District(DistrictType type, const glm::ivec2& grid_position);
         District(District&&) = default;
         District& operator=(District&&) = default;
 
-        DistrictBuildings& get_buildings();
-        const DistrictBuildings& get_buildings() const;
-        DistrictBuilding* add_building(const glm::ivec2& position, wfc::Building&& building);
+        const glm::ivec2& get_grid_position() const;
+        const glm::vec3& get_position() const;
+        void set_position(const glm::vec3& position);
+
         BoundingBox3D compute_bounding_box() const;
-        
-        void update(const gfx::Renderer& renderer);
+        const std::vector<DistrictLot>& get_lots() const;
+        void add_lot(DistrictLot&& lot);
+
         void render(gfx::Renderer& renderer) const;
 
     private:
 
         DistrictType type;
-        DistrictBuildings buildings;
+        glm::ivec2 grid_position;
+        glm::vec3 position;
+        std::vector<DistrictLot> lots;
 
     };
 

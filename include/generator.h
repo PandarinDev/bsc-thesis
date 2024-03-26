@@ -13,17 +13,15 @@ namespace inf {
         WorldGenerator(RandomGenerator& random_engine, const gfx::Renderer& renderer);
 
         World generate_initial();
-        void populate_district(District& district);
+        void populate_world(World& world);
 
     private:
 
         RandomGenerator& random_engine;
         const gfx::Renderer& renderer;
 
-        wfc::Building generate_building();
-
-        void place_initial_building(District& district, std::deque<DistrictBuilding*>& to_process);
-        void populate_district(District& district, std::deque<DistrictBuilding*>& to_process);
+        District generate_district(const glm::ivec2& grid_position);
+        wfc::Building generate_building(int max_width, int max_depth);
 
     };
 

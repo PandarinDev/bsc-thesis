@@ -17,6 +17,7 @@ namespace inf {
 
         glm::vec3 center() const;
         void update(const glm::vec3& position);
+        void update(const BoundingBox3D& other);
         std::array<glm::vec3, 8> get_points() const;
         std::vector<glm::ivec3> get_occupied_blocks() const;
         float width() const;

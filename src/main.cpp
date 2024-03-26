@@ -48,14 +48,12 @@ int main() {
         const auto generation_start_time = timer.get_time();
         WorldGenerator generator(random_engine, renderer);
         World world = generator.generate_initial();
-        // TODO: When we'll have multiple districts this will obviously not work
-        auto& district = world.districts[0];
         const auto generation_elapsed_time = timer.get_time() - generation_start_time;
         std::cout << "World generation took " << generation_elapsed_time << " seconds." << std::endl;
 
         input_manager.add_handler(std::make_unique<ElementSelectionHandler>(
             context,            
-            district,
+            world,
             camera,
             renderer.get_projection_matrix()));
 
@@ -64,8 +62,8 @@ int main() {
             window.poll_events();
             input_manager.update();
             world.update(renderer);
-            generator.populate_district(district);
-            renderer.begin_frame(district.get_buildings().size());
+            generator.populate_world(world);
+            renderer.begin_frame(world.get_number_of_districts(), world.get_number_of_buildings());
             world.render(renderer);
             renderer.end_frame();
         }

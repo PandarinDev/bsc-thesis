@@ -21,6 +21,11 @@ namespace inf {
         if (position.z > max.z) max.z = position.z;
     }
 
+    void BoundingBox3D::update(const BoundingBox3D& other) {
+        update(other.min);
+        update(other.max);
+    }
+
     std::array<glm::vec3, 8> BoundingBox3D::get_points() const {
         return {
             min,                            // Front bottom left

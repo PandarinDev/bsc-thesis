@@ -1,7 +1,7 @@
 #pragma once
 
 #include "context.h"
-#include "district.h"
+#include "world.h"
 #include "camera.h"
 #include "input/input_manager.h"
 
@@ -15,7 +15,7 @@ namespace inf::input {
 
         ElementSelectionHandler(
             Context& context,
-            const District& district,
+            const World& world,
             const Camera& camera,
             const glm::mat4& projection_matrix);
 
@@ -30,7 +30,7 @@ namespace inf::input {
     private:
 
         Context& context;
-        const District& district;
+        const World& world;
         const Camera& camera;
         const glm::mat4 projection_matrix;
 

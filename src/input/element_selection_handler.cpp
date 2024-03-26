@@ -7,10 +7,10 @@ namespace inf::input {
 
     ElementSelectionHandler::ElementSelectionHandler(
         Context& context,
-        const District& district,
+        const World& world,
         const Camera& camera,
         const glm::mat4& projection_matrix) :
-        context(context), district(district), projection_matrix(projection_matrix),
+        context(context), world(world), projection_matrix(projection_matrix),
         camera(camera) {}
 
     void ElementSelectionHandler::handle_input(
@@ -40,6 +40,7 @@ namespace inf::input {
         auto min_distance = std::numeric_limits<float>::max();
         const glm::ivec2* closest_intersection = nullptr;
         const wfc::Building* closest_building = nullptr;
+        /* TODO: Fix this
         for (const auto& entry : district.get_buildings()) {
             const auto bb = entry.second.building.get_bounding_box();
             const auto bb_in_ndc = bb.apply_and_transform_to_ndc(projection_view_matrix);
@@ -57,6 +58,7 @@ namespace inf::input {
                 }
             }
         }
+        */
         if (closest_intersection) {
             std::cout << "Closest intersection: [" << closest_intersection->x << ", " << closest_intersection->y << "]" << std::endl;
             const auto closest_bb = closest_building->get_bounding_box();

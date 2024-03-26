@@ -65,10 +65,15 @@ namespace inf::wfc {
     Building BuildingPattern::instantiate(
         RandomGenerator& rng,
         const gfx::vk::LogicalDevice* logical_device,
-        const gfx::vk::MemoryAllocator* allocator) {
-        auto width = dimensions.width.to_distribution()(rng);
+        const gfx::vk::MemoryAllocator* allocator,
+        int max_width,
+        int max_depth) {
+        if (dimensions.width.min > max_width || dimensions.depth.min > max_depth) {
+            throw std::runtime_error("Cannot fit building into the required maximum dimensions.");
+        }
+        auto width = std::uniform_int_distribution<int>(dimensions.width.min, std::min(dimensions.width.max, max_width))(rng);
         auto height = dimensions.height.to_distribution()(rng);
-        auto depth = dimensions.depth.to_distribution()(rng);
+        auto depth = std::uniform_int_distribution<int>(dimensions.depth.min, std::min(dimensions.depth.max, max_depth))(rng);
 
         BuildingContext context;
         std::vector<BuildingCell> cells;

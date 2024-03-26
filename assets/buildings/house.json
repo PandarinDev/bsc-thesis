@@ -2,12 +2,12 @@
     "name": "house",
     "dimensions": {
         "width": {
-            "min": 4,
-            "max": 4
+            "min": 3,
+            "max": 5
         },
         "depth": {
-            "min": 3,
-            "max": 3
+            "min": 2,
+            "max": 4
         },
         "height": {
             "min": 2,

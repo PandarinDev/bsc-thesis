@@ -13,125 +13,156 @@ namespace inf {
 
     World WorldGenerator::generate_initial() {
         World world;
-        auto& district = world.districts.emplace_back(DistrictType::RESIDENTAL);
-        std::deque<DistrictBuilding*> to_process;
-        place_initial_building(district, to_process);
-        populate_district(district, to_process);
-        return world;
-    }
+        auto& district = world.districts.emplace(glm::ivec2(0, 0), generate_district(glm::ivec2(0, 0))).first->second;
 
-    void WorldGenerator::populate_district(District& district) {
-        auto& buildings = district.get_buildings();
-        std::deque<DistrictBuilding*> to_process;
-        // If there are no buildings that likely means that everything has been culled (e.g. looking up in freecam)
-        if (buildings.empty()) {
-            place_initial_building(district, to_process);
-        }
-        // Only start with buildings that have a missing neighbor
-        else {
-            for (auto& entry : buildings) {
-                auto& building = entry.second;
-                if (!building.top || !building.right || !building.bottom || !building.left) {
-                    to_process.emplace_back(&building);
-                }
-            }
-        }
-        populate_district(district,  to_process);
-    }
-
-    wfc::Building WorldGenerator::generate_building() {
-        return wfc::BuildingPatterns::get_pattern("house")->instantiate(
-            random_engine,
-            &renderer.get_logical_device(),
-            &renderer.get_memory_allocator());
-    }
-
-    void WorldGenerator::place_initial_building(District& district, std::deque<DistrictBuilding*>& to_process) {
+        // Center the district compared to where the camera initially intersects the ground plane
         const auto& camera = renderer.get_camera();
         const gfx::Ray camera_ray(camera.get_position(), camera.get_direction());
         const gfx::Plane ground_plane(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, -1.0f, 0.0f), 0.0f);
         const auto maybe_intersection = camera_ray.intersect(ground_plane);
-        if (!maybe_intersection) {
-            return;
+        if (maybe_intersection) {
+            const auto intersection = glm::floor(camera_ray.point_at(maybe_intersection.value()));
+            const auto district_bb = district.compute_bounding_box();
+            const auto district_width = district_bb.width();
+            const auto district_depth = district_bb.depth();
+            district.set_position(glm::vec3(intersection.x - district_width * 0.5f, 0.0f, intersection.z - district_depth * 0.5f));
         }
-        const auto intersection = glm::floor(camera_ray.point_at(maybe_intersection.value()));
 
-        // Place the initial building around which we'll start the generation
-        {
-            auto initial_building = generate_building();
-            initial_building.set_position(intersection);
-            if (auto building = district.add_building(glm::ivec2(0, 0), std::move(initial_building)); building) {
-                to_process.emplace_back(building);
+        return world;
+    }
+
+    void WorldGenerator::populate_world(World& world) {
+        // TODO: This should be done recursively instead to avoid scenarios when a large chunk of
+        // districts would become visible at once but we only generate one per frame. Realistically
+        // this is only a problem in freecam situations and even then it is not a big deal.
+        for (const auto& entry : world.districts) {
+            const auto& district = entry.second;
+            const auto& grid_position = entry.first;
+            const auto& world_position = district.get_position();
+            const auto district_bb = district.compute_bounding_box();
+            // Left
+            if (!world.has_district_at(grid_position + glm::ivec2(-1, 0)) &&
+                renderer.is_in_view(district_bb.get_block_to_the_left())) {
+                const auto new_district_grid_position = grid_position + glm::ivec2(-1, 0);
+                auto& new_district = world.districts.emplace(new_district_grid_position, generate_district(new_district_grid_position)).first->second;
+                const auto new_district_bb = new_district.compute_bounding_box();
+                new_district.set_position(glm::vec3(world_position.x - new_district_bb.width(), world_position.y, world_position.z));
+            }
+            // Right
+            if (!world.has_district_at(grid_position + glm::ivec2(1, 0)) &&
+                renderer.is_in_view(district_bb.get_block_to_the_right())) {
+                const auto new_district_grid_position = grid_position + glm::ivec2(1, 0);
+                auto& new_district = world.districts.emplace(new_district_grid_position, generate_district(new_district_grid_position)).first->second;
+                new_district.set_position(glm::vec3(world_position.x + district_bb.width(), world_position.y, world_position.z));
+            }
+            // Top
+            if (!world.has_district_at(grid_position + glm::ivec2(0, 1)) &&
+                renderer.is_in_view(district_bb.get_block_above())) {
+                const auto new_district_grid_position = grid_position + glm::ivec2(0, 1);
+                auto& new_district = world.districts.emplace(new_district_grid_position, generate_district(new_district_grid_position)).first->second;
+                const auto new_district_bb = new_district.compute_bounding_box();
+                new_district.set_position(glm::vec3(world_position.x, world_position.y, world_position.z - new_district_bb.depth()));
+            }
+            // Bottom
+            if (!world.has_district_at(grid_position + glm::ivec2(0, -1)) &&
+                renderer.is_in_view(district_bb.get_block_below())) {
+                const auto new_district_grid_position = grid_position + glm::ivec2(0, -1);
+                auto& new_district = world.districts.emplace(new_district_grid_position, generate_district(new_district_grid_position)).first->second;
+                new_district.set_position(glm::vec3(world_position.x, world_position.y, world_position.z + district_bb.depth()));
             }
         }
     }
 
-    void WorldGenerator::populate_district(District& district, std::deque<DistrictBuilding*>& to_process) {
-        auto place_building = [&](const glm::ivec2& position, const std::function<glm::vec3(const wfc::Building&)>& position_calculator) {
-            auto building = generate_building();
-            building.set_position(position_calculator(building));
-            if (auto ptr = district.add_building(position, std::move(building)); ptr) {
-                auto& buildings = district.get_buildings();
-                std::vector<std::pair<glm::ivec2, std::function<void(DistrictBuilding&)>>> to_update{
-                    { { 1, 0 }, [ptr](DistrictBuilding& right_neighbor) {
-                        ptr->right = &right_neighbor;
-                        right_neighbor.left = ptr;
-                    } },
-                    { { -1, 0 }, [ptr](DistrictBuilding& left_neighbor) {
-                        ptr->left = &left_neighbor;
-                        left_neighbor.right = ptr;
-                    } },
-                    { { 0, 1 }, [ptr](DistrictBuilding& top_neighbor) {
-                        ptr->top = &top_neighbor;
-                        top_neighbor.bottom = ptr;
-                    } },
-                    { { 0, -1 }, [ptr](DistrictBuilding& bottom_neighbor) {
-                        ptr->bottom = &bottom_neighbor;
-                        bottom_neighbor.top = ptr;
-                    } }
-                };
-                for (const auto& entry : to_update) {
-                    const auto entry_pos = position + entry.first;
-                    if (auto it = buildings.find(entry_pos); it != buildings.cend()) {
-                        entry.second(it->second);
-                    }
-                }
-                to_process.emplace_back(ptr);
+    District WorldGenerator::generate_district(const glm::ivec2& grid_position) {
+        auto district = District(DistrictType::RESIDENTAL, grid_position);
+        // Slice up the district into lots
+        static constexpr auto district_width = 50;
+        static constexpr auto district_depth = 50;
+        static constexpr auto min_lot_width = 4;
+        static constexpr auto max_lot_width = 7;
+        std::uniform_int_distribution<int> lot_width_distribution(min_lot_width, max_lot_width);
+        static constexpr auto min_lot_depth = 4;
+        static constexpr auto max_lot_depth = 7;
+        std::uniform_int_distribution<int> lot_depth_distribution(min_lot_depth, max_lot_depth);
+        std::vector<glm::ivec4> partitions{ glm::vec4{ 0, 0, district_width, district_depth } };
+        const auto is_partition_sufficiently_sized = [](const glm::ivec4& partition) {
+            const auto width = partition.z - partition.x;
+            if (width > max_lot_width) {
+                return false;
             }
+            const auto depth = partition.w - partition.y;
+            if (depth > max_lot_depth) {
+                return false;
+            }
+            // We do not need to check for smaller than minimum sizes, because the slicing
+            // algorithm should guarantee that we never slice into smaller partitions than
+            // what is the minimum size for a lot.
+            return true;
         };
-
-        static constexpr float gap = 2.0f;
-        while (!to_process.empty()) {
-            auto entry = to_process.front();
-            to_process.pop_front();
-            const auto& building = entry->building;
-            const auto& position = building.get_position();
-            const auto bb = building.get_bounding_box();
-            const auto width = bb.width();
-            const auto depth = bb.depth();
-            if (!entry->left && renderer.is_in_view(bb.get_block_to_the_left())) {
-                place_building(entry->position + glm::ivec2(-1, 0), [&position](const wfc::Building& placed) {
-                    const auto width = placed.get_bounding_box().width();
-                    return glm::floor(position - glm::vec3(width + gap, 0.0f, 0.0f));
-                });
+        const auto are_partitions_sufficiently_sized = [&]() {
+            for (const auto& partition : partitions) {
+                if (!is_partition_sufficiently_sized(partition)) {
+                    return false;
+                }
             }
-            if (!entry->right && renderer.is_in_view(bb.get_block_to_the_right())) {
-                place_building(entry->position + glm::ivec2(1, 0), [&position, &width](const wfc::Building&) {
-                    return position + glm::vec3(width + gap, 0.0f, 0.0f);
-                });
+            return true;
+        };
+        while (!are_partitions_sufficiently_sized()) {
+            std::vector<glm::ivec4> new_partitions;
+            for (const auto& partition : partitions) {
+                const auto width = partition.z - partition.x;
+                const auto depth = partition.w - partition.y;
+                // Cut partition vertically if needed
+                if (width > max_lot_width) {
+                    std::uniform_int_distribution<int> slice_distribution(
+                        static_cast<int>(width * 0.2f),
+                        static_cast<int>(width * 0.8f));
+                    const auto slice_at = slice_distribution(random_engine);
+                    new_partitions.emplace_back(partition.x, partition.y, partition.x + slice_at, partition.w);
+                    new_partitions.emplace_back(partition.x + slice_at, partition.y, partition.z, partition.w);
+                }
+                // Cut partition horizontally if needed
+                else if (depth > max_lot_depth) {
+                    std::uniform_int_distribution<int> slice_distribution(
+                        static_cast<int>(depth * 0.2f),
+                        static_cast<int>(depth * 0.8f));
+                    const auto slice_at = slice_distribution(random_engine);
+                    new_partitions.emplace_back(partition.x, partition.y, partition.z, partition.y + slice_at);
+                    new_partitions.emplace_back(partition.x, partition.y + slice_at, partition.z, partition.w);
+                }
+                // Otherwise the partition is sufficiently sized and we simply move it the list of new partitions
+                else {
+                    new_partitions.emplace_back(partition);
+                }
             }
-            if (!entry->top && renderer.is_in_view(bb.get_block_above())) {
-                place_building(entry->position + glm::ivec2(0, 1), [&position, &depth](const wfc::Building&) {
-                    return position - glm::vec3(0.0f, 0.0f, depth + gap);
-                });
-            }
-            if (!entry->bottom && renderer.is_in_view(bb.get_block_below())) {
-                place_building(entry->position + glm::ivec2(0, -1), [&position](const wfc::Building& placed) {
-                    const auto depth = placed.get_bounding_box().depth();
-                    return position + glm::vec3(0.0f, 0.0f, depth + gap);
-                });
-            }
+            partitions = std::move(new_partitions);
         }
+        // Turn partitions into lots by generating buildings on them
+        // TODO: Later on we need to investigate any possible building for the district type, not just houses
+        const auto house_pattern = wfc::BuildingPatterns::get_pattern("house");
+        for (const auto& partition : partitions) {
+            const auto width = partition.z - partition.x;
+            const auto depth = partition.w - partition.y;
+            const auto can_fit_building = width >= house_pattern->dimensions.width.min && depth >= house_pattern->dimensions.depth.min;
+            // If the dimensions are not suitable for any pattern for the district the lot remains vacant, otherwise generate building that is guaranteed to fit
+            district.add_lot(DistrictLot(
+                glm::ivec2(partition),
+                glm::ivec2(width, depth),
+                can_fit_building
+                    ? std::make_optional(generate_building(width, depth))
+                    : std::nullopt));
+        }
+
+        return district;
+    }
+
+    wfc::Building WorldGenerator::generate_building(int max_width, int max_depth) {
+        return wfc::BuildingPatterns::get_pattern("house")->instantiate(
+            random_engine,
+            &renderer.get_logical_device(),
+            &renderer.get_memory_allocator(),
+            max_width,
+            max_depth);
     }
 
 }
