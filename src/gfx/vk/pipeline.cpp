@@ -237,7 +237,7 @@ namespace inf::gfx::vk {
         // TODO: This should be a function parameter (a vector of push constant ranges)
         VkPushConstantRange push_constant{};
         push_constant.offset = 0;
-        push_constant.size = sizeof(glm::mat4);
+        push_constant.size = sizeof(glm::mat4) + sizeof(std::int32_t);
         push_constant.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
 
         // Create pipeline layout
@@ -314,7 +314,13 @@ namespace inf::gfx::vk {
             VK_COLOR_COMPONENT_G_BIT |
             VK_COLOR_COMPONENT_B_BIT |
             VK_COLOR_COMPONENT_A_BIT;
-        color_blend_attachment.blendEnable = VK_FALSE;
+        color_blend_attachment.blendEnable = VK_TRUE;
+        color_blend_attachment.srcColorBlendFactor = VK_BLEND_FACTOR_ONE;
+        color_blend_attachment.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+        color_blend_attachment.colorBlendOp = VK_BLEND_OP_ADD;
+        color_blend_attachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
+        color_blend_attachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+        color_blend_attachment.alphaBlendOp = VK_BLEND_OP_ADD;
 
         VkPipelineColorBlendStateCreateInfo color_blend_create_info{};
         color_blend_create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;

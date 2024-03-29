@@ -8,6 +8,10 @@
 
 namespace inf {
 
+    namespace gfx::vk {
+        struct Vertex;
+    }
+
     struct BoundingBox3D {
 
         glm::vec3 min;
@@ -20,6 +24,8 @@ namespace inf {
         void update(const BoundingBox3D& other);
         std::array<glm::vec3, 8> get_points() const;
         std::vector<glm::ivec3> get_occupied_blocks() const;
+        std::vector<gfx::vk::Vertex> to_vertices(float gap, const glm::vec3& color) const;
+
         float width() const;
         float height() const;
         float depth() const;

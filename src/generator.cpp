@@ -140,6 +140,7 @@ namespace inf {
         // Turn partitions into lots by generating buildings on them
         // TODO: Later on we need to investigate any possible building for the district type, not just houses
         const auto house_pattern = wfc::BuildingPatterns::get_pattern("house");
+        std::uniform_real_distribution<float> color_distribution(0.0f, 1.0f);
         for (const auto& partition : partitions) {
             const auto width = partition.z - partition.x;
             const auto depth = partition.w - partition.y;
@@ -148,6 +149,7 @@ namespace inf {
             district.add_lot(DistrictLot(
                 glm::ivec2(partition),
                 glm::ivec2(width, depth),
+                glm::vec3(color_distribution(random_engine), color_distribution(random_engine), color_distribution(random_engine)),
                 can_fit_building
                     ? std::make_optional(generate_building(width, depth))
                     : std::nullopt));

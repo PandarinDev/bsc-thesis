@@ -1,4 +1,5 @@
 #include "gfx/renderer.h"
+#include "gfx/vk/vertex.h"
 #include "utils/file_utils.h"
 
 #include <imgui.h>
@@ -16,7 +17,7 @@ namespace inf::gfx {
     static constexpr VkExtent2D SHADOW_MAP_EXTENT{ SHADOW_MAP_RESOLUTION_X, SHADOW_MAP_RESOLUTION_Y };
 
     Renderer::Renderer(const Window& window, const Camera& camera, const Timer& timer) :
-        camera(camera), timer(timer), image_index(0), frame_index(0), show_diagnostics(false) {
+        camera(camera), timer(timer), image_index(0), frame_index(0), show_diagnostics(false), show_debug_bbs(false) {
         if (!gladLoaderLoadVulkan(VK_NULL_HANDLE, VK_NULL_HANDLE, VK_NULL_HANDLE)) {
             throw std::runtime_error("Failed to load Vulkan function pointers.");
         }
@@ -213,13 +214,14 @@ namespace inf::gfx {
     void Renderer::begin_frame(std::size_t num_districts, std::size_t num_buildings) {
         shadow_casters_to_render.clear();
         non_casters_to_render.clear();
+        bounding_boxes_to_render.clear();
         ImGui_ImplVulkan_NewFrame();
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
 
         if (show_diagnostics) {
             ImGui::Begin("Diagnostics");
-            ImGui::SetWindowSize({ 400, 120 });
+            ImGui::SetWindowSize({ 400, 140 });
             ImGui::Text("FPS: %d", timer.get_fps());
             ImGui::Text("Districts: %d", num_districts);
             ImGui::Text("Buildings: %d", num_buildings);
@@ -232,16 +234,29 @@ namespace inf::gfx {
             const auto direction = format_vec3(camera.get_direction());
             ImGui::Text("Camera position: %s", position.c_str());
             ImGui::Text("Camera direction: %s", direction.c_str());
+            ImGui::Checkbox("Show debug BBs", &show_debug_bbs);
             ImGui::End();
         }
     }
 
     void Renderer::render(const Mesh& mesh) {
-        shadow_casters_to_render.emplace_back(MeshToRender{ &mesh, mesh.get_model_matrix() });
+        shadow_casters_to_render.emplace_back(&mesh);
     }
 
     void Renderer::render_instanced(const Mesh& mesh, std::vector<glm::vec3>&& positions) {
         non_casters_to_render.emplace_back(InstancedMeshToRender{ &mesh, std::move(positions) });
+    }
+
+    void Renderer::render(const BoundingBox3D& bounding_box, const glm::vec3& color) {
+        if (!show_debug_bbs) {
+            return;
+        }
+        const auto& bb = bounding_box;
+        const auto vertices = bb.to_vertices(0.002f, color);
+        const auto num_bytes = vertices.size() * sizeof(vk::Vertex);
+        const auto& buffer = bounding_boxes_to_render.emplace_back(
+            vk::MappedBuffer::create(logical_device.get(), memory_allocator.get(), vk::BufferType::VERTEX_BUFFER, num_bytes));
+        buffer.upload(vertices.data(), num_bytes);
     }
 
     void Renderer::end_frame() {
@@ -308,15 +323,15 @@ namespace inf::gfx {
         const auto null_buffer = vk::MappedBuffer::create(logical_device.get(), memory_allocator.get(), vk::BufferType::VERTEX_BUFFER, sizeof(glm::vec3));
         glm::vec3 position(0.0f, 0.0f, 0.0f);
         null_buffer.upload(&position[0], sizeof(glm::vec3));
-        for (const auto& entry : shadow_casters_to_render) {
-            const auto mesh = entry.mesh;
+        for (const auto& mesh : shadow_casters_to_render) {
             // Push model matrix
+            PushConstants constants{ mesh->get_model_matrix(), 0 };
             vkCmdPushConstants(
                 command_buffer_handle,
                 shadow_map_pipeline->get_pipeline_layout(),
                 VK_SHADER_STAGE_VERTEX_BIT,
-                0, sizeof(glm::mat4),
-                &entry.model_matrix);
+                0, sizeof(PushConstants),
+                &constants);
             static const std::array<VkDeviceSize, 2> offsets{ 0, 0 };
             std::array<VkBuffer, 2> buffer_handles{ mesh->get_buffer().get_buffer(), null_buffer.get_buffer() };
             vkCmdBindVertexBuffers(command_buffer_handle, 0, static_cast<std::uint32_t>(buffer_handles.size()), buffer_handles.data(), offsets.data());
@@ -362,15 +377,15 @@ namespace inf::gfx {
         uniform_buffers[frame_index].upload(&matrices, sizeof(Matrices));
 
         // Render the meshes
-        for (const auto& entry : shadow_casters_to_render) {
-            const auto mesh = entry.mesh;
+        for (const auto& mesh : shadow_casters_to_render) {
             // Push model matrix
+            PushConstants constants{ mesh->get_model_matrix(), 0 };
             vkCmdPushConstants(
                 command_buffer_handle,
                 pipeline->get_pipeline_layout(),
                 VK_SHADER_STAGE_VERTEX_BIT,
-                0, sizeof(glm::mat4),
-                &entry.model_matrix);
+                0, sizeof(PushConstants),
+                &constants);
 
             static const std::array<VkDeviceSize, 2> offsets{ 0, 0 };
             std::array<VkBuffer, 2> buffer_handles{ mesh->get_buffer().get_buffer(), null_buffer.get_buffer() };
@@ -397,6 +412,33 @@ namespace inf::gfx {
             std::array<VkBuffer, 2> buffer_handles{ entry.mesh->get_buffer().get_buffer(), instance_buffer.get_buffer() };
             vkCmdBindVertexBuffers(command_buffer_handle, 0, static_cast<std::uint32_t>(buffer_handles.size()), buffer_handles.data(), offsets.data());
             vkCmdDraw(command_buffer_handle, static_cast<std::uint32_t>(entry.mesh->get_number_of_vertices()), instance_count, 0, 0);
+        }
+
+        // Render debug bounding boxes
+        if (show_debug_bbs && !bounding_boxes_to_render.empty()) {
+            vkCmdBindPipeline(command_buffer.get_command_buffer(), VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline->get_pipeline());
+            vkCmdBindDescriptorSets(
+                command_buffer.get_command_buffer(),
+                VK_PIPELINE_BIND_POINT_GRAPHICS,
+                pipeline->get_pipeline_layout(),
+                0, 1,
+                &descriptor_sets[frame_index],
+                0, nullptr);
+            for (const auto& entry: bounding_boxes_to_render) {
+                PushConstants constants{ glm::mat4(1.0f), 1 };
+                vkCmdPushConstants(
+                    command_buffer_handle,
+                    pipeline->get_pipeline_layout(),
+                    VK_SHADER_STAGE_VERTEX_BIT,
+                    0, sizeof(PushConstants),
+                    &constants);
+
+                static const std::array<VkDeviceSize, 2> offsets{ 0, 0 };
+                static constexpr std::uint32_t vertices_per_bounding_box = 36;
+                std::array<VkBuffer, 2> buffer_handles{ entry.get_buffer(), null_buffer.get_buffer() };
+                vkCmdBindVertexBuffers(command_buffer_handle, 0, static_cast<std::uint32_t>(buffer_handles.size()), buffer_handles.data(), offsets.data());
+                vkCmdDraw(command_buffer_handle, vertices_per_bounding_box, 1, 0, 0);
+            }
         }
 
         // Render imgui data

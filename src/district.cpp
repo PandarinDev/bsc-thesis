@@ -8,8 +8,9 @@ namespace inf {
     DistrictLot::DistrictLot(
         const glm::ivec2& position,
         const glm::ivec2& dimensions,
+        const glm::vec3& bb_color,
         std::optional<wfc::Building>&& building) :
-        position(position), dimensions(dimensions), building(std::move(building)) {}
+        position(position), dimensions(dimensions), bb_color(bb_color), building(std::move(building)) {}
 
     BoundingBox3D DistrictLot::get_bounding_box(const glm::vec3& district_position) const {
         const auto min = glm::vec3(district_position.x + position.x, 0.0f, district_position.z + position.y);
@@ -77,8 +78,10 @@ namespace inf {
 
         for (const auto& lot : lots) {
             const auto& building = lot.building;
+            renderer.render(lot.get_bounding_box(get_position()), lot.bb_color);
             if (building) {
                 renderer.render(building->get_mesh());
+                renderer.render(building->get_bounding_box(), glm::vec3(1.0f, 0.0f, 0.0f));
             }
         }
     }

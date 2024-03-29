@@ -1,4 +1,5 @@
 #include "bounding_box.h"
+#include "gfx/vk/vertex.h"
 
 #include <cmath>
 #include <limits>
@@ -28,14 +29,14 @@ namespace inf {
 
     std::array<glm::vec3, 8> BoundingBox3D::get_points() const {
         return {
-            min,                            // Front bottom left
-            glm::vec3(min.x, max.y, min.z), // Front top left
-            glm::vec3(max.x, max.y, min.z), // Front top right
-            glm::vec3(max.x, min.y, min.z), // Front bottom right
-            max,                            // Back top right
-            glm::vec3(min.x, min.y, max.z), // Back bottom left
-            glm::vec3(max.x, min.y, max.z), // Back bottom right
-            glm::vec3(min.x, max.y, max.z)  // Back top left
+            min,                            // Back bottom left
+            glm::vec3(min.x, max.y, min.z), // Back top left
+            glm::vec3(max.x, max.y, min.z), // Back top right
+            glm::vec3(max.x, min.y, min.z), // Back bottom right
+            max,                            // Front top right
+            glm::vec3(min.x, min.y, max.z), // Front bottom left
+            glm::vec3(max.x, min.y, max.z), // Front bottom right
+            glm::vec3(min.x, max.y, max.z)  // Front top left
         };
     }
 
@@ -54,6 +55,68 @@ namespace inf {
                 }
             }
         }
+        return result;
+    }
+
+    std::vector<gfx::vk::Vertex> BoundingBox3D::to_vertices(float gap, const glm::vec3& color) const {
+        const auto points = get_points();
+        std::vector<gfx::vk::Vertex> result;
+        
+        // Front face
+        static const auto front_face_normal = glm::vec3(0.0f, 0.0f, 1.0f);
+        const auto front_gap = front_face_normal * gap;
+        result.emplace_back(gfx::vk::Vertex(points[5] + front_gap, front_face_normal, color));
+        result.emplace_back(gfx::vk::Vertex(points[6] + front_gap, front_face_normal, color));
+        result.emplace_back(gfx::vk::Vertex(points[4] + front_gap, front_face_normal, color));
+        result.emplace_back(gfx::vk::Vertex(points[5] + front_gap, front_face_normal, color));
+        result.emplace_back(gfx::vk::Vertex(points[4] + front_gap, front_face_normal, color));
+        result.emplace_back(gfx::vk::Vertex(points[7] + front_gap, front_face_normal, color));
+        // Back face
+        static const auto back_face_normal = glm::vec3(0.0f, 0.0f, -1.0f);
+        const auto back_gap = back_face_normal * gap;
+        result.emplace_back(gfx::vk::Vertex(points[0] + back_gap, back_face_normal, color));
+        result.emplace_back(gfx::vk::Vertex(points[2] + back_gap, back_face_normal, color));
+        result.emplace_back(gfx::vk::Vertex(points[3] + back_gap, back_face_normal, color));
+        result.emplace_back(gfx::vk::Vertex(points[0] + back_gap, back_face_normal, color));
+        result.emplace_back(gfx::vk::Vertex(points[1] + back_gap, back_face_normal, color));
+        result.emplace_back(gfx::vk::Vertex(points[2] + back_gap, back_face_normal, color));
+        // Left face
+        static const auto left_face_normal = glm::vec3(-1.0f, 0.0f, 0.0f);
+        const auto left_gap = left_face_normal * gap;
+        result.emplace_back(gfx::vk::Vertex(points[0] + left_gap, left_face_normal, color));
+        result.emplace_back(gfx::vk::Vertex(points[5] + left_gap, left_face_normal, color));
+        result.emplace_back(gfx::vk::Vertex(points[7] + left_gap, left_face_normal, color));
+        result.emplace_back(gfx::vk::Vertex(points[0] + left_gap, left_face_normal, color));
+        result.emplace_back(gfx::vk::Vertex(points[7] + left_gap, left_face_normal, color));
+        result.emplace_back(gfx::vk::Vertex(points[1] + left_gap, left_face_normal, color));
+        // Right face
+        static const auto right_face_normal = glm::vec3(1.0f, 0.0f, 0.0f);
+        const auto right_gap = right_face_normal * gap;
+        result.emplace_back(gfx::vk::Vertex(points[6] + right_gap, right_face_normal, color));
+        result.emplace_back(gfx::vk::Vertex(points[3] + right_gap, right_face_normal, color));
+        result.emplace_back(gfx::vk::Vertex(points[2] + right_gap, right_face_normal, color));
+        result.emplace_back(gfx::vk::Vertex(points[6] + right_gap, right_face_normal, color));
+        result.emplace_back(gfx::vk::Vertex(points[2] + right_gap, right_face_normal, color));
+        result.emplace_back(gfx::vk::Vertex(points[4] + right_gap, right_face_normal, color));
+        // Top face
+        static const auto top_face_normal = glm::vec3(0.0f, 1.0f, 0.0f);
+        const auto top_gap = top_face_normal * gap;
+        result.emplace_back(gfx::vk::Vertex(points[7] + top_gap, top_face_normal, color));
+        result.emplace_back(gfx::vk::Vertex(points[4] + top_gap, top_face_normal, color));
+        result.emplace_back(gfx::vk::Vertex(points[2] + top_gap, top_face_normal, color));
+        result.emplace_back(gfx::vk::Vertex(points[7] + top_gap, top_face_normal, color));
+        result.emplace_back(gfx::vk::Vertex(points[2] + top_gap, top_face_normal, color));
+        result.emplace_back(gfx::vk::Vertex(points[1] + top_gap, top_face_normal, color));
+        // Bottom face
+        static const auto bottom_face_normal = glm::vec3(0.0f, -1.0f, 0.0f);
+        const auto bottom_gap = bottom_face_normal * gap;
+        result.emplace_back(gfx::vk::Vertex(points[0] + bottom_gap, bottom_face_normal, color));
+        result.emplace_back(gfx::vk::Vertex(points[3] + bottom_gap, bottom_face_normal, color));
+        result.emplace_back(gfx::vk::Vertex(points[6] + bottom_gap, bottom_face_normal, color));
+        result.emplace_back(gfx::vk::Vertex(points[0] + bottom_gap, bottom_face_normal, color));
+        result.emplace_back(gfx::vk::Vertex(points[6] + bottom_gap, bottom_face_normal, color));
+        result.emplace_back(gfx::vk::Vertex(points[5] + bottom_gap, bottom_face_normal, color));
+
         return result;
     }
 

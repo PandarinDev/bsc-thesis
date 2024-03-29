@@ -23,11 +23,13 @@ namespace inf {
 
         glm::ivec2 position;
         glm::ivec2 dimensions;
+        glm::vec3 bb_color;
         std::optional<wfc::Building> building;
 
         DistrictLot(
             const glm::ivec2& position,
             const glm::ivec2& dimensions,
+            const glm::vec3& bb_color,
             std::optional<wfc::Building>&& building);
 
         BoundingBox3D get_bounding_box(const glm::vec3& district_position) const;

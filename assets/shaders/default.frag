@@ -5,6 +5,7 @@ layout (binding = 1) uniform sampler2D shadowMap;
 layout(location = 0) in vec3 fragColor;
 layout(location = 1) in vec3 fragNormal;
 layout(location = 2) in vec4 fragPositionInLightSpace;
+layout(location = 3) flat in int fragTransparency;
 layout(location = 0) out vec4 outColor;
 
 // TODO: This needs to be a uniform once dynamic day of time is implemented.
@@ -37,6 +38,10 @@ float calculateShadowFactor() {
 }
 
 void main() {
+    if (fragTransparency == 1) {
+        outColor = vec4(fragColor, 0.1);
+        return;
+    }
     float shadowFactor = calculateShadowFactor();
     float lightFactor = max(dot(fragNormal, sunDirection), 0.2);
     outColor = vec4(lightFactor * (1.0 - shadowFactor) * fragColor, 1.0);

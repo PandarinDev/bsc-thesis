@@ -36,6 +36,11 @@ namespace inf::gfx {
         glm::mat4 light_space_matrix;
     };
 
+    struct PushConstants {
+        glm::mat4 model_matrix;
+        std::int32_t debug_bb; // Boolean, but GLSL bools are 4 bytes
+    };
+
     struct Renderer {
 
         static constexpr std::uint8_t MAX_FRAMES_IN_FLIGHT = 2;
@@ -55,6 +60,7 @@ namespace inf::gfx {
         void begin_frame(std::size_t num_districts, std::size_t num_buildings);
         void render(const Mesh& mesh);
         void render_instanced(const Mesh& mesh, std::vector<glm::vec3>&& positions);
+        void render(const BoundingBox3D& bounding_box, const glm::vec3& color);
         void end_frame();
 
         bool is_in_view(const BoundingBox3D& bounding_box) const;
@@ -64,15 +70,6 @@ namespace inf::gfx {
         void destroy_imgui();
 
     private:
-
-        // Because when we render the same mesh multiple times we modify the model matrix
-        // in between render calls, so the model matrix needs to be stored at the time of
-        // the render call.
-        // TODO: This would be solved (along with better performance) by moving to instanced rendering.
-        struct MeshToRender {
-            const Mesh* mesh;
-            const glm::mat4 model_matrix;
-        };
 
         struct InstancedMeshToRender {
             const Mesh* mesh;
@@ -119,9 +116,11 @@ namespace inf::gfx {
         std::unique_ptr<vk::MappedBuffer> shadow_map_uniform_buffer;
         glm::mat4 projection_matrix;
         glm::mat4 shadow_map_projection_matrix;
-        std::vector<MeshToRender> shadow_casters_to_render;
+        std::vector<const Mesh*> shadow_casters_to_render;
         std::vector<InstancedMeshToRender> non_casters_to_render;
+        std::vector<gfx::vk::MappedBuffer> bounding_boxes_to_render;
         bool show_diagnostics;
+        bool show_debug_bbs;
 
         void init_imgui(const Window& window, VkSampleCountFlagBits sample_count);
 
