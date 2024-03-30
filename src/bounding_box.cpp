@@ -6,6 +6,9 @@
 
 namespace inf {
 
+    BoundingBox3D::BoundingBox3D() :
+        min(std::numeric_limits<float>::max()), max(std::numeric_limits<float>::lowest()) {}
+
     BoundingBox3D::BoundingBox3D(const glm::vec3& min, const glm::vec3& max) :
         min(min), max(max) {}
 

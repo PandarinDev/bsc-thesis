@@ -472,14 +472,25 @@ namespace inf::gfx {
 
     bool Renderer::is_in_view(const BoundingBox3D& bounding_box) const {
         // We expect the bounding box to already have the model matrix applied
-        const auto view_matrix = camera.to_view_matrix();
-        const auto projected_bb = bounding_box.apply_and_transform_to_ndc(projection_matrix * view_matrix);
+        static constexpr std::array<glm::vec4, 8> ndc_points {
+            glm::vec4(-1.0f, -1.0f, 0.0f, 1.0f),
+            glm::vec4(1.0f, -1.0f, 0.0f, 1.0f),
+            glm::vec4(-1.0f, 1.0f, 0.0f, 1.0f),
+            glm::vec4(1.0f, 1.0f, 0.0f, 1.f),
+            glm::vec4(-1.0f, -1.0f, 1.0f, 1.0f),
+            glm::vec4(1.0f, -1.0f, 1.0f, 1.0f),
+            glm::vec4(-1.0f, 1.0f, 1.0f, 1.0f),
+            glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
+        };
+        // TODO: Change this to OBB frustum checking (https://bruop.github.io/improved_frustum_culling/) to be more accurate.
+        const auto inverse_clip_matrix = glm::inverse(projection_matrix * camera.to_view_matrix());
+        BoundingBox3D frustum_bb;
+        for (const auto& point : ndc_points) {
+            const auto result = inverse_clip_matrix * point;
+            frustum_bb.update(glm::vec3(result / result.w));
+        }
 
-        // TODO: Do we need to check Z? Those vertices are probably clipped
-        return !(projected_bb.max.x < -1.0f ||
-            projected_bb.min.x > 1.0f ||
-            projected_bb.max.y < -1.0f ||
-            projected_bb.min.y > 1.0f);
+        return frustum_bb.collides(bounding_box);
     }
 
     const glm::mat4& Renderer::get_projection_matrix() const {

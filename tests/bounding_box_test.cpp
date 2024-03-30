@@ -96,3 +96,17 @@ TEST_CASE("BoundingBox3D::get_block_below()") {
     }
 
 }
+
+TEST_CASE("BoundingBox3D::collides()") {
+
+    SECTION("reports collisions") {
+        const BoundingBox3D first(
+            glm::vec3(0.0f, 0.0f, 0.0f),
+            glm::vec3(50.0f, 10.0f, 30.0f));
+        const BoundingBox3D second(
+            glm::vec3(20.0f, -10.0f, 10.0f),
+            glm::vec3(30.0f, 10.0f, 20.0f));
+        REQUIRE(first.collides(second));
+    }
+
+}

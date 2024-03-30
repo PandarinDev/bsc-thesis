@@ -19,8 +19,15 @@ namespace inf {
         return BoundingBox3D(min, max);
     }
 
-    District::District(DistrictType type, const glm::ivec2& grid_position, const glm::vec3& bb_color) :
-        type(type), grid_position(grid_position), position(), bb_color(bb_color) {}
+    District::District(
+        DistrictType type,
+        const glm::ivec2& grid_position,
+        const glm::ivec2& dimensions,
+        const glm::vec3& bb_color) :
+        type(type), grid_position(grid_position), dimensions(dimensions),
+        position(), bb_color(bb_color), bounding_box(
+            glm::vec3(position.x, 0.0f, position.z),
+            glm::vec3(position.x + dimensions.x, 0.0f, position.z + dimensions.y)) {}
 
     const glm::vec3& District::get_position() const {
         return position;
@@ -28,6 +35,9 @@ namespace inf {
 
     void District::set_position(const glm::vec3& position) {
         this->position = position;
+        this->bounding_box = BoundingBox3D(
+            glm::vec3(position.x, 0.0f, position.z),
+            glm::vec3(position.x + dimensions.x, 0.0f, position.z + dimensions.y));
         for (auto& lot : lots) {
             if (lot.building) {
                 const auto lot_bb = lot.get_bounding_box(position);
@@ -44,19 +54,7 @@ namespace inf {
     }
 
     BoundingBox3D District::compute_bounding_box() const {
-        static constexpr auto float_min = std::numeric_limits<float>::lowest();
-        static constexpr auto float_max = std::numeric_limits<float>::max();
-        if (lots.empty()) {
-            return BoundingBox3D(glm::vec3(), glm::vec3());
-        }
-        BoundingBox3D result(
-            glm::vec3(float_max, float_max, float_max),
-            glm::vec3(float_min, float_min, float_min));
-        // TODO: Considering that buildings do not change this could be cached
-        for (const auto& lot : lots) {
-            result.update(lot.get_bounding_box(position));
-        }
-        return result;
+        return bounding_box;
     }
 
     const std::vector<DistrictLot>& District::get_lots() const {

@@ -38,7 +38,11 @@ namespace inf {
 
     struct District {
 
-        District(DistrictType type, const glm::ivec2& grid_position, const glm::vec3& bb_color);
+        District(
+            DistrictType type,
+            const glm::ivec2& grid_position,
+            const glm::ivec2& dimensions,
+            const glm::vec3& bb_color);
         District(District&&) = default;
         District& operator=(District&&) = default;
 
@@ -56,8 +60,10 @@ namespace inf {
 
         DistrictType type;
         glm::ivec2 grid_position;
+        glm::ivec2 dimensions;
         glm::vec3 position;
         glm::vec3 bb_color;
+        BoundingBox3D bounding_box;
         std::vector<DistrictLot> lots;
 
     };

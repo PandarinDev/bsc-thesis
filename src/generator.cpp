@@ -74,12 +74,12 @@ namespace inf {
     }
 
     District WorldGenerator::generate_district(const glm::ivec2& grid_position) {
-        std::uniform_real_distribution<float> color_distribution(0.0f, 1.0f);
-        auto district = District(DistrictType::RESIDENTAL, grid_position, glm::vec3(
-            color_distribution(random_engine), color_distribution(random_engine), color_distribution(random_engine)));
-        // Slice up the district into lots
         static constexpr auto district_width = 50;
         static constexpr auto district_depth = 50;
+        std::uniform_real_distribution<float> color_distribution(0.0f, 1.0f);
+        auto district = District(DistrictType::RESIDENTAL, grid_position, glm::ivec2(district_width, district_depth),
+            glm::vec3(color_distribution(random_engine), color_distribution(random_engine), color_distribution(random_engine)));
+        // Slice up the district into lots
         static constexpr auto min_lot_width = 5;
         static constexpr auto max_lot_width = 7;
         std::uniform_int_distribution<int> lot_width_distribution(min_lot_width, max_lot_width);

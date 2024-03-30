@@ -17,7 +17,7 @@ namespace inf::input {
         [[maybe_unused]] const float delta_time,
         [[maybe_unused]] const KeyFunction& is_key_down,
         [[maybe_unused]] const KeyFunction& is_key_up,
-        const glm::vec2& mouse_coordinates,
+        [[maybe_unused]] const glm::vec2& mouse_coordinates,
         [[maybe_unused]] const glm::vec2& mouse_delta,
         const bool has_clicked) {
         if (is_key_up(GLFW_KEY_P)) {
@@ -33,6 +33,7 @@ namespace inf::input {
             return;
         }
 
+        /* TODO: Fix this
         // Mouse coordinates are normalized between [0, 1], but NDC is [-1, 1]
         const auto mouse_ndc = (mouse_coordinates - glm::vec2(0.5f, 0.5f)) * 2.0f;
         const auto projection_view_matrix = projection_matrix * camera.to_view_matrix();
@@ -40,7 +41,6 @@ namespace inf::input {
         auto min_distance = std::numeric_limits<float>::max();
         const glm::ivec2* closest_intersection = nullptr;
         const wfc::Building* closest_building = nullptr;
-        /* TODO: Fix this
         for (const auto& entry : district.get_buildings()) {
             const auto bb = entry.second.building.get_bounding_box();
             const auto bb_in_ndc = bb.apply_and_transform_to_ndc(projection_view_matrix);
@@ -58,13 +58,13 @@ namespace inf::input {
                 }
             }
         }
-        */
         if (closest_intersection) {
             std::cout << "Closest intersection: [" << closest_intersection->x << ", " << closest_intersection->y << "]" << std::endl;
             const auto closest_bb = closest_building->get_bounding_box();
             std::cout << "Closest BB: [" << closest_bb.min.x << ", " << closest_bb.min.y << ", " << closest_bb.min.z << "], [" <<
                 closest_bb.max.x << ", " << closest_bb.max.y << ", " << closest_bb.max.z << "]" << std::endl;
         }
+        */
     }
 
 }
