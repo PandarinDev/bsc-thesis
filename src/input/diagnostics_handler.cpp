@@ -11,7 +11,7 @@ namespace inf::input {
         const KeyFunction& is_key_up,
         [[maybe_unused]] const glm::vec2& mouse_coordinates,
         [[maybe_unused]] const glm::vec2& mouse_delta,
-        const bool has_clicked) {
+        [[maybe_unused]] const bool has_clicked) {
         if (is_key_up(GLFW_KEY_F11)) {
             enabled = !enabled;
             toggle_function(enabled);

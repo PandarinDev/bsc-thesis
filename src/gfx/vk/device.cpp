@@ -174,13 +174,13 @@ namespace inf::gfx::vk {
         for (std::size_t i = 0; i < queue_family_properties.size(); ++i) {
             const auto& queue_family = queue_family_properties[i];
             if (queue_family.queueFlags & VK_QUEUE_GRAPHICS_BIT) {
-                queue_family_indices.graphics_family = i;
+                queue_family_indices.graphics_family = static_cast<std::uint32_t>(i);
             }
 
             VkBool32 presentation_support = false;
-            vkGetPhysicalDeviceSurfaceSupportKHR(device, i, surface.get_surface(), &presentation_support);
+            vkGetPhysicalDeviceSurfaceSupportKHR(device, static_cast<std::uint32_t>(i), surface.get_surface(), &presentation_support);
             if (presentation_support) {
-                queue_family_indices.presentation_family = i;
+                queue_family_indices.presentation_family = static_cast<std::uint32_t>(i);
             }
         }
 
@@ -238,7 +238,7 @@ namespace inf::gfx::vk {
         VkDeviceCreateInfo device_create_info{};
         device_create_info.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
         device_create_info.pQueueCreateInfos = queue_create_info.data();
-        device_create_info.queueCreateInfoCount = queue_create_info.size();
+        device_create_info.queueCreateInfoCount = static_cast<std::uint32_t>(queue_create_info.size());
         device_create_info.pEnabledFeatures = &device_features;
 
         #ifdef __APPLE__

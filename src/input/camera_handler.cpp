@@ -18,9 +18,9 @@ namespace inf::input {
         const float delta_time,
         const KeyFunction& is_key_down,
         const KeyFunction& is_key_up,
-        const glm::vec2& mouse_coordinates,
+        [[maybe_unused]] const glm::vec2& mouse_coordinates,
         const glm::vec2& mouse_delta,
-        const bool has_clicked) {
+        [[maybe_unused]] const bool has_clicked) {
         if (is_key_up(GLFW_KEY_F)) {
             context.set_state(context.get_state() == State::FREECAM
                 ? State::PANNING
