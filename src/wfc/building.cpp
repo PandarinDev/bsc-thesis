@@ -142,7 +142,8 @@ namespace inf::wfc {
                 continue;
             }
             glm::mat4 rotation_matrix = glm::rotate(glm::mat4(1.0f), cell.rotate_y, glm::vec3(0.0f, 1.0f, 0.0f));
-            glm::mat4 transformation = glm::translate(glm::mat4(1.0f), glm::vec3(cell.position.x, cell.position.y, -cell.position.z)) * rotation_matrix;
+            // TODO: That +0.5f to the Y coordinate should be part of the models instead
+            glm::mat4 transformation = glm::translate(glm::mat4(1.0f), glm::vec3(cell.position.x, cell.position.y + 0.5f, -cell.position.z)) * rotation_matrix;
             for (auto vertex : cell.mesh->vertices) {
                 vertex.position = glm::vec3(transformation * glm::vec4(vertex.position, 1.0f));
                 vertex.normal = glm::vec3(rotation_matrix * glm::vec4(vertex.normal, 1.0f));
@@ -270,6 +271,10 @@ namespace inf::wfc {
 
     const gfx::Mesh& Building::get_mesh() const {
         return mesh;
+    }
+
+    const BoundingBox3D& Building::get_local_bounding_box() const {
+        return bounding_box;
     }
 
     BoundingBox3D Building::get_bounding_box() const {

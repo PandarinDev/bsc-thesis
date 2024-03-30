@@ -74,15 +74,17 @@ namespace inf {
     }
 
     District WorldGenerator::generate_district(const glm::ivec2& grid_position) {
-        auto district = District(DistrictType::RESIDENTAL, grid_position);
+        std::uniform_real_distribution<float> color_distribution(0.0f, 1.0f);
+        auto district = District(DistrictType::RESIDENTAL, grid_position, glm::vec3(
+            color_distribution(random_engine), color_distribution(random_engine), color_distribution(random_engine)));
         // Slice up the district into lots
         static constexpr auto district_width = 50;
         static constexpr auto district_depth = 50;
-        static constexpr auto min_lot_width = 4;
+        static constexpr auto min_lot_width = 5;
         static constexpr auto max_lot_width = 7;
         std::uniform_int_distribution<int> lot_width_distribution(min_lot_width, max_lot_width);
         static constexpr auto min_lot_depth = 4;
-        static constexpr auto max_lot_depth = 7;
+        static constexpr auto max_lot_depth = 6;
         std::uniform_int_distribution<int> lot_depth_distribution(min_lot_depth, max_lot_depth);
         std::vector<glm::ivec4> partitions{ glm::vec4{ 0, 0, district_width, district_depth } };
         const auto is_partition_sufficiently_sized = [](const glm::ivec4& partition) {
@@ -115,8 +117,8 @@ namespace inf {
                 // Cut partition vertically if needed
                 if (width > max_lot_width) {
                     std::uniform_int_distribution<int> slice_distribution(
-                        static_cast<int>(width * 0.2f),
-                        static_cast<int>(width * 0.8f));
+                        static_cast<int>(width * 0.4f),
+                        static_cast<int>(width * 0.6f));
                     const auto slice_at = slice_distribution(random_engine);
                     new_partitions.emplace_back(partition.x, partition.y, partition.x + slice_at, partition.w);
                     new_partitions.emplace_back(partition.x + slice_at, partition.y, partition.z, partition.w);
@@ -124,8 +126,8 @@ namespace inf {
                 // Cut partition horizontally if needed
                 else if (depth > max_lot_depth) {
                     std::uniform_int_distribution<int> slice_distribution(
-                        static_cast<int>(depth * 0.2f),
-                        static_cast<int>(depth * 0.8f));
+                        static_cast<int>(depth * 0.4f),
+                        static_cast<int>(depth * 0.6f));
                     const auto slice_at = slice_distribution(random_engine);
                     new_partitions.emplace_back(partition.x, partition.y, partition.z, partition.y + slice_at);
                     new_partitions.emplace_back(partition.x, partition.y + slice_at, partition.z, partition.w);
@@ -140,18 +142,17 @@ namespace inf {
         // Turn partitions into lots by generating buildings on them
         // TODO: Later on we need to investigate any possible building for the district type, not just houses
         const auto house_pattern = wfc::BuildingPatterns::get_pattern("house");
-        std::uniform_real_distribution<float> color_distribution(0.0f, 1.0f);
         for (const auto& partition : partitions) {
             const auto width = partition.z - partition.x;
             const auto depth = partition.w - partition.y;
-            const auto can_fit_building = width >= house_pattern->dimensions.width.min && depth >= house_pattern->dimensions.depth.min;
+            const auto can_fit_building = width > house_pattern->dimensions.width.min && depth > house_pattern->dimensions.depth.min;
             // If the dimensions are not suitable for any pattern for the district the lot remains vacant, otherwise generate building that is guaranteed to fit
             district.add_lot(DistrictLot(
                 glm::ivec2(partition),
                 glm::ivec2(width, depth),
                 glm::vec3(color_distribution(random_engine), color_distribution(random_engine), color_distribution(random_engine)),
                 can_fit_building
-                    ? std::make_optional(generate_building(width, depth))
+                    ? std::make_optional(generate_building(width - 1, depth - 1))
                     : std::nullopt));
         }
 

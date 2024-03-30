@@ -70,6 +70,7 @@ namespace inf::wfc {
             const glm::vec3& position);
 
         const gfx::Mesh& get_mesh() const;
+        const BoundingBox3D& get_local_bounding_box() const;
         BoundingBox3D get_bounding_box() const;
 
         const glm::vec3& get_position() const;

@@ -19,8 +19,8 @@ namespace inf {
         return BoundingBox3D(min, max);
     }
 
-    District::District(DistrictType type, const glm::ivec2& grid_position) :
-        type(type), grid_position(grid_position), position() {}
+    District::District(DistrictType type, const glm::ivec2& grid_position, const glm::vec3& bb_color) :
+        type(type), grid_position(grid_position), position(), bb_color(bb_color) {}
 
     const glm::vec3& District::get_position() const {
         return position;
@@ -30,7 +30,15 @@ namespace inf {
         this->position = position;
         for (auto& lot : lots) {
             if (lot.building) {
-                lot.building->set_position(position + glm::vec3(lot.position.x, 0.0f, lot.position.y));
+                const auto lot_bb = lot.get_bounding_box(position);
+                const auto& building_bb = lot.building->get_local_bounding_box();
+                const auto half_width_difference = (lot_bb.width() - building_bb.width()) * 0.5f;
+                const auto half_depth_difference = (lot_bb.depth() - building_bb.depth()) * 0.5f;
+                const auto building_position = glm::vec3(
+                    lot_bb.min.x - building_bb.min.x + half_width_difference,
+                    0.0f,
+                    lot_bb.max.z - building_bb.max.z - half_depth_difference);
+                lot.building->set_position(building_position);
             }
         }
     }
@@ -71,19 +79,20 @@ namespace inf {
         positions.reserve(num_ground_objects);
         for (float x = min_x; x <= max_x; ++x) {
             for (float z = min_z; z <= max_z; ++z) {
-                positions.emplace_back(x, 0.0f, z);
+                positions.emplace_back(x, 0.5f, z);
             }
         }
         renderer.render_instanced(grass_mesh, std::move(positions));
 
         for (const auto& lot : lots) {
             const auto& building = lot.building;
-            renderer.render(lot.get_bounding_box(get_position()), lot.bb_color);
+            // renderer.render(lot.get_bounding_box(get_position()), lot.bb_color);
             if (building) {
                 renderer.render(building->get_mesh());
-                renderer.render(building->get_bounding_box(), glm::vec3(1.0f, 0.0f, 0.0f));
+                // renderer.render(building->get_bounding_box(), glm::vec3(1.0f, 0.0f, 0.0f));
             }
         }
+        renderer.render(compute_bounding_box(), bb_color);
     }
 
 }
