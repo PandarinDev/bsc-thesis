@@ -243,8 +243,11 @@ namespace inf::gfx {
         shadow_casters_to_render.emplace_back(&mesh);
     }
 
-    void Renderer::render_instanced(const Mesh& mesh, std::vector<glm::vec3>&& positions) {
-        non_casters_to_render.emplace_back(InstancedMeshToRender{ &mesh, std::move(positions) });
+    void Renderer::render_instanced(const Mesh& mesh, const std::vector<glm::vec3>& positions) {
+        if (positions.empty()) {
+            return;
+        }
+        non_casters_to_render.emplace_back(InstancedMeshToRender{ &mesh, positions });
     }
 
     void Renderer::render(const BoundingBox3D& bounding_box, const glm::vec3& color) {

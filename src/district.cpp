@@ -14,10 +14,13 @@ namespace inf {
 
     BoundingBox3D DistrictLot::get_bounding_box(const glm::vec3& district_position) const {
         const auto min = glm::vec3(district_position.x + position.x, 0.0f, district_position.z + position.y);
-        const auto max_y = building ? building->get_bounding_box().max.y : 0.0f;
+        const auto max_y = building ? building->get_bounding_box().max.y : 0.1f;
         const auto max = glm::vec3(min.x + dimensions.x, max_y, min.z + dimensions.y);
         return BoundingBox3D(min, max);
     }
+
+    DistrictRoad::DistrictRoad(RoadDirection direction, const glm::ivec2& position) :
+        direction(direction), position(position) {}
 
     District::District(
         DistrictType type,
@@ -28,6 +31,41 @@ namespace inf {
         position(), bb_color(bb_color), bounding_box(
             glm::vec3(position.x, 0.0f, position.z),
             glm::vec3(position.x + dimensions.x, 0.0f, position.z + dimensions.y)) {}
+
+    void District::update_caches() {
+        // Update grass positions
+        grass_positions.clear();
+        for (const auto& lot : lots) {
+            for (int x = 0; x < lot.dimensions.x; ++x) {
+                for (int y = 0; y < lot.dimensions.y; ++y) {
+                    grass_positions.emplace_back(glm::vec3(
+                        position.x + lot.position.x + x + 0.5f,
+                        position.y + 0.5f,
+                        position.z + lot.position.y + y + 0.5f));
+                }
+            }
+        }
+
+        // Update road positions
+        road_vertical_positions.clear();
+        road_horizontal_positions.clear();
+        road_crossing_positions.clear();
+        for (const auto& road : roads) {
+            const auto road_position = glm::vec3(
+                position.x + road.position.x + 0.5f,
+                position.y + 0.5f,
+                position.z + road.position.y + 0.5f);
+            if (road.direction == RoadDirection::HORIZONTAL) {
+                road_horizontal_positions.emplace_back(road_position);
+            }
+            else if (road.direction == RoadDirection::VERTICAL) {
+                road_vertical_positions.emplace_back(road_position);
+            }
+            else {
+                road_crossing_positions.emplace_back(road_position);
+            }
+        }
+    }
 
     const glm::vec3& District::get_position() const {
         return position;
@@ -65,26 +103,26 @@ namespace inf {
         lots.emplace_back(std::move(lot));
     }
 
-    void District::render(gfx::Renderer& renderer) const {        
-        const auto& grass_mesh = wfc::GroundPatterns::get_pattern("grass").mesh;
-        const auto bb = compute_bounding_box();
-        const auto min_x = std::floorf(bb.min.x);
-        const auto max_x = std::ceilf(bb.max.x);
-        const auto min_z = std::floorf(bb.min.z);
-        const auto max_z = std::ceilf(bb.max.z);
-        std::vector<glm::vec3> positions;
-        const auto num_ground_objects = static_cast<std::size_t>((max_x - min_x) * (max_z - min_z));
-        positions.reserve(num_ground_objects);
-        for (float x = min_x; x <= max_x; ++x) {
-            for (float z = min_z; z <= max_z; ++z) {
-                positions.emplace_back(x, 0.5f, z);
-            }
-        }
-        renderer.render_instanced(grass_mesh, std::move(positions));
+    void District::add_road(DistrictRoad&& road) {
+        roads.emplace_back(std::move(road));
+    }
 
+    void District::render(gfx::Renderer& renderer) const {
+        // Render ground objects (such as roads and foliage)
+        const auto& grass_mesh = wfc::GroundPatterns::get_pattern("grass").mesh;
+        const auto& road_vertical = wfc::GroundPatterns::get_pattern("road_vertical").mesh;
+        const auto& road_horizontal = wfc::GroundPatterns::get_pattern("road_horizontal").mesh;
+        const auto& road_crossing = wfc::GroundPatterns::get_pattern("road_crossing").mesh;
+
+        renderer.render_instanced(grass_mesh, grass_positions);
+        renderer.render_instanced(road_vertical, road_vertical_positions);
+        renderer.render_instanced(road_horizontal, road_horizontal_positions);
+        renderer.render_instanced(road_crossing, road_crossing_positions);
+
+        // Render lot buildings
         for (const auto& lot : lots) {
             const auto& building = lot.building;
-            // renderer.render(lot.get_bounding_box(get_position()), lot.bb_color);
+            renderer.render(lot.get_bounding_box(get_position()), lot.bb_color);
             if (building) {
                 renderer.render(building->get_mesh());
                 // renderer.render(building->get_bounding_box(), glm::vec3(1.0f, 0.0f, 0.0f));

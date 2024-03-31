@@ -36,6 +36,21 @@ namespace inf {
 
     };
 
+    enum class RoadDirection {
+        HORIZONTAL,
+        VERTICAL,
+        CROSSING
+    };
+
+    struct DistrictRoad {
+
+        RoadDirection direction;
+        glm::ivec2 position;
+
+        DistrictRoad(RoadDirection direction, const glm::ivec2& position);
+
+    };
+
     struct District {
 
         District(
@@ -46,6 +61,8 @@ namespace inf {
         District(District&&) = default;
         District& operator=(District&&) = default;
 
+        void update_caches();
+
         const glm::ivec2& get_grid_position() const;
         const glm::vec3& get_position() const;
         void set_position(const glm::vec3& position);
@@ -53,6 +70,7 @@ namespace inf {
         BoundingBox3D compute_bounding_box() const;
         const std::vector<DistrictLot>& get_lots() const;
         void add_lot(DistrictLot&& lot);
+        void add_road(DistrictRoad&& road);
 
         void render(gfx::Renderer& renderer) const;
 
@@ -65,6 +83,12 @@ namespace inf {
         glm::vec3 bb_color;
         BoundingBox3D bounding_box;
         std::vector<DistrictLot> lots;
+        std::vector<DistrictRoad> roads;
+        // Cache positions for instanced rendering
+        std::vector<glm::vec3> grass_positions;
+        std::vector<glm::vec3> road_vertical_positions;
+        std::vector<glm::vec3> road_horizontal_positions;
+        std::vector<glm::vec3> road_crossing_positions;
 
     };
 

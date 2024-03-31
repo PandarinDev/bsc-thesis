@@ -59,7 +59,7 @@ namespace inf::gfx {
 
         void begin_frame(std::size_t num_districts, std::size_t num_buildings);
         void render(const Mesh& mesh);
-        void render_instanced(const Mesh& mesh, std::vector<glm::vec3>&& positions);
+        void render_instanced(const Mesh& mesh, const std::vector<glm::vec3>& positions);
         void render(const BoundingBox3D& bounding_box, const glm::vec3& color);
         void end_frame();
 
@@ -73,7 +73,7 @@ namespace inf::gfx {
 
         struct InstancedMeshToRender {
             const Mesh* mesh;
-            std::vector<glm::vec3> positions;
+            const std::vector<glm::vec3>& positions;
         };
 
         const Camera& camera;

@@ -28,6 +28,9 @@ namespace inf {
             district.set_position(glm::vec3(intersection.x - district_width * 0.5f, 0.0f, intersection.z - district_depth * 0.5f));
         }
 
+        // Make sure the district caches have been initialized
+        district.update_caches();
+
         return world;
     }
 
@@ -47,6 +50,7 @@ namespace inf {
                 auto& new_district = world.districts.emplace(new_district_grid_position, generate_district(new_district_grid_position)).first->second;
                 const auto new_district_bb = new_district.compute_bounding_box();
                 new_district.set_position(glm::vec3(world_position.x - new_district_bb.width(), world_position.y, world_position.z));
+                new_district.update_caches();
             }
             // Right
             if (!world.has_district_at(grid_position + glm::ivec2(1, 0)) &&
@@ -54,6 +58,7 @@ namespace inf {
                 const auto new_district_grid_position = grid_position + glm::ivec2(1, 0);
                 auto& new_district = world.districts.emplace(new_district_grid_position, generate_district(new_district_grid_position)).first->second;
                 new_district.set_position(glm::vec3(world_position.x + district_bb.width(), world_position.y, world_position.z));
+                new_district.update_caches();
             }
             // Top
             if (!world.has_district_at(grid_position + glm::ivec2(0, 1)) &&
@@ -62,6 +67,7 @@ namespace inf {
                 auto& new_district = world.districts.emplace(new_district_grid_position, generate_district(new_district_grid_position)).first->second;
                 const auto new_district_bb = new_district.compute_bounding_box();
                 new_district.set_position(glm::vec3(world_position.x, world_position.y, world_position.z - new_district_bb.depth()));
+                new_district.update_caches();
             }
             // Bottom
             if (!world.has_district_at(grid_position + glm::ivec2(0, -1)) &&
@@ -69,6 +75,7 @@ namespace inf {
                 const auto new_district_grid_position = grid_position + glm::ivec2(0, -1);
                 auto& new_district = world.districts.emplace(new_district_grid_position, generate_district(new_district_grid_position)).first->second;
                 new_district.set_position(glm::vec3(world_position.x, world_position.y, world_position.z + district_bb.depth()));
+                new_district.update_caches();
             }
         }
     }
@@ -87,6 +94,7 @@ namespace inf {
         static constexpr auto max_lot_depth = 6;
         std::uniform_int_distribution<int> lot_depth_distribution(min_lot_depth, max_lot_depth);
         std::vector<glm::ivec4> partitions{ glm::vec4{ 0, 0, district_width, district_depth } };
+        std::unordered_map<glm::ivec2, DistrictRoad> roads;
         const auto is_partition_sufficiently_sized = [](const glm::ivec4& partition) {
             const auto width = partition.z - partition.x;
             if (width > max_lot_width) {
@@ -109,6 +117,8 @@ namespace inf {
             }
             return true;
         };
+        // Lot gap is used to introduce gaps between lots where roads will be placed
+        static constexpr auto lot_gap = 1;
         while (!are_partitions_sufficiently_sized()) {
             std::vector<glm::ivec4> new_partitions;
             for (const auto& partition : partitions) {
@@ -121,7 +131,20 @@ namespace inf {
                         static_cast<int>(width * 0.6f));
                     const auto slice_at = slice_distribution(random_engine);
                     new_partitions.emplace_back(partition.x, partition.y, partition.x + slice_at, partition.w);
-                    new_partitions.emplace_back(partition.x + slice_at, partition.y, partition.z, partition.w);
+                    new_partitions.emplace_back(partition.x + slice_at + lot_gap, partition.y, partition.z, partition.w);
+                    // Add a vertical road strip along the created gap
+                    for (int offset = partition.y; offset <= partition.w; ++offset) {
+                        const auto road_position = glm::ivec2(partition.x + slice_at, offset);
+                        const auto road_it = roads.find(road_position);
+                        // If a road block already exists there change it to a crossing
+                        if (road_it != roads.cend()) {
+                            road_it->second.direction = RoadDirection::CROSSING;
+                        }
+                        // Otherwise add a road block
+                        else {
+                            roads.emplace(road_position, DistrictRoad(RoadDirection::VERTICAL, road_position));
+                        }
+                    }
                 }
                 // Cut partition horizontally if needed
                 else if (depth > max_lot_depth) {
@@ -130,7 +153,20 @@ namespace inf {
                         static_cast<int>(depth * 0.6f));
                     const auto slice_at = slice_distribution(random_engine);
                     new_partitions.emplace_back(partition.x, partition.y, partition.z, partition.y + slice_at);
-                    new_partitions.emplace_back(partition.x, partition.y + slice_at, partition.z, partition.w);
+                    new_partitions.emplace_back(partition.x, partition.y + slice_at + lot_gap, partition.z, partition.w);
+                    // Add a horizontal road strip along the created gap
+                    for (int offset = partition.x; offset <= partition.z; ++offset) {
+                        const auto road_position = glm::ivec2(offset, partition.y + slice_at);
+                        const auto road_it = roads.find(road_position);
+                        // If a road block already exists there change it to a crossing
+                        if (road_it != roads.cend()) {
+                            road_it->second.direction = RoadDirection::CROSSING;
+                        }
+                        // Otherwise add a road block
+                        else {
+                            roads.emplace(road_position, DistrictRoad(RoadDirection::HORIZONTAL, road_position));
+                        }
+                    }
                 }
                 // Otherwise the partition is sufficiently sized and we simply move it the list of new partitions
                 else {
@@ -154,6 +190,11 @@ namespace inf {
                 can_fit_building
                     ? std::make_optional(generate_building(width - 1, depth - 1))
                     : std::nullopt));
+        }
+
+        // Add created roads to the district
+        for (auto& entry : roads) {
+            district.add_road(std::move(entry.second));
         }
 
         return district;

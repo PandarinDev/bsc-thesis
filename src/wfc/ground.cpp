@@ -36,15 +36,25 @@ namespace inf::wfc {
                 throw std::runtime_error("Failed to open file at '" + file_path.string() + "'.");
             }
             const auto json_contents = nlohmann::json::parse(file_handle);
-            const auto pattern_name = json_contents["name"].get<std::string>();
-            const auto data = json_contents["data"].get<std::string>();
-            auto vertices = gfx::vk::Vertex::from_bytes(base64_decode(data));
-            auto vertex_buffer = gfx::vk::MappedBuffer::create(
-                logical_device, allocator, gfx::vk::BufferType::VERTEX_BUFFER, vertices.size() * sizeof(gfx::vk::Vertex));
-            vertex_buffer.upload(vertices.data(), vertices.size() * sizeof(gfx::vk::Vertex));
-            auto mesh = gfx::Mesh(std::move(vertex_buffer), vertices.size(), glm::mat4(1.0f));
-            patterns.emplace(pattern_name, GroundPattern(pattern_name, std::move(mesh)));
-            // TODO: Parse and add filters to the pattern
+            const auto parse_pattern = [&](const auto& json_obj) {
+                const auto pattern_name = json_obj["name"].get<std::string>();
+                const auto data = json_obj["data"].get<std::string>();
+                auto vertices = gfx::vk::Vertex::from_bytes(base64_decode(data));
+                auto vertex_buffer = gfx::vk::MappedBuffer::create(
+                    logical_device, allocator, gfx::vk::BufferType::VERTEX_BUFFER, vertices.size() * sizeof(gfx::vk::Vertex));
+                vertex_buffer.upload(vertices.data(), vertices.size() * sizeof(gfx::vk::Vertex));
+                auto mesh = gfx::Mesh(std::move(vertex_buffer), vertices.size(), glm::mat4(1.0f));
+                patterns.emplace(pattern_name, GroundPattern(pattern_name, std::move(mesh)));
+            };
+
+            if (json_contents.is_array()) {
+                for (const auto& element : json_contents) {
+                    parse_pattern(element);
+                }
+            }
+            else {
+                parse_pattern(json_contents);
+            }
         }
     }
 
