@@ -33,7 +33,7 @@ namespace inf {
             glm::vec3(position.x + dimensions.x, 0.0f, position.z + dimensions.y)) {}
 
     void District::update_caches() {
-        // Update grass positions
+        // Update grass data
         grass_positions.clear();
         for (const auto& lot : lots) {
             for (int x = 0; x < lot.dimensions.x; ++x) {
@@ -42,28 +42,29 @@ namespace inf {
                         position.x + lot.position.x + x + 0.5f,
                         position.y + 0.5f,
                         position.z + lot.position.y + y + 0.5f));
+                    grass_rotations.emplace_back(0.0f);
                 }
             }
         }
 
         // Update road positions
-        road_vertical_positions.clear();
-        road_horizontal_positions.clear();
+        road_positions.clear();
         road_crossing_positions.clear();
         for (const auto& road : roads) {
-            const auto road_position = glm::vec3(
+            const auto road_position =  glm::vec3(
                 position.x + road.position.x + 0.5f,
                 position.y + 0.5f,
                 position.z + road.position.y + 0.5f);
-            if (road.direction == RoadDirection::HORIZONTAL) {
-                road_horizontal_positions.emplace_back(road_position);
-            }
-            else if (road.direction == RoadDirection::VERTICAL) {
-                road_vertical_positions.emplace_back(road_position);
-            }
-            else {
+            if (road.direction == RoadDirection::CROSSING) {
                 road_crossing_positions.emplace_back(road_position);
+                road_crossing_rotations.emplace_back(0.0f);
+                continue;
             }
+            
+            // TODO: This will get more complicated as we need to take into account if this is the left or right side of the road
+            static constexpr auto quarter_rotation = glm::radians(90.0f);
+            road_positions.emplace_back(road_position);
+            road_rotations.emplace_back(road.direction == RoadDirection::HORIZONTAL ? quarter_rotation : 0.0f);
         }
     }
 
@@ -110,14 +111,12 @@ namespace inf {
     void District::render(gfx::Renderer& renderer) const {
         // Render ground objects (such as roads and foliage)
         const auto& grass_mesh = wfc::GroundPatterns::get_pattern("grass").mesh;
-        const auto& road_vertical = wfc::GroundPatterns::get_pattern("road_vertical").mesh;
-        const auto& road_horizontal = wfc::GroundPatterns::get_pattern("road_horizontal").mesh;
+        const auto& road = wfc::GroundPatterns::get_pattern("road").mesh;
         const auto& road_crossing = wfc::GroundPatterns::get_pattern("road_crossing").mesh;
 
-        renderer.render_instanced(grass_mesh, grass_positions);
-        renderer.render_instanced(road_vertical, road_vertical_positions);
-        renderer.render_instanced(road_horizontal, road_horizontal_positions);
-        renderer.render_instanced(road_crossing, road_crossing_positions);
+        renderer.render_instanced(grass_mesh, grass_positions, grass_rotations);
+        renderer.render_instanced(road, road_positions, road_rotations);
+        renderer.render_instanced(road_crossing, road_crossing_positions, road_crossing_rotations);
 
         // Render lot buildings
         for (const auto& lot : lots) {

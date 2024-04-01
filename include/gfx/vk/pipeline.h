@@ -58,6 +58,10 @@ namespace inf::gfx::vk {
             const VkExtent2D& swap_chain_extent,
             const DescriptorSetLayout& descriptor_set_layout,
             const std::vector<Shader>& shaders,
+            std::uint32_t num_binding_descriptions,
+            const VkVertexInputBindingDescription* binding_descriptions,
+            std::uint32_t num_attribute_descriptions,
+            const VkVertexInputAttributeDescription* attribute_descriptions,
             VkSampleCountFlagBits samples,
             const std::optional<PipelineDepthBias>& depth_bias);
         

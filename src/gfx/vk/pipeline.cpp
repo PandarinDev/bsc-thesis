@@ -1,7 +1,6 @@
 #include "gfx/vk/pipeline.h"
 #include "gfx/vk/framebuffer.h"
 #include "gfx/vk/command.h"
-#include "gfx/vk/vertex.h"
 
 #include <glm/matrix.hpp>
 
@@ -220,6 +219,10 @@ namespace inf::gfx::vk {
         const VkExtent2D& swap_chain_extent,
         const DescriptorSetLayout& descriptor_set_layout,
         const std::vector<Shader>& shaders,
+        std::uint32_t num_binding_descriptions,
+        const VkVertexInputBindingDescription* binding_descriptions,
+        std::uint32_t num_attribute_descriptions,
+        const VkVertexInputAttributeDescription* attribute_descriptions,
         VkSampleCountFlagBits samples,
         const std::optional<PipelineDepthBias>& depth_bias) {
         // Create shader stages
@@ -255,14 +258,12 @@ namespace inf::gfx::vk {
         }
 
         // Vertex input and assembly info creation
-        const auto vertex_binding_description = Vertex::get_binding_descriptions();
-        const auto vertex_attribute_descriptions = Vertex::get_attribute_descriptions();
         VkPipelineVertexInputStateCreateInfo vertex_input_create_info{};
         vertex_input_create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-        vertex_input_create_info.vertexBindingDescriptionCount = static_cast<std::uint32_t>(vertex_binding_description.size());
-        vertex_input_create_info.pVertexBindingDescriptions = vertex_binding_description.data();
-        vertex_input_create_info.vertexAttributeDescriptionCount = static_cast<std::uint32_t>(vertex_attribute_descriptions.size());
-        vertex_input_create_info.pVertexAttributeDescriptions = vertex_attribute_descriptions.data();
+        vertex_input_create_info.vertexBindingDescriptionCount = num_binding_descriptions;
+        vertex_input_create_info.pVertexBindingDescriptions = binding_descriptions;
+        vertex_input_create_info.vertexAttributeDescriptionCount = num_attribute_descriptions;
+        vertex_input_create_info.pVertexAttributeDescriptions = attribute_descriptions;
 
         VkPipelineInputAssemblyStateCreateInfo input_assembly_create_info{};
         input_assembly_create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;

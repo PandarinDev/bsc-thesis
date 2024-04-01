@@ -118,7 +118,7 @@ namespace inf {
             return true;
         };
         // Lot gap is used to introduce gaps between lots where roads will be placed
-        static constexpr auto lot_gap = 1;
+        static constexpr auto lot_gap = 2;
         while (!are_partitions_sufficiently_sized()) {
             std::vector<glm::ivec4> new_partitions;
             for (const auto& partition : partitions) {
