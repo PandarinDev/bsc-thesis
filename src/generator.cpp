@@ -137,17 +137,8 @@ namespace inf {
                         const auto road_position_left = glm::ivec2(partition.x + slice_at, offset);
                         const auto road_position_right = road_position_left + glm::ivec2(1, 0);
                         const auto road_it = roads.find(road_position_left);
-                        /*
-                        // If a road block already exists there change it to a crossing
-                        if (road_it != roads.cend()) {
-                            road_it->second.direction = RoadDirection::CROSSING;
-                        }
-                        // Otherwise add a road block
-                        else {
-                            */
-                            roads.emplace(road_position_left, DistrictRoad(RoadDirection::VERTICAL_LEFT, road_position_left));
-                            roads.emplace(road_position_right, DistrictRoad(RoadDirection::VERTICAL_RIGHT, road_position_right));
-                        // }
+                        roads.emplace(road_position_left, DistrictRoad(RoadDirection::VERTICAL_LEFT, road_position_left));
+                        roads.emplace(road_position_right, DistrictRoad(RoadDirection::VERTICAL_RIGHT, road_position_right));
                     }
                 }
                 // Cut partition horizontally if needed
@@ -163,18 +154,8 @@ namespace inf {
                         const auto road_position_up = glm::ivec2(offset, partition.y + slice_at);
                         const auto road_position_down = road_position_up + glm::ivec2(0, 1);
                         const auto road_it = roads.find(road_position_up);
-                        // If a road block already exists there change it to a crossing
-                        // TODO: Change this back, but this is not working as intended at the moment
-                        /*
-                        if (road_it != roads.cend()) {
-                            road_it->second.direction = RoadDirection::CROSSING;
-                        }
-                        // Otherwise add a road block
-                        else {
-                            */
-                            roads.emplace(road_position_up, DistrictRoad(RoadDirection::HORIZONTAL_UP, road_position_up));
-                            roads.emplace(road_position_down, DistrictRoad(RoadDirection::HORIZONTAL_DOWN, road_position_down));
-                        // }
+                        roads.emplace(road_position_up, DistrictRoad(RoadDirection::HORIZONTAL_UP, road_position_up));
+                        roads.emplace(road_position_down, DistrictRoad(RoadDirection::HORIZONTAL_DOWN, road_position_down));
                     }
                 }
                 // Otherwise the partition is sufficiently sized and we simply move it the list of new partitions
@@ -184,6 +165,39 @@ namespace inf {
             }
             partitions = std::move(new_partitions);
         }
+
+        // Post process roads to add crossings
+        const auto has_road_direction = [&roads](const glm::ivec2& position, RoadDirection direction) {
+            const auto it = roads.find(position);
+            if (it == roads.cend()) {
+                return false;
+            }
+            return it->second.direction == direction;
+        };
+        for (auto& entry : roads) {
+            const auto& position = entry.first;
+            const auto left_neighbor = position + glm::ivec2(-1, 0);
+            const auto right_neighbor = position + glm::ivec2(1, 0);
+            const auto up_neighbor = position + glm::ivec2(0, -1);
+            const auto down_neighbor = position + glm::ivec2(0, 1);
+            if (has_road_direction(left_neighbor, RoadDirection::HORIZONTAL_UP) &&
+                has_road_direction(up_neighbor, RoadDirection::VERTICAL_LEFT)) {
+                entry.second.direction = RoadDirection::CROSSING_UP_LEFT;
+            }
+            else if (has_road_direction(right_neighbor, RoadDirection::HORIZONTAL_UP) &&
+                has_road_direction(up_neighbor, RoadDirection::VERTICAL_RIGHT)) {
+                entry.second.direction = RoadDirection::CROSSING_UP_RIGHT;
+            }
+            else if (has_road_direction(left_neighbor, RoadDirection::HORIZONTAL_DOWN) &&
+                has_road_direction(down_neighbor, RoadDirection::VERTICAL_LEFT)) {
+                entry.second.direction = RoadDirection::CROSSING_DOWN_LEFT;
+            }
+            else if (has_road_direction(right_neighbor, RoadDirection::HORIZONTAL_DOWN) &&
+                has_road_direction(down_neighbor, RoadDirection::VERTICAL_RIGHT)) {
+                entry.second.direction = RoadDirection::CROSSING_DOWN_RIGHT;
+            }
+        }
+
         // Turn partitions into lots by generating buildings on them
         // TODO: Later on we need to investigate any possible building for the district type, not just houses
         const auto house_pattern = wfc::BuildingPatterns::get_pattern("house");

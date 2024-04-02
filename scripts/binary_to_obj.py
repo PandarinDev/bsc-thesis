@@ -20,9 +20,11 @@ class Vertex:
 
 def main():
     if len(sys.argv) != 3:
-        print("Usage: ./binary_to_obj.py <base64> <output_name>")
+        print("Usage: ./binary_to_obj.py <input_file> <output_name>")
         sys.exit(1)
-    base64_input = sys.argv[1]
+    base64_input = ""
+    with open(sys.argv[1], "r") as file_handle:
+        base64_input = file_handle.read()
     obj_output_path = sys.argv[2] + ".obj"
     mtl_output_path = sys.argv[2] + ".mtl"
 

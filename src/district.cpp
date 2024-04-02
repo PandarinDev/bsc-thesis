@@ -22,6 +22,12 @@ namespace inf {
     DistrictRoad::DistrictRoad(RoadDirection direction, const glm::ivec2& position) :
         direction(direction), position(position) {}
 
+    BoundingBox3D DistrictRoad::get_bounding_box(const glm::vec3& district_position) const {
+        const auto min = glm::vec3(district_position.x + position.x, 0.0f, district_position.z + position.y);
+        const auto max = glm::vec3(min.x + 1.0f, 0.05f, min.z + 1.0f);
+        return BoundingBox3D(min, max);
+    }
+
     District::District(
         DistrictType type,
         const glm::ivec2& grid_position,
@@ -51,32 +57,47 @@ namespace inf {
         road_positions.clear();
         road_crossing_positions.clear();
         for (const auto& road : roads) {
+            const auto& direction = road.direction;
             const auto road_position =  glm::vec3(
                 position.x + road.position.x + 0.5f,
                 position.y + 0.5f,
                 position.z + road.position.y + 0.5f);
-            if (road.direction == RoadDirection::CROSSING) {
-                road_crossing_positions.emplace_back(road_position);
-                road_crossing_rotations.emplace_back(0.0f);
-                continue;
-            }
-            
-            // TODO: This will get more complicated as we need to take into account if this is the left or right side of the road
-            static constexpr auto quarter_rotation = glm::radians(90.0f);
-            road_positions.emplace_back(road_position);
-            auto rotation = 0.0f;
-            switch (road.direction) {
+            switch (direction) {
+                // Straight roads
+                case RoadDirection::VERTICAL_LEFT:
+                    road_positions.emplace_back(road_position);
+                    road_rotations.emplace_back(0.0f);
+                    break;
                 case RoadDirection::VERTICAL_RIGHT:
-                    rotation = glm::radians(180.f);
+                    road_positions.emplace_back(road_position);
+                    road_rotations.emplace_back(glm::radians(180.f));
                     break;
                 case RoadDirection::HORIZONTAL_UP:
-                    rotation = glm::radians(90.0f);
+                    road_positions.emplace_back(road_position);
+                    road_rotations.emplace_back(glm::radians(90.0f));
                     break;
                 case RoadDirection::HORIZONTAL_DOWN:
-                    rotation = glm::radians(270.0f);
+                    road_positions.emplace_back(road_position);
+                    road_rotations.emplace_back(glm::radians(270.0f));
+                    break;
+                // Crossings
+                case RoadDirection::CROSSING_DOWN_LEFT:
+                    road_crossing_positions.emplace_back(road_position);
+                    road_crossing_rotations.emplace_back(0.0f);
+                    break;
+                case RoadDirection::CROSSING_DOWN_RIGHT:
+                    road_crossing_positions.emplace_back(road_position);
+                    road_crossing_rotations.emplace_back(glm::radians(270.0f));
+                    break;
+                case RoadDirection::CROSSING_UP_RIGHT:
+                    road_crossing_positions.emplace_back(road_position);
+                    road_crossing_rotations.emplace_back(glm::radians(180.0f));
+                    break;
+                case RoadDirection::CROSSING_UP_LEFT:
+                    road_crossing_positions.emplace_back(road_position);
+                    road_crossing_rotations.emplace_back(glm::radians(90.0f));
                     break;
             }
-            road_rotations.emplace_back(rotation);
         }
     }
 
@@ -110,6 +131,10 @@ namespace inf {
 
     const std::vector<DistrictLot>& District::get_lots() const {
         return lots;
+    }
+
+    const std::vector<DistrictRoad>& District::get_roads() const {
+        return roads;
     }
 
     void District::add_lot(DistrictLot&& lot) {

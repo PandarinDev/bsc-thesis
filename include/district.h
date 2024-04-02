@@ -41,7 +41,10 @@ namespace inf {
         HORIZONTAL_DOWN,
         VERTICAL_LEFT,
         VERTICAL_RIGHT,
-        CROSSING
+        CROSSING_UP_LEFT,
+        CROSSING_UP_RIGHT,
+        CROSSING_DOWN_RIGHT,
+        CROSSING_DOWN_LEFT
     };
 
     struct DistrictRoad {
@@ -50,6 +53,8 @@ namespace inf {
         glm::ivec2 position;
 
         DistrictRoad(RoadDirection direction, const glm::ivec2& position);
+
+        BoundingBox3D get_bounding_box(const glm::vec3& district_position) const;
 
     };
 
@@ -71,6 +76,7 @@ namespace inf {
 
         BoundingBox3D compute_bounding_box() const;
         const std::vector<DistrictLot>& get_lots() const;
+        const std::vector<DistrictRoad>& get_roads() const;
         void add_lot(DistrictLot&& lot);
         void add_road(DistrictRoad&& road);
 
