@@ -37,8 +37,10 @@ namespace inf {
     };
 
     enum class RoadDirection {
-        HORIZONTAL,
-        VERTICAL,
+        HORIZONTAL_UP,
+        HORIZONTAL_DOWN,
+        VERTICAL_LEFT,
+        VERTICAL_RIGHT,
         CROSSING
     };
 

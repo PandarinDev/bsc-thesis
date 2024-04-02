@@ -64,7 +64,19 @@ namespace inf {
             // TODO: This will get more complicated as we need to take into account if this is the left or right side of the road
             static constexpr auto quarter_rotation = glm::radians(90.0f);
             road_positions.emplace_back(road_position);
-            road_rotations.emplace_back(road.direction == RoadDirection::HORIZONTAL ? quarter_rotation : 0.0f);
+            auto rotation = 0.0f;
+            switch (road.direction) {
+                case RoadDirection::VERTICAL_RIGHT:
+                    rotation = glm::radians(180.f);
+                    break;
+                case RoadDirection::HORIZONTAL_UP:
+                    rotation = glm::radians(90.0f);
+                    break;
+                case RoadDirection::HORIZONTAL_DOWN:
+                    rotation = glm::radians(270.0f);
+                    break;
+            }
+            road_rotations.emplace_back(rotation);
         }
     }
 
@@ -117,6 +129,9 @@ namespace inf {
         renderer.render_instanced(grass_mesh, grass_positions, grass_rotations);
         renderer.render_instanced(road, road_positions, road_rotations);
         renderer.render_instanced(road_crossing, road_crossing_positions, road_crossing_rotations);
+
+        const auto& car = wfc::GroundPatterns::get_pattern("car").mesh;
+        renderer.render(car);
 
         // Render lot buildings
         for (const auto& lot : lots) {

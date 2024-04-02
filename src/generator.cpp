@@ -81,17 +81,17 @@ namespace inf {
     }
 
     District WorldGenerator::generate_district(const glm::ivec2& grid_position) {
-        static constexpr auto district_width = 50;
-        static constexpr auto district_depth = 50;
+        static constexpr auto district_width = 100;
+        static constexpr auto district_depth = 100;
         std::uniform_real_distribution<float> color_distribution(0.0f, 1.0f);
         auto district = District(DistrictType::RESIDENTAL, grid_position, glm::ivec2(district_width, district_depth),
             glm::vec3(color_distribution(random_engine), color_distribution(random_engine), color_distribution(random_engine)));
         // Slice up the district into lots
-        static constexpr auto min_lot_width = 5;
-        static constexpr auto max_lot_width = 7;
+        static constexpr auto min_lot_width = 8;
+        static constexpr auto max_lot_width = 10;
         std::uniform_int_distribution<int> lot_width_distribution(min_lot_width, max_lot_width);
-        static constexpr auto min_lot_depth = 4;
-        static constexpr auto max_lot_depth = 6;
+        static constexpr auto min_lot_depth = 6;
+        static constexpr auto max_lot_depth = 8;
         std::uniform_int_distribution<int> lot_depth_distribution(min_lot_depth, max_lot_depth);
         std::vector<glm::ivec4> partitions{ glm::vec4{ 0, 0, district_width, district_depth } };
         std::unordered_map<glm::ivec2, DistrictRoad> roads;
@@ -134,16 +134,20 @@ namespace inf {
                     new_partitions.emplace_back(partition.x + slice_at + lot_gap, partition.y, partition.z, partition.w);
                     // Add a vertical road strip along the created gap
                     for (int offset = partition.y; offset <= partition.w; ++offset) {
-                        const auto road_position = glm::ivec2(partition.x + slice_at, offset);
-                        const auto road_it = roads.find(road_position);
+                        const auto road_position_left = glm::ivec2(partition.x + slice_at, offset);
+                        const auto road_position_right = road_position_left + glm::ivec2(1, 0);
+                        const auto road_it = roads.find(road_position_left);
+                        /*
                         // If a road block already exists there change it to a crossing
                         if (road_it != roads.cend()) {
                             road_it->second.direction = RoadDirection::CROSSING;
                         }
                         // Otherwise add a road block
                         else {
-                            roads.emplace(road_position, DistrictRoad(RoadDirection::VERTICAL, road_position));
-                        }
+                            */
+                            roads.emplace(road_position_left, DistrictRoad(RoadDirection::VERTICAL_LEFT, road_position_left));
+                            roads.emplace(road_position_right, DistrictRoad(RoadDirection::VERTICAL_RIGHT, road_position_right));
+                        // }
                     }
                 }
                 // Cut partition horizontally if needed
@@ -156,16 +160,21 @@ namespace inf {
                     new_partitions.emplace_back(partition.x, partition.y + slice_at + lot_gap, partition.z, partition.w);
                     // Add a horizontal road strip along the created gap
                     for (int offset = partition.x; offset <= partition.z; ++offset) {
-                        const auto road_position = glm::ivec2(offset, partition.y + slice_at);
-                        const auto road_it = roads.find(road_position);
+                        const auto road_position_up = glm::ivec2(offset, partition.y + slice_at);
+                        const auto road_position_down = road_position_up + glm::ivec2(0, 1);
+                        const auto road_it = roads.find(road_position_up);
                         // If a road block already exists there change it to a crossing
+                        // TODO: Change this back, but this is not working as intended at the moment
+                        /*
                         if (road_it != roads.cend()) {
                             road_it->second.direction = RoadDirection::CROSSING;
                         }
                         // Otherwise add a road block
                         else {
-                            roads.emplace(road_position, DistrictRoad(RoadDirection::HORIZONTAL, road_position));
-                        }
+                            */
+                            roads.emplace(road_position_up, DistrictRoad(RoadDirection::HORIZONTAL_UP, road_position_up));
+                            roads.emplace(road_position_down, DistrictRoad(RoadDirection::HORIZONTAL_DOWN, road_position_down));
+                        // }
                     }
                 }
                 // Otherwise the partition is sufficiently sized and we simply move it the list of new partitions
