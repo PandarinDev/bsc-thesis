@@ -26,7 +26,15 @@ namespace inf::wfc {
 
     struct BuildingMesh;
 
-    struct BuildingContext {};
+    struct BuildingContext {
+
+        int width;
+        int height;
+        int depth;
+
+        BuildingContext(int width, int height, int depth);
+
+    };
 
     struct BuildingCell {
         glm::ivec3 position;
@@ -84,18 +92,32 @@ namespace inf::wfc {
 
     };
 
+    struct AbsoluteHeightRestriction{
+        int height;
+    };
+    struct NotTopHeightRestriction{};
+    struct TopHeightRestriction{};
+    struct NotBottomHeightRestriction{};
+    struct BottomHeightRestriction{};
+    using BuildingMeshHeightRestriction = std::variant<
+        AbsoluteHeightRestriction,
+        NotTopHeightRestriction,
+        TopHeightRestriction,
+        NotBottomHeightRestriction,
+        BottomHeightRestriction>;
+
     struct BuildingMesh {
 
         std::string name;
         std::vector<gfx::vk::VertexWithMaterialName> vertices;
         std::vector<BuildingPatternFilter> filters;
-        std::optional<int> height;
+        std::vector<BuildingMeshHeightRestriction> height_restrictions;
 
         BuildingMesh(
             const std::string& name,
             std::vector<gfx::vk::VertexWithMaterialName>&& vertices,
             std::vector<BuildingPatternFilter>&& filters,
-            const std::optional<int>& height);
+            std::vector<BuildingMeshHeightRestriction>&& height_restrictions);
 
         bool matches(const BuildingContext& context, const BuildingCell& cell) const;
         void apply(BuildingContext& context, BuildingCell& cell) const;
@@ -129,7 +151,7 @@ namespace inf::wfc {
             const gfx::vk::LogicalDevice* logical_device,
             const gfx::vk::MemoryAllocator* allocator,
             int max_width,
-            int max_depth);
+            int max_depth) const;
 
     };
 
@@ -138,7 +160,8 @@ namespace inf::wfc {
         BuildingPatterns() = delete;
 
         static void initialize(const std::filesystem::path& buildings_path);
-        static BuildingPattern* get_pattern(const std::string& name);
+        static std::vector<const BuildingPattern*> get_patterns(int max_width, int max_depth);
+        static const BuildingPattern* get_pattern(const std::string& name);
 
     private:
 

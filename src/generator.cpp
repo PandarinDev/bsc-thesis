@@ -199,19 +199,22 @@ namespace inf {
         }
 
         // Turn partitions into lots by generating buildings on them
-        // TODO: Later on we need to investigate any possible building for the district type, not just houses
-        const auto house_pattern = wfc::BuildingPatterns::get_pattern("house");
         for (const auto& partition : partitions) {
             const auto width = partition.z - partition.x;
             const auto depth = partition.w - partition.y;
-            const auto can_fit_building = width > house_pattern->dimensions.width.min && depth > house_pattern->dimensions.depth.min;
+            const auto patterns = wfc::BuildingPatterns::get_patterns(width, depth);
+            const wfc::BuildingPattern* pattern = nullptr;
+            if (!patterns.empty()) {
+                std::uniform_int_distribution<int> pattern_distribution(0, static_cast<int>(patterns.size() - 1));
+                pattern = patterns[pattern_distribution(random_engine)];
+            }
             // If the dimensions are not suitable for any pattern for the district the lot remains vacant, otherwise generate building that is guaranteed to fit
             district.add_lot(DistrictLot(
                 glm::ivec2(partition),
                 glm::ivec2(width, depth),
                 glm::vec3(color_distribution(random_engine), color_distribution(random_engine), color_distribution(random_engine)),
-                can_fit_building
-                    ? std::make_optional(generate_building(width - 1, depth - 1))
+                pattern
+                    ? std::make_optional(generate_building(*pattern, width - 1, depth - 1))
                     : std::nullopt));
         }
 
@@ -223,8 +226,8 @@ namespace inf {
         return district;
     }
 
-    wfc::Building WorldGenerator::generate_building(int max_width, int max_depth) {
-        return wfc::BuildingPatterns::get_pattern("house")->instantiate(
+    wfc::Building WorldGenerator::generate_building(const wfc::BuildingPattern& pattern, int max_width, int max_depth) {
+        return pattern.instantiate(
             random_engine,
             &renderer.get_logical_device(),
             &renderer.get_memory_allocator(),

@@ -21,7 +21,7 @@ namespace inf {
         const gfx::Renderer& renderer;
 
         District generate_district(const glm::ivec2& grid_position);
-        wfc::Building generate_building(int max_width, int max_depth);
+        wfc::Building generate_building(const wfc::BuildingPattern& pattern, int max_width, int max_depth);
 
     };
 

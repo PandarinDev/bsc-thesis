@@ -15,6 +15,9 @@ namespace inf::wfc {
 
     std::unordered_map<std::string, BuildingPattern> BuildingPatterns::patterns;
 
+    BuildingContext::BuildingContext(int width, int height, int depth) :
+        width(width), height(height), depth(depth) {}
+
     bool EdgeBuildingPatternFilter::operator()(const BuildingContext&, const BuildingCell& cell) const {
         return cell.is_edge;
     }
@@ -34,11 +37,11 @@ namespace inf::wfc {
         const std::string& name,
         std::vector<gfx::vk::VertexWithMaterialName>&& vertices,
         std::vector<BuildingPatternFilter>&& filters,
-        const std::optional<int>& height) :
+        std::vector<BuildingMeshHeightRestriction>&& height_restrictions) :
         name(name),
         vertices(std::move(vertices)),
         filters(std::move(filters)),
-        height(height) {}
+        height_restrictions(std::move(height_restrictions)) {}
 
     bool BuildingMesh::matches(const BuildingContext& context, const BuildingCell& cell) const {
         bool all_filters_passed = true;
@@ -46,8 +49,25 @@ namespace inf::wfc {
             all_filters_passed = all_filters_passed && std::visit([&](auto&& callable) { return callable(context, cell); }, filter);
         }
         // Apply height restriction if present
-        if (height.has_value()) {
-            all_filters_passed = all_filters_passed && cell.position.y == height.value();
+        for (const auto& restriction : height_restrictions) {
+            std::visit([&](auto&& value) {
+                using T = std::decay_t<decltype(value)>;
+                if constexpr (std::is_same_v<T, AbsoluteHeightRestriction>) {
+                    all_filters_passed = all_filters_passed && cell.position.y == value.height;
+                }
+                if constexpr (std::is_same_v<T, TopHeightRestriction>) {
+                    all_filters_passed = all_filters_passed && cell.position.y == context.height - 1;
+                }
+                if constexpr (std::is_same_v<T, NotTopHeightRestriction>) {
+                    all_filters_passed = all_filters_passed && cell.position.y != context.height - 1;
+                }
+                if constexpr (std::is_same_v<T, BottomHeightRestriction>) {
+                    all_filters_passed = all_filters_passed && cell.position.y == 0;
+                }
+                if constexpr (std::is_same_v<T, NotBottomHeightRestriction>) {
+                    all_filters_passed = all_filters_passed && cell.position.y != 0;
+                }
+            }, restriction);
         }
         return all_filters_passed;
     }
@@ -67,7 +87,7 @@ namespace inf::wfc {
         const gfx::vk::LogicalDevice* logical_device,
         const gfx::vk::MemoryAllocator* allocator,
         int max_width,
-        int max_depth) {
+        int max_depth) const {
         if (dimensions.width.min > max_width || dimensions.depth.min > max_depth) {
             throw std::runtime_error("Cannot fit building into the required maximum dimensions.");
         }
@@ -75,7 +95,7 @@ namespace inf::wfc {
         auto height = dimensions.height.to_distribution()(rng);
         auto depth = std::uniform_int_distribution<int>(dimensions.depth.min, std::min(dimensions.depth.max, max_depth))(rng);
 
-        BuildingContext context;
+        BuildingContext context(width, height, depth);
         std::vector<BuildingCell> cells;
         cells.reserve(width * height * depth);
         for (std::size_t x = 0; x < width; ++x) {
@@ -244,18 +264,61 @@ namespace inf::wfc {
                 }
 
                 // Parse height restriction if present
-                std::optional<int> height_restriction;
+                std::vector<BuildingMeshHeightRestriction> height_restrictions;
                 if (mesh_obj.contains("height")) {
-                    height_restriction = mesh_obj["height"].get<int>();
+                    const auto& height_obj = mesh_obj["height"];
+                    const auto parse_restriction = [&height_restrictions](const auto& restriction) {
+                        // Numeric height restrictions are treated as absolute values
+                        if (restriction.is_number_integer()) {
+                            height_restrictions.emplace_back(AbsoluteHeightRestriction{restriction.get<int>()});
+                        }
+                        // Otherwise special values are strings
+                        else if (restriction.is_string()) {
+                            const auto height_str = restriction.get<std::string>();
+                            if (height_str == "top") {
+                                height_restrictions.emplace_back(TopHeightRestriction());
+                            }
+                            else if (height_str == "!top") {
+                                height_restrictions.emplace_back(NotTopHeightRestriction());
+                            }
+                            else if (height_str == "bottom") {
+                                height_restrictions.emplace_back(BottomHeightRestriction());
+                            }
+                            else if (height_str == "!bottom") {
+                                height_restrictions.emplace_back(NotBottomHeightRestriction());
+                            }
+                            else {
+                                throw std::runtime_error("Uknown height restriction '" + height_str + "'.");
+                            }
+                        }
+                    };
+                    if (height_obj.is_array()) {
+                        for (const auto& restriction : height_obj) {
+                            parse_restriction(restriction);
+                        }
+                    }
+                    else {
+                        parse_restriction(height_obj);
+                    }
                 }
 
                 // Store the building mesh
-                pattern.meshes.emplace_back(mesh_name, std::move(vertices), std::move(filters), height_restriction);
+                pattern.meshes.emplace_back(mesh_name, std::move(vertices), std::move(filters), std::move(height_restrictions));
             }
         }
     }
 
-    BuildingPattern* BuildingPatterns::get_pattern(const std::string& pattern) {
+    std::vector<const BuildingPattern*> BuildingPatterns::get_patterns(int width, int depth) {
+        std::vector<const BuildingPattern*> result;
+        for (const auto& entry : patterns) {
+            if (width > entry.second.dimensions.width.min && depth > entry.second.dimensions.depth.min) {
+                result.emplace_back(&entry.second);
+            }
+        }
+        return result;
+    }
+
+    const BuildingPattern* BuildingPatterns::get_pattern(const std::string& pattern) {
         const auto it = patterns.find(pattern);
         if (it == patterns.cend()) {
             return nullptr;
