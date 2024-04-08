@@ -44,32 +44,35 @@ namespace inf::wfc {
         height_restrictions(std::move(height_restrictions)) {}
 
     bool BuildingMesh::matches(const BuildingContext& context, const BuildingCell& cell) const {
-        bool all_filters_passed = true;
         for (const auto& filter : filters) {
-            all_filters_passed = all_filters_passed && std::visit([&](auto&& callable) { return callable(context, cell); }, filter);
+            if (!std::visit([&](auto&& callable) { return callable(context, cell); }, filter)) {
+                return false;
+            }
         }
         // Apply height restriction if present
         for (const auto& restriction : height_restrictions) {
-            std::visit([&](auto&& value) {
+            if (!std::visit([&](auto&& value) {
                 using T = std::decay_t<decltype(value)>;
                 if constexpr (std::is_same_v<T, AbsoluteHeightRestriction>) {
-                    all_filters_passed = all_filters_passed && cell.position.y == value.height;
+                    return cell.position.y == value.height;
                 }
                 if constexpr (std::is_same_v<T, TopHeightRestriction>) {
-                    all_filters_passed = all_filters_passed && cell.position.y == context.height - 1;
+                    return cell.position.y == context.height - 1;
                 }
                 if constexpr (std::is_same_v<T, NotTopHeightRestriction>) {
-                    all_filters_passed = all_filters_passed && cell.position.y != context.height - 1;
+                    return cell.position.y != context.height - 1;
                 }
                 if constexpr (std::is_same_v<T, BottomHeightRestriction>) {
-                    all_filters_passed = all_filters_passed && cell.position.y == 0;
+                    return cell.position.y == 0;
                 }
                 if constexpr (std::is_same_v<T, NotBottomHeightRestriction>) {
-                    all_filters_passed = all_filters_passed && cell.position.y != 0;
+                    return cell.position.y != 0;
                 }
-            }, restriction);
+            }, restriction)) {
+                return false;
+            }
         }
-        return all_filters_passed;
+        return true;
     }
 
     void BuildingMesh::apply(BuildingContext&, BuildingCell& cell) const {
@@ -79,8 +82,9 @@ namespace inf::wfc {
     BuildingPattern::BuildingPattern(
         const std::string& name,
         const BuildingDimensions& dimensions,
-        BuildingMaterials&& materials) :
-        name(name), dimensions(dimensions), materials(std::move(materials)) {}
+        BuildingMaterials&& materials,
+        int weight) :
+        name(name), dimensions(dimensions), materials(std::move(materials)), weight(weight) {}
 
     Building BuildingPattern::instantiate(
         RandomGenerator& rng,
@@ -88,12 +92,18 @@ namespace inf::wfc {
         const gfx::vk::MemoryAllocator* allocator,
         int max_width,
         int max_depth) const {
-        if (dimensions.width.min > max_width || dimensions.depth.min > max_depth) {
-            throw std::runtime_error("Cannot fit building into the required maximum dimensions.");
+        int width = max_width;
+        int height = 1;
+        int depth = max_depth;
+        if (std::holds_alternative<AbsoluteBuildingDimensions>(dimensions)) {
+            const auto& dimensions = std::get<AbsoluteBuildingDimensions>(this->dimensions);
+            if (dimensions.width.min > max_width || dimensions.depth.min > max_depth) {
+                throw std::runtime_error("Cannot fit building into the required maximum dimensions.");
+            }
+            width = std::uniform_int_distribution<int>(dimensions.width.min, std::min(dimensions.width.max, max_width))(rng);
+            height = dimensions.height.to_distribution()(rng);
+            depth = std::uniform_int_distribution<int>(dimensions.depth.min, std::min(dimensions.depth.max, max_depth))(rng);
         }
-        auto width = std::uniform_int_distribution<int>(dimensions.width.min, std::min(dimensions.width.max, max_width))(rng);
-        auto height = dimensions.height.to_distribution()(rng);
-        auto depth = std::uniform_int_distribution<int>(dimensions.depth.min, std::min(dimensions.depth.max, max_depth))(rng);
 
         BuildingContext context(width, height, depth);
         std::vector<BuildingCell> cells;
@@ -181,6 +191,12 @@ namespace inf::wfc {
         return Building(gfx::Mesh(std::move(vertex_buffer), vertices.size(), glm::mat4(1.0f)), bounding_box);
     }
 
+    AbsoluteBuildingDimensions::AbsoluteBuildingDimensions(
+        const Range2D<int>& width,
+        const Range2D<int>& height,
+        const Range2D<int>& depth) :
+        width(width), height(height), depth(depth) {}
+
     void BuildingPatterns::initialize(const std::filesystem::path& buildings_path) {
         if (!std::filesystem::is_directory(buildings_path)) {
             throw std::runtime_error("Directory at '" + buildings_path.string() + "' does not exist.");
@@ -200,16 +216,24 @@ namespace inf::wfc {
             const auto json_contents = nlohmann::json::parse(file_handle);
             const auto pattern_name = json_contents["name"].get<std::string>();
             // Parse dimensions
-            BuildingDimensions dimensions;
-            const auto& width = json_contents["dimensions"]["width"];
-            const auto& height = json_contents["dimensions"]["height"];
-            const auto& depth = json_contents["dimensions"]["depth"];
-            dimensions.width.min = width["min"].get<int>();
-            dimensions.width.max = width["max"].get<int>();
-            dimensions.height.min = height["min"].get<int>();
-            dimensions.height.max = height["max"].get<int>();
-            dimensions.depth.min = depth["min"].get<int>();
-            dimensions.depth.max = depth["max"].get<int>();
+            BuildingDimensions dimensions = AnyBuildingDimensions();
+            if (json_contents.contains("dimensions")) {
+                const auto& width = json_contents["dimensions"]["width"];
+                const auto& height = json_contents["dimensions"]["height"];
+                const auto& depth = json_contents["dimensions"]["depth"];
+                Range2D<int> width_range;
+                width_range.min = width["min"].get<int>();
+                width_range.max = width["max"].get<int>();
+
+                Range2D<int> height_range;
+                height_range.min = height["min"].get<int>();
+                height_range.max = height["max"].get<int>();
+
+                Range2D<int> depth_range;
+                depth_range.min = depth["min"].get<int>();
+                depth_range.max = depth["max"].get<int>();
+                dimensions = AbsoluteBuildingDimensions(width_range, height_range, depth_range);
+            }
 
             // Parse materials
             BuildingMaterials materials;
@@ -220,7 +244,11 @@ namespace inf::wfc {
                 }
             }
 
-            auto& pattern = patterns.emplace(pattern_name, BuildingPattern(pattern_name, dimensions, std::move(materials))).first->second;
+            // Parse weight
+            int weight = json_contents["weight"].get<int>();
+
+            auto& pattern = patterns.emplace(pattern_name, BuildingPattern(
+                pattern_name, dimensions, std::move(materials), weight)).first->second;
             for (const auto& mesh_obj : json_contents["meshes"]) {
                 const auto mesh_name = mesh_obj["name"].get<std::string>();
 
@@ -311,7 +339,12 @@ namespace inf::wfc {
     std::vector<const BuildingPattern*> BuildingPatterns::get_patterns(int width, int depth) {
         std::vector<const BuildingPattern*> result;
         for (const auto& entry : patterns) {
-            if (width > entry.second.dimensions.width.min && depth > entry.second.dimensions.depth.min) {
+            if (std::holds_alternative<AnyBuildingDimensions>(entry.second.dimensions)) {
+                result.emplace_back(&entry.second);
+                continue;
+            }
+            const auto& dimensions = std::get<AbsoluteBuildingDimensions>(entry.second.dimensions);
+            if (width > dimensions.width.min && depth > dimensions.depth.min) {
                 result.emplace_back(&entry.second);
             }
         }

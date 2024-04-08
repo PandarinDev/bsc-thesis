@@ -205,8 +205,21 @@ namespace inf {
             const auto patterns = wfc::BuildingPatterns::get_patterns(width, depth);
             const wfc::BuildingPattern* pattern = nullptr;
             if (!patterns.empty()) {
-                std::uniform_int_distribution<int> pattern_distribution(0, static_cast<int>(patterns.size() - 1));
-                pattern = patterns[pattern_distribution(random_engine)];
+                // Sum the weights and use them to form a distribution
+                int sum_weights = 0;
+                for (const auto& entry : patterns) {
+                    sum_weights += entry->weight;
+                }
+                std::uniform_int_distribution<int> pattern_distribution(1, sum_weights);
+                int result = pattern_distribution(random_engine);
+                int accumulator = 0;
+                for (const auto& entry : patterns) {
+                    if (result > accumulator && result <= entry->weight + accumulator) {
+                        pattern = entry;
+                        break;
+                    }
+                    accumulator += entry->weight;
+                }
             }
             // If the dimensions are not suitable for any pattern for the district the lot remains vacant, otherwise generate building that is guaranteed to fit
             district.add_lot(DistrictLot(

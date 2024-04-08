@@ -2,3 +2,5 @@
 /build
 /assets/shaders/*.bin
 /imgui.ini
+*.obj
+*.mtl

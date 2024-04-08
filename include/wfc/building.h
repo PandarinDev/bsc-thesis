@@ -124,13 +124,21 @@ namespace inf::wfc {
 
     };
 
-    struct BuildingDimensions {
+    struct AnyBuildingDimensions{};
+    struct AbsoluteBuildingDimensions {
 
         Range2D<int> width;
         Range2D<int> height;
         Range2D<int> depth;
 
+        AbsoluteBuildingDimensions(
+            const Range2D<int>& width,
+            const Range2D<int>& height,
+            const Range2D<int>& depth);
+
     };
+
+    using BuildingDimensions = std::variant<AnyBuildingDimensions, AbsoluteBuildingDimensions>;
 
     using BuildingMaterials = std::unordered_map<std::string, std::vector<glm::vec3>>;
 
@@ -139,12 +147,14 @@ namespace inf::wfc {
         std::string name;
         BuildingDimensions dimensions;
         BuildingMaterials materials;
+        int weight;
         std::vector<BuildingMesh> meshes;
 
         BuildingPattern(
             const std::string& name,
             const BuildingDimensions& dimensions,
-            BuildingMaterials&& materials);
+            BuildingMaterials&& materials,
+            int weight);
 
         Building instantiate(
             RandomGenerator& rng,
