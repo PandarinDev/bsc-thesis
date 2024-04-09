@@ -9,14 +9,14 @@
 
 namespace inf::wfc {
 
-    template<typename ContextType, typename InstanceType, typename RuleType>
+    template<typename ContextType, typename RuleType>
     void wfc_collapse(
         RandomGenerator& rng,
         ContextType& context,
-        std::vector<InstanceType>& cells,
         const std::vector<RuleType>& rules) {
+        using InstanceType = typename ContextType::InstanceType;
         std::unordered_set<InstanceType*> uncollapsed_cells;
-        for (auto& cell : cells) {
+        for (auto& cell : context.cells) {
             uncollapsed_cells.emplace(&cell);
         }
 

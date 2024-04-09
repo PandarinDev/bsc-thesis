@@ -21,20 +21,11 @@ namespace inf::wfc {
 
     enum class BuildingPatternFilterType {
         EDGE,
-        CORNER
+        CORNER,
+        NEXT_TO
     };
 
     struct BuildingMesh;
-
-    struct BuildingContext {
-
-        int width;
-        int height;
-        int depth;
-
-        BuildingContext(int width, int height, int depth);
-
-    };
 
     struct BuildingCell {
         glm::ivec3 position;
@@ -42,6 +33,21 @@ namespace inf::wfc {
         bool is_edge;
         float rotate_y;
         const BuildingMesh* mesh;
+    };
+
+    struct BuildingContext {
+
+        using InstanceType = BuildingCell;
+
+        int width;
+        int height;
+        int depth;
+        std::vector<BuildingCell> cells;
+
+        BuildingContext(int width, int height, int depth);
+
+        bool cell_contains(const glm::ivec3& position, std::string_view name) const;
+
     };
 
     struct EdgeBuildingPatternFilter {
@@ -52,11 +58,22 @@ namespace inf::wfc {
         bool operator()(const BuildingContext&, const BuildingCell&) const;
     };
 
+    struct NextToBuildingPatternFilter {
+
+        std::string mesh_name;
+
+        NextToBuildingPatternFilter(const std::string& mesh_name);
+
+        bool operator()(const BuildingContext&, const BuildingCell&) const;
+
+    };
+
     struct NegationBuildingPatternFilter;
 
     using BuildingPatternFilter = std::variant<
         EdgeBuildingPatternFilter,
         CornerBuildingPatternFilter,
+        NextToBuildingPatternFilter,
         NegationBuildingPatternFilter>;
 
     struct NegationBuildingPatternFilter {

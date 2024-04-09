@@ -8,6 +8,7 @@
 #include <cpp-base64/base64.h>
 #include <glm/gtc/matrix_transform.hpp>
 
+#include <array>
 #include <fstream>
 #include <stdexcept>
 
@@ -18,12 +19,39 @@ namespace inf::wfc {
     BuildingContext::BuildingContext(int width, int height, int depth) :
         width(width), height(height), depth(depth) {}
 
+    bool BuildingContext::cell_contains(const glm::ivec3& position, std::string_view name) const {
+        for (const auto& cell : cells) {
+            if (cell.position == position) {
+                const auto result = cell.mesh && cell.mesh->name == name;
+                return result;
+            }
+        }
+        return false;
+    }
+
     bool EdgeBuildingPatternFilter::operator()(const BuildingContext&, const BuildingCell& cell) const {
         return cell.is_edge;
     }
 
     bool CornerBuildingPatternFilter::operator()(const BuildingContext&, const BuildingCell& cell) const {
         return cell.is_corner;
+    }
+
+    NextToBuildingPatternFilter::NextToBuildingPatternFilter(const std::string& mesh_name) : mesh_name(mesh_name) {}
+
+    bool NextToBuildingPatternFilter::operator()(const BuildingContext& context, const BuildingCell& cell) const {
+        std::array<glm::ivec3, 4> positions = {
+            cell.position + glm::ivec3(-1, 0, 0), // Left
+            cell.position + glm::ivec3(1, 0, 0),  // Right
+            cell.position + glm::ivec3(0, 0, -1), // Top
+            cell.position + glm::ivec3(0, 0, 1)   // Bottom
+        };
+        for (const auto& position : positions) {
+            if (context.cell_contains(position, mesh_name)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     NegationBuildingPatternFilter::NegationBuildingPatternFilter(std::unique_ptr<BuildingPatternFilter> filter) :
@@ -44,12 +72,7 @@ namespace inf::wfc {
         height_restrictions(std::move(height_restrictions)) {}
 
     bool BuildingMesh::matches(const BuildingContext& context, const BuildingCell& cell) const {
-        for (const auto& filter : filters) {
-            if (!std::visit([&](auto&& callable) { return callable(context, cell); }, filter)) {
-                return false;
-            }
-        }
-        // Apply height restriction if present
+        // Apply height restriction if present first, because it is a cheap first filter
         for (const auto& restriction : height_restrictions) {
             if (!std::visit([&](auto&& value) {
                 using T = std::decay_t<decltype(value)>;
@@ -69,6 +92,12 @@ namespace inf::wfc {
                     return cell.position.y != 0;
                 }
             }, restriction)) {
+                return false;
+            }
+        }
+        // Apply all other filter types next
+        for (const auto& filter : filters) {
+            if (!std::visit([&](auto&& callable) { return callable(context, cell); }, filter)) {
                 return false;
             }
         }
@@ -105,9 +134,10 @@ namespace inf::wfc {
             depth = std::uniform_int_distribution<int>(dimensions.depth.min, std::min(dimensions.depth.max, max_depth))(rng);
         }
 
+        // Create the context
         BuildingContext context(width, height, depth);
-        std::vector<BuildingCell> cells;
-        cells.reserve(width * height * depth);
+        // Initialize cell values (position, edge, is_corner, etc. needed for filters)
+        context.cells.reserve(width * height * depth);
         for (std::size_t x = 0; x < width; ++x) {
             for (std::size_t y = 0; y < height; ++y) {
                 for (std::size_t z = 0; z < depth; ++z) {
@@ -144,11 +174,12 @@ namespace inf::wfc {
                         }
                     }
                     cell.mesh = nullptr;
-                    cells.push_back(cell);
+                    context.cells.push_back(cell);
                 }
             }
         }
-        wfc_collapse(rng, context, cells, meshes);
+        // Collapse cells
+        wfc_collapse(rng, context, meshes);
 
         // Generate a mesh from the resulting cells
         std::vector<gfx::vk::Vertex> vertices;
@@ -167,7 +198,7 @@ namespace inf::wfc {
         BoundingBox3D bounding_box(
             glm::vec3(float_max, float_max, float_max),
             glm::vec3(float_min, float_min, float_min));
-        for (const auto& cell : cells) {
+        for (const auto& cell : context.cells) {
             if (!cell.mesh) {
                 continue;
             }
@@ -261,16 +292,29 @@ namespace inf::wfc {
                 // Parse mesh filters
                 std::vector<BuildingPatternFilter> filters;
                 for (const auto& filter_obj : mesh_obj["filters"]) {
-                    auto filter_str = utils::StringUtils::to_uppercase(filter_obj.get<std::string>());
+                    auto filter_str = filter_obj.get<std::string>();
                     if (filter_str.empty()) {
                         continue;
                     }
+
+                    // Parse filter parameters
+                    std::vector<std::string> filter_params;
+                    const auto param_separator = filter_str.find(':');
+                    if (param_separator != std::string::npos) {
+                        const auto params_str = filter_str.substr(param_separator + 1);
+                        std::vector<std::string_view> param_views = utils::StringUtils::split(params_str, ',');
+                        for (const auto& param_view : param_views) {
+                            filter_params.emplace_back(param_view);
+                        }
+                        filter_str = filter_str.substr(0, param_separator);
+                    }
+
                     // Check if the filter is negated
                     bool negated = filter_str[0] == '!';
                     if (negated) {
                         filter_str = filter_str.substr(1);
                     }
-                    const auto maybe_filter_type = magic_enum::enum_cast<BuildingPatternFilterType>(filter_str);
+                    const auto maybe_filter_type = magic_enum::enum_cast<BuildingPatternFilterType>(utils::StringUtils::to_uppercase(filter_str));
                     if (!maybe_filter_type) {
                         throw std::runtime_error("Failed to parse filter type '" + filter_str + "'.");
                     }
@@ -282,6 +326,12 @@ namespace inf::wfc {
                             break;
                         case BuildingPatternFilterType::EDGE:
                             filter = EdgeBuildingPatternFilter();
+                            break;
+                        case BuildingPatternFilterType::NEXT_TO:
+                            if (filter_params.empty()) {
+                                throw std::runtime_error("Filter type 'next_to' used without parameters.");
+                            }
+                            filter = NextToBuildingPatternFilter(filter_params[0]);
                             break;
                         default: throw std::runtime_error("Unhandled filter type for '" + filter_str + "'.");
                     }
