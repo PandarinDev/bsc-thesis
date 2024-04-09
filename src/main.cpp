@@ -27,7 +27,7 @@ int main() {
         Timer timer;
         InputManager input_manager(window, timer);
 
-        Camera camera(glm::vec3(0.0f, 4.0f, 2.0f), glm::vec3(0.0f, -0.5f, -1.0f));
+        Camera camera(glm::vec3(0.0f, 7.0f, 2.0f), glm::vec3(0.0f, -0.6f, -1.0f));
         Renderer renderer(window, camera, timer);
         Context context([handle = window.get_handle()](bool captured) {
             glfwSetInputMode(handle, GLFW_CURSOR, captured ? GLFW_CURSOR_DISABLED : GLFW_CURSOR_NORMAL);
