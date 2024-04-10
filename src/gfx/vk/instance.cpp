@@ -12,6 +12,7 @@
 
 namespace inf::gfx::vk {
 
+    static constexpr bool ENABLE_VALIDATION = false;
     static const std::vector<const char*> VALIDATION_LAYERS = {
         "VK_LAYER_KHRONOS_validation"
     };
@@ -48,26 +49,27 @@ namespace inf::gfx::vk {
         instance_create_info.enabledLayerCount = 0;
 
         // Check if validation layers are supported
-        // TODO Gate this functionality behind a flag, do not run in release builds
-        std::uint32_t num_layers = 0;
-        vkEnumerateInstanceLayerProperties(&num_layers, nullptr);
-        std::vector<VkLayerProperties> available_layers(num_layers);
-        vkEnumerateInstanceLayerProperties(&num_layers, available_layers.data());
+        if (ENABLE_VALIDATION) {
+            std::uint32_t num_layers = 0;
+            vkEnumerateInstanceLayerProperties(&num_layers, nullptr);
+            std::vector<VkLayerProperties> available_layers(num_layers);
+            vkEnumerateInstanceLayerProperties(&num_layers, available_layers.data());
 
-        for (const auto& required : VALIDATION_LAYERS) {
-            bool layer_supported = false;
-            for (const auto& available : available_layers) {
-                if (strcmp(required, available.layerName) == 0) {
-                    layer_supported = true;
-                    break;
+            for (const auto& required : VALIDATION_LAYERS) {
+                bool layer_supported = false;
+                for (const auto& available : available_layers) {
+                    if (strcmp(required, available.layerName) == 0) {
+                        layer_supported = true;
+                        break;
+                    }
+                }
+                if (!layer_supported) {
+                    throw std::runtime_error(std::string("Validation layer '") + required + "' is not supported by host Vulkan implementation.");
                 }
             }
-            if (!layer_supported) {
-                throw std::runtime_error(std::string("Validation layer '") + required + "' is not supported by host Vulkan implementation.");
-            }
+            instance_create_info.enabledLayerCount = static_cast<std::uint32_t>(VALIDATION_LAYERS.size());
+            instance_create_info.ppEnabledLayerNames = VALIDATION_LAYERS.data();
         }
-        instance_create_info.enabledLayerCount = static_cast<std::uint32_t>(VALIDATION_LAYERS.size());
-        instance_create_info.ppEnabledLayerNames = VALIDATION_LAYERS.data();
 
         std::unique_ptr<VkInstance> instance = std::make_unique<VkInstance>();
         if (vkCreateInstance(&instance_create_info, nullptr, instance.get()) != VK_SUCCESS) {
