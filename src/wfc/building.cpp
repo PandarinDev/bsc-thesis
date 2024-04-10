@@ -138,9 +138,9 @@ namespace inf::wfc {
         BuildingContext context(width, height, depth);
         // Initialize cell values (position, edge, is_corner, etc. needed for filters)
         context.cells.reserve(width * height * depth);
-        for (std::size_t x = 0; x < width; ++x) {
-            for (std::size_t y = 0; y < height; ++y) {
-                for (std::size_t z = 0; z < depth; ++z) {
+        for (int x = 0; x < width; ++x) {
+            for (int y = 0; y < height; ++y) {
+                for (int z = 0; z < depth; ++z) {
                     BuildingCell cell{};
                     cell.position = glm::ivec3(x, y, z);
                     cell.is_corner =
@@ -348,11 +348,11 @@ namespace inf::wfc {
                     const auto parse_restriction = [&height_restrictions](const auto& restriction) {
                         // Numeric height restrictions are treated as absolute values
                         if (restriction.is_number_integer()) {
-                            height_restrictions.emplace_back(AbsoluteHeightRestriction{restriction.get<int>()});
+                            height_restrictions.emplace_back(AbsoluteHeightRestriction{restriction.template get<int>()});
                         }
                         // Otherwise special values are strings
                         else if (restriction.is_string()) {
-                            const auto height_str = restriction.get<std::string>();
+                            const auto height_str = restriction.template get<std::string>();
                             if (height_str == "top") {
                                 height_restrictions.emplace_back(TopHeightRestriction());
                             }

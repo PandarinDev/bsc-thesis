@@ -3,6 +3,7 @@
 #include <stdexcept>
 #include <utility>
 #include <limits>
+#include <cstring>
 #include <unordered_set>
 
 namespace inf::gfx::vk {

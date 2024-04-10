@@ -2,6 +2,7 @@
 
 #include <cctype>
 #include <algorithm>
+#include <string>
 
 namespace inf::utils {
 

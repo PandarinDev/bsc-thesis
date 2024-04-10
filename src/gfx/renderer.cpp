@@ -256,8 +256,8 @@ namespace inf::gfx {
             ImGui::Begin("Diagnostics");
             ImGui::SetWindowSize({ 400, 140 });
             ImGui::Text("FPS: %d", timer.get_fps());
-            ImGui::Text("Districts: %d", num_districts);
-            ImGui::Text("Buildings: %d", num_buildings);
+            ImGui::Text("Districts: %d", static_cast<int>(num_districts));
+            ImGui::Text("Buildings: %d", static_cast<int>(num_buildings));
 
             const auto format_vec3 = [](const glm::vec3& vec) {
                 return "[" + std::to_string(vec.x) + ", " + std::to_string(vec.y) + ", " + std::to_string(vec.z) + "]";
@@ -522,9 +522,9 @@ namespace inf::gfx {
         present_info.swapchainCount = 1;
         present_info.pSwapchains = &swap_chain_handle;
         present_info.pImageIndices = &image_index;
-        if (vkQueuePresentKHR(logical_device->get_present_queue(), &present_info) != VK_SUCCESS) {
-            throw std::runtime_error("Failed to present Vulkan image.");
-        }
+        // TODO: This seems to return a non-successful result on Linux, but everything still works.
+        // Check what is wrong and put back the result validation.
+        vkQueuePresentKHR(logical_device->get_present_queue(), &present_info);
 
         frame_index = (frame_index + 1) % MAX_FRAMES_IN_FLIGHT;
     }

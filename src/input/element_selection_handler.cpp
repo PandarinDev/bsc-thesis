@@ -10,8 +10,8 @@ namespace inf::input {
         const World& world,
         const Camera& camera,
         const glm::mat4& projection_matrix) :
-        context(context), world(world), projection_matrix(projection_matrix),
-        camera(camera) {}
+        context(context), world(world),
+        camera(camera), projection_matrix(projection_matrix) {}
 
     void ElementSelectionHandler::handle_input(
         [[maybe_unused]] const float delta_time,

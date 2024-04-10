@@ -37,8 +37,8 @@ namespace inf::wfc {
             }
             const auto json_contents = nlohmann::json::parse(file_handle);
             const auto parse_pattern = [&](const auto& json_obj) {
-                const auto pattern_name = json_obj["name"].get<std::string>();
-                const auto data = json_obj["data"].get<std::string>();
+                const auto pattern_name = json_obj["name"].template get<std::string>();
+                const auto data = json_obj["data"].template get<std::string>();
                 auto vertices = gfx::vk::Vertex::from_bytes(base64_decode(data));
                 auto vertex_buffer = gfx::vk::MappedBuffer::create(
                     logical_device, allocator, gfx::vk::BufferType::VERTEX_BUFFER, vertices.size() * sizeof(gfx::vk::Vertex));

@@ -6,6 +6,7 @@
 #include <utility>
 #include <stdexcept>
 #include <optional>
+#include <cstring>
 
 namespace inf::gfx::vk {
 

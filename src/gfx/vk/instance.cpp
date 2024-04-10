@@ -3,6 +3,8 @@
 #define GLFW_INCLUDE_NONE
 #include <GLFW/glfw3.h>
 
+#include <cstdint>
+#include <cstring>
 #include <string>
 #include <vector>
 #include <stdexcept>

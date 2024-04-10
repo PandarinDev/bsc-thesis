@@ -45,12 +45,12 @@ namespace inf {
 
     std::vector<glm::ivec3> BoundingBox3D::get_occupied_blocks() const {
         std::vector<glm::ivec3> result;
-        const auto min_x = static_cast<int>(std::floorf(min.x));
-        const auto max_x = static_cast<int>(std::ceilf(max.x));
-        const auto min_y = static_cast<int>(std::floorf(min.y));
-        const auto max_y = static_cast<int>(std::ceilf(max.y));
-        const auto min_z = static_cast<int>(std::floorf(min.z));
-        const auto max_z = static_cast<int>(std::ceilf(max.z));
+        const auto min_x = static_cast<int>(std::floor(min.x));
+        const auto max_x = static_cast<int>(std::ceil(max.x));
+        const auto min_y = static_cast<int>(std::floor(min.y));
+        const auto max_y = static_cast<int>(std::ceil(max.y));
+        const auto min_z = static_cast<int>(std::floor(min.z));
+        const auto max_z = static_cast<int>(std::ceil(max.z));
         for (int x = min_x; x < max_x; ++x) {
             for (int y = min_y; y < max_y; ++y) {
                 for (int z = min_z; z < max_z; ++z) {
@@ -193,44 +193,44 @@ namespace inf {
     }
 
     BoundingBox3D BoundingBox3D::get_block_to_the_left() const {
-        const auto min_x = std::floorf(min.x);
-        const auto min_y = std::floorf(min.y);
-        const auto min_z = std::floorf(min.z);
-        const auto max_y = std::ceilf(max.y);
-        const auto max_z = std::ceilf(max.z);
+        const auto min_x = std::floor(min.x);
+        const auto min_y = std::floor(min.y);
+        const auto min_z = std::floor(min.z);
+        const auto max_y = std::ceil(max.y);
+        const auto max_z = std::ceil(max.z);
         glm::vec3 left_min(min_x - 1.0f, min_y, min_z);
         glm::vec3 left_max(min_x, max_y, max_z);
         return BoundingBox3D(left_min, left_max);
     }
 
     BoundingBox3D BoundingBox3D::get_block_to_the_right() const {
-        const auto min_y = std::floorf(min.y);
-        const auto min_z = std::floorf(min.z);
-        const auto max_x = std::ceilf(max.x);
-        const auto max_y = std::ceilf(max.y);
-        const auto max_z = std::ceilf(max.z);
+        const auto min_y = std::floor(min.y);
+        const auto min_z = std::floor(min.z);
+        const auto max_x = std::ceil(max.x);
+        const auto max_y = std::ceil(max.y);
+        const auto max_z = std::ceil(max.z);
         glm::vec3 right_min(max_x, min_y, min_z);
         glm::vec3 right_max(max_x + 1.0f, max_y, max_z);
         return BoundingBox3D(right_min, right_max);
     }
 
     BoundingBox3D BoundingBox3D::get_block_above() const {
-        const auto min_x = std::floorf(min.x);
-        const auto min_y = std::floorf(min.y);
-        const auto min_z = std::floorf(min.z);
-        const auto max_x = std::ceilf(max.x);
-        const auto max_y = std::ceilf(max.y);
+        const auto min_x = std::floor(min.x);
+        const auto min_y = std::floor(min.y);
+        const auto min_z = std::floor(min.z);
+        const auto max_x = std::ceil(max.x);
+        const auto max_y = std::ceil(max.y);
         glm::vec3 above_min(min_x, min_y, min_z - 1.0f);
         glm::vec3 above_max(max_x, max_y, min_z);
         return BoundingBox3D(above_min, above_max);
     }
 
     BoundingBox3D BoundingBox3D::get_block_below() const {
-        const auto min_x = std::floorf(min.x);
-        const auto min_y = std::floorf(min.y);
-        const auto max_x = std::ceilf(max.x);
-        const auto max_y = std::ceilf(max.y);
-        const auto max_z = std::ceilf(max.z);
+        const auto min_x = std::floor(min.x);
+        const auto min_y = std::floor(min.y);
+        const auto max_x = std::ceil(max.x);
+        const auto max_y = std::ceil(max.y);
+        const auto max_z = std::ceil(max.z);
         glm::vec3 below_min(min_x, min_y, max_z);
         glm::vec3 below_max(max_x, max_y, max_z + 1.0f);
         return BoundingBox3D(below_min, below_max);

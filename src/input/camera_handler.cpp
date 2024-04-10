@@ -36,17 +36,17 @@ namespace inf::input {
 
         // Handle camera rotation
         auto direction = glm::normalize(camera.get_direction());
-        auto pitch = std::asinf(direction.y);
-        auto yaw = std::atan2f(direction.x, direction.z);
+        auto pitch = std::asin(direction.y);
+        auto yaw = std::atan2(direction.x, direction.z);
 
         // Modify Euler angles according to mouse movement
         pitch = std::clamp(pitch + mouse_delta.y * CAMERA_SENSITIVITY, static_cast<float>(-M_PI_4), static_cast<float>(M_PI_4));
         yaw -= mouse_delta.x * CAMERA_SENSITIVITY;
 
         // Build the new direction vector from the Euler angles
-        direction.x = std::sinf(yaw) * std::cosf(pitch);
-        direction.y = std::sinf(pitch);
-        direction.z = std::cosf(yaw) * std::cosf(pitch);
+        direction.x = std::sin(yaw) * std::cos(pitch);
+        direction.y = std::sin(pitch);
+        direction.z = std::cos(yaw) * std::cos(pitch);
         camera.set_direction(direction);
 
         static const glm::vec3 up(0.0f, 1.0f, 0.0f);

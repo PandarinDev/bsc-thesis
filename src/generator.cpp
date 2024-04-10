@@ -136,7 +136,6 @@ namespace inf {
                     for (int offset = partition.y; offset <= partition.w; ++offset) {
                         const auto road_position_left = glm::ivec2(partition.x + slice_at, offset);
                         const auto road_position_right = road_position_left + glm::ivec2(1, 0);
-                        const auto road_it = roads.find(road_position_left);
                         roads.emplace(road_position_left, DistrictRoad(RoadDirection::VERTICAL_LEFT, road_position_left));
                         roads.emplace(road_position_right, DistrictRoad(RoadDirection::VERTICAL_RIGHT, road_position_right));
                     }
@@ -153,7 +152,6 @@ namespace inf {
                     for (int offset = partition.x; offset <= partition.z; ++offset) {
                         const auto road_position_up = glm::ivec2(offset, partition.y + slice_at);
                         const auto road_position_down = road_position_up + glm::ivec2(0, 1);
-                        const auto road_it = roads.find(road_position_up);
                         roads.emplace(road_position_up, DistrictRoad(RoadDirection::HORIZONTAL_UP, road_position_up));
                         roads.emplace(road_position_down, DistrictRoad(RoadDirection::HORIZONTAL_DOWN, road_position_down));
                     }
