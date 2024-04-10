@@ -61,7 +61,7 @@ namespace inf::gfx {
         void render(const Mesh& mesh);
         void render_instanced(const Mesh& mesh, const std::vector<glm::vec3>& positions, const std::vector<float>& rotations);
         void render(const BoundingBox3D& bounding_box, const glm::vec3& color);
-        void end_frame();
+        void end_frame(const BoundingBox3D& shadow_bb);
 
         bool is_in_view(const BoundingBox3D& bounding_box) const;
         const glm::mat4& get_projection_matrix() const;

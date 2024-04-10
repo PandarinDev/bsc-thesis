@@ -295,7 +295,7 @@ namespace inf::gfx {
         buffer.upload(vertices.data(), num_bytes);
     }
 
-    void Renderer::end_frame() {
+    void Renderer::end_frame(const BoundingBox3D& shadow_bb) {
         // Wait for the previous frame to finish
         in_flight_fences[frame_index].wait_for_and_reset();
 
@@ -345,12 +345,19 @@ namespace inf::gfx {
         Matrices shadow_map_matrices;
         shadow_map_matrices.projection_matrix = shadow_map_projection_matrix;
         // Because we are using directional shadows the projection needs to be orthographic
-        shadow_map_projection_matrix = glm::ortho(-20.0f, 20.0f, 20.0f, -20.0f, NEAR_PLANE, FAR_PLANE);
         const auto sun_position = camera.get_position() + glm::vec3(2.0f, 2.0f, 0.0f);
         glm::mat4 sun_view_matrix = glm::lookAt(
             sun_position,
             sun_position + glm::vec3(-0.65f, -0.54f, -0.54f),
             glm::vec3(0.0f, 1.0f, 0.0f));
+        const auto transformed_shadow_bb = shadow_bb.apply(sun_view_matrix);
+        shadow_map_projection_matrix = glm::ortho(
+            transformed_shadow_bb.min.x,
+            transformed_shadow_bb.max.x,
+            transformed_shadow_bb.min.y,
+            transformed_shadow_bb.max.y,
+            NEAR_PLANE, FAR_PLANE);
+
         shadow_map_matrices.view_matrix = sun_view_matrix;
         shadow_map_matrices.light_space_matrix = glm::mat4(1.0f);
         shadow_map_uniform_buffer->upload(&shadow_map_matrices, sizeof(Matrices));

@@ -14,6 +14,7 @@ namespace inf {
         bool has_district_at(const glm::ivec2& position) const;
         std::size_t get_number_of_districts() const;
         std::size_t get_number_of_buildings() const;
+        BoundingBox3D compute_bounding_box() const;
 
         void update(const gfx::Renderer& renderer);
         void render(gfx::Renderer& renderer);

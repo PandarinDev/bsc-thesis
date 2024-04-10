@@ -20,6 +20,15 @@ namespace inf {
         return accumulator;
     }
 
+    BoundingBox3D World::compute_bounding_box() const {
+        BoundingBox3D result;
+        for (const auto& entry : districts) {
+            const auto& district = entry.second;
+            result.update(district.compute_bounding_box());
+        }
+        return result;
+    }
+
     void World::update(const gfx::Renderer& renderer) {
         std::vector<glm::ivec2> keys_to_remove;
         for (const auto& entry : districts) {
