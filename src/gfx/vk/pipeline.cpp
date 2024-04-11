@@ -296,7 +296,7 @@ namespace inf::gfx::vk {
         raster_create_info.rasterizerDiscardEnable = VK_FALSE;
         raster_create_info.polygonMode = VK_POLYGON_MODE_FILL;
         raster_create_info.lineWidth = 1.0f;
-        raster_create_info.cullMode = VK_CULL_MODE_BACK_BIT;
+        raster_create_info.cullMode = depth_bias ? VK_CULL_MODE_FRONT_BIT : VK_CULL_MODE_BACK_BIT;
         raster_create_info.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
         raster_create_info.depthBiasEnable = depth_bias ? VK_TRUE : VK_FALSE;
         raster_create_info.depthBiasConstantFactor = depth_bias ? depth_bias->constant_factor : 0.0f;

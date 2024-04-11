@@ -58,7 +58,7 @@ namespace inf::gfx {
         }
 
         // Create descriptor pool and set layouts for shader uniform data
-        descriptor_pool = std::make_unique<vk::DescriptorPool>(vk::DescriptorPool::create(logical_device.get(), 4));
+        descriptor_pool = std::make_unique<vk::DescriptorPool>(vk::DescriptorPool::create(logical_device.get(), 5));
         descriptor_set_layout = std::make_unique<vk::DescriptorSetLayout>(vk::DescriptorSetLayout::create(
             logical_device.get(), {
                 VkDescriptorSetLayoutBinding{ 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT, nullptr },
@@ -122,7 +122,7 @@ namespace inf::gfx {
             1, &default_binding_description,
             static_cast<std::uint32_t>(default_attribute_descriptions.size()), default_attribute_descriptions.data(),
             VK_SAMPLE_COUNT_1_BIT,
-            gfx::vk::PipelineDepthBias{ 2.0f, 2.5f }));
+            gfx::vk::PipelineDepthBias{ 1.8f, 2.5f }));
 
         // Create a separate color image if necessary because of multisampling
         // If not necessary (sample count = 1), we use the swapchain image instead.
@@ -174,9 +174,9 @@ namespace inf::gfx {
                 logical_device.get(), memory_allocator.get(), vk::BufferType::UNIFORM_BUFFER, sizeof(Matrices)));
             instanced_data_buffers.emplace_back(vk::MappedBuffer::create(
                 logical_device.get(), memory_allocator.get(), vk::BufferType::VERTEX_BUFFER, INSTANCE_DATA_BUFFER_SIZE_INITIAL_BYTES));
-        }
-        shadow_map_uniform_buffer = std::make_unique<vk::MappedBuffer>(vk::MappedBuffer::create(
+            shadow_map_uniform_buffers.emplace_back(vk::MappedBuffer::create(
             logical_device.get(), memory_allocator.get(), vk::BufferType::UNIFORM_BUFFER, sizeof(Matrices)));
+        }
 
         // Allocate descriptor sets for the uniform buffers and the shadow map sampler
         std::vector<VkBuffer> uniform_buffer_handles(uniform_buffers.size());
@@ -200,19 +200,21 @@ namespace inf::gfx {
             image_info.sampler = shadow_map_sampler->get_sampler();
             write_descriptor_sets[i].emplace_back(gfx::vk::WriteDescriptorSet::create_for_sampler(image_info, 1));
         }
-
         descriptor_sets = descriptor_pool->allocate_sets(
             *descriptor_set_layout, write_descriptor_sets, static_cast<std::uint32_t>(uniform_buffer_handles.size()));
-        
-        VkDescriptorBufferInfo shadow_map_buffer_info;
-        shadow_map_buffer_info.buffer = shadow_map_uniform_buffer->get_buffer();
-        shadow_map_buffer_info.offset = 0;
-        shadow_map_buffer_info.range = VK_WHOLE_SIZE;
-        std::vector<std::vector<VkWriteDescriptorSet>> shadow_map_write_descriptor_set = {
-            { gfx::vk::WriteDescriptorSet::create_for_buffer(shadow_map_buffer_info, 0) }  
-        };
-        shadow_map_descriptor_set = descriptor_pool->allocate_sets(
-            *shadow_map_descriptor_set_layout, shadow_map_write_descriptor_set, 1)[0];
+
+        std::vector<VkDescriptorBufferInfo> shadow_map_buffer_infos(shadow_map_uniform_buffers.size());
+        std::vector<std::vector<VkWriteDescriptorSet>> shadow_map_write_descriptor_sets(shadow_map_uniform_buffers.size());
+        for (std::size_t i = 0; i < shadow_map_uniform_buffers.size(); ++i) {
+            auto& shadow_map_buffer_info = shadow_map_buffer_infos[i];
+            shadow_map_buffer_info = {};
+            shadow_map_buffer_info.buffer = shadow_map_uniform_buffers[i].get_buffer();
+            shadow_map_buffer_info.offset = 0;
+            shadow_map_buffer_info.range = VK_WHOLE_SIZE;
+            shadow_map_write_descriptor_sets[i].emplace_back(gfx::vk::WriteDescriptorSet::create_for_buffer(shadow_map_buffer_info, 0));
+        }
+        shadow_map_descriptor_sets = descriptor_pool->allocate_sets(
+            *shadow_map_descriptor_set_layout, shadow_map_write_descriptor_sets, static_cast<std::uint32_t>(shadow_map_uniform_buffers.size()));
 
         projection_matrix = glm::perspective(
             FOVY,
@@ -300,7 +302,7 @@ namespace inf::gfx {
         buffer.upload(vertices.data(), num_bytes);
     }
 
-    void Renderer::end_frame(const BoundingBox3D& shadow_bb) {
+    void Renderer::end_frame() {
         // Wait for the previous frame to finish
         in_flight_fences[frame_index].wait_for_and_reset();
 
@@ -343,29 +345,35 @@ namespace inf::gfx {
             VK_PIPELINE_BIND_POINT_GRAPHICS,
             shadow_map_pipeline->get_pipeline_layout(),
             0, 1,
-            &shadow_map_descriptor_set,
+            &shadow_map_descriptor_sets[frame_index],
             0, nullptr);
 
-        // Upload uniform buffer data
-        Matrices shadow_map_matrices;
-        shadow_map_matrices.projection_matrix = shadow_map_projection_matrix;
-        // Because we are using directional shadows the projection needs to be orthographic
-        const auto sun_position = camera.get_position() + glm::vec3(2.0f, 2.0f, 0.0f);
+        const auto sun_position = camera.get_position() + glm::vec3(15.0f, 5.0f, 0.0f);
         glm::mat4 sun_view_matrix = glm::lookAt(
             sun_position,
             sun_position + glm::vec3(-0.65f, -0.54f, -0.54f),
             glm::vec3(0.0f, 1.0f, 0.0f));
-        const auto transformed_shadow_bb = shadow_bb.apply(sun_view_matrix);
-        shadow_map_projection_matrix = glm::ortho(
-            transformed_shadow_bb.min.x,
-            transformed_shadow_bb.max.x,
-            transformed_shadow_bb.min.y,
-            transformed_shadow_bb.max.y,
-            NEAR_PLANE, FAR_PLANE);
+        Frustum frustum(projection_matrix * camera.to_view_matrix());
+        frustum = frustum.split<5>()[0];
+        BoundingBox3D shadow_bb;
+        for (const auto& point : frustum.points) {
+            const auto transformed = sun_view_matrix * glm::vec4(point, 1.0f);
+            shadow_bb.update(transformed / transformed.w);
+        }
 
+        // Upload uniform buffer data
+        Matrices shadow_map_matrices;
+        shadow_map_projection_matrix = glm::ortho(
+            shadow_bb.min.x,
+            shadow_bb.max.x,
+            shadow_bb.min.y,
+            shadow_bb.max.y,
+            NEAR_PLANE,
+            FAR_PLANE);
+        shadow_map_matrices.projection_matrix = shadow_map_projection_matrix;
         shadow_map_matrices.view_matrix = sun_view_matrix;
         shadow_map_matrices.light_space_matrix = glm::mat4(1.0f);
-        shadow_map_uniform_buffer->upload(&shadow_map_matrices, sizeof(Matrices));
+        shadow_map_uniform_buffers[frame_index].upload(&shadow_map_matrices, sizeof(Matrices));
 
         const auto command_buffer_handle = command_buffer.get_command_buffer();
         for (const auto& mesh : shadow_casters_to_render) {

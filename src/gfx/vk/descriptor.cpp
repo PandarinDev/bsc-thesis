@@ -132,7 +132,7 @@ namespace inf::gfx::vk {
         std::uint32_t binding) {
         VkWriteDescriptorSet write_descriptor{};
         write_descriptor.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        // Important: dstSet will be configured by allocateSets()
+        // Important: dstSet will be configured by allocate_sets()
         write_descriptor.dstBinding = binding;
         write_descriptor.dstArrayElement = 0;
         write_descriptor.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -147,7 +147,7 @@ namespace inf::gfx::vk {
         std::uint32_t binding) {
         VkWriteDescriptorSet write_descriptor{};
         write_descriptor.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        // Important: dstSet will be configured by allocateSets()
+        // Important: dstSet will be configured by allocate_sets()
         write_descriptor.dstBinding = binding;
         write_descriptor.dstArrayElement = 0;
         write_descriptor.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;

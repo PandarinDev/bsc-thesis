@@ -17,8 +17,10 @@ float calculateShadowFactor() {
     projectedCoordinates.x = projectedCoordinates.x * 0.5 + 0.5;
     projectedCoordinates.y = projectedCoordinates.y * 0.5 + 0.5;
     float currentDepth = projectedCoordinates.z;
-    if (currentDepth > 1.0 ||
-        projectedCoordinates.x > 1.0 ||
+    if (currentDepth > 1.0) {
+        currentDepth = 1.0;
+    }
+    if (projectedCoordinates.x > 1.0 ||
         projectedCoordinates.x < 0.0 ||
         projectedCoordinates.y > 1.0 ||
         projectedCoordinates.y < 0.0) {

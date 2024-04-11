@@ -59,7 +59,7 @@ namespace inf::gfx {
         void render(const Mesh& mesh);
         void render_instanced(const Mesh& mesh, const std::vector<glm::vec3>& positions, const std::vector<float>& rotations);
         void render(const BoundingBox3D& bounding_box, const glm::vec3& color);
-        void end_frame(const BoundingBox3D& shadow_bb);
+        void end_frame();
 
         bool is_in_view(const BoundingBox3D& bounding_box) const;
         const glm::mat4& get_projection_matrix() const;
@@ -93,7 +93,7 @@ namespace inf::gfx {
         std::unique_ptr<vk::DescriptorSetLayout> instanced_descriptor_set_layout;
         std::unique_ptr<vk::DescriptorSetLayout> shadow_map_descriptor_set_layout;
         std::vector<VkDescriptorSet> descriptor_sets;
-        VkDescriptorSet shadow_map_descriptor_set;
+        std::vector<VkDescriptorSet> shadow_map_descriptor_sets;
         std::unique_ptr<vk::RenderPass> render_pass;
         std::unique_ptr<vk::RenderPass> shadow_map_render_pass;
         std::unique_ptr<vk::Pipeline> pipeline;
@@ -112,7 +112,7 @@ namespace inf::gfx {
         std::vector<vk::Semaphore> render_finished_semaphores;
         std::vector<vk::Fence> in_flight_fences;
         std::vector<vk::MappedBuffer> uniform_buffers;
-        std::unique_ptr<vk::MappedBuffer> shadow_map_uniform_buffer;
+        std::vector<vk::MappedBuffer> shadow_map_uniform_buffers;
         glm::mat4 projection_matrix;
         glm::mat4 shadow_map_projection_matrix;
         std::vector<const Mesh*> shadow_casters_to_render;
