@@ -1,5 +1,6 @@
 #include "gfx/renderer.h"
 #include "gfx/vk/vertex.h"
+#include "gfx/frustum.h"
 #include "utils/file_utils.h"
 
 #include <imgui.h>
@@ -15,6 +16,7 @@ namespace inf::gfx {
     static constexpr std::uint32_t SHADOW_MAP_RESOLUTION_X = 4096;
     static constexpr std::uint32_t SHADOW_MAP_RESOLUTION_Y = 4096;
     static constexpr VkExtent2D SHADOW_MAP_EXTENT{ SHADOW_MAP_RESOLUTION_X, SHADOW_MAP_RESOLUTION_Y };
+    static constexpr std::uint64_t INSTANCE_DATA_BUFFER_SIZE_INITIAL_BYTES = 4 * 1024 * 1024; // 4MBs
 
     Renderer::Renderer(const Window& window, const Camera& camera, const Timer& timer) :
         camera(camera), timer(timer), image_index(0), frame_index(0), show_diagnostics(false), show_debug_bbs(false) {
@@ -168,7 +170,10 @@ namespace inf::gfx {
             image_available_semaphores.emplace_back(vk::Semaphore::create(logical_device.get()));
             render_finished_semaphores.emplace_back(vk::Semaphore::create(logical_device.get()));
             in_flight_fences.emplace_back(vk::Fence::create(logical_device.get(), true));
-            uniform_buffers.emplace_back(vk::MappedBuffer::create(logical_device.get(), memory_allocator.get(), vk::BufferType::UNIFORM_BUFFER, sizeof(Matrices)));
+            uniform_buffers.emplace_back(vk::MappedBuffer::create(
+                logical_device.get(), memory_allocator.get(), vk::BufferType::UNIFORM_BUFFER, sizeof(Matrices)));
+            instanced_data_buffers.emplace_back(vk::MappedBuffer::create(
+                logical_device.get(), memory_allocator.get(), vk::BufferType::VERTEX_BUFFER, INSTANCE_DATA_BUFFER_SIZE_INITIAL_BYTES));
         }
         shadow_map_uniform_buffer = std::make_unique<vk::MappedBuffer>(vk::MappedBuffer::create(
             logical_device.get(), memory_allocator.get(), vk::BufferType::UNIFORM_BUFFER, sizeof(Matrices)));
@@ -448,8 +453,7 @@ namespace inf::gfx {
         std::vector<VkDeviceSize> instanced_data_offsets;
         VkDeviceSize offset_accumulator = 0;
         for (const auto& entry : non_casters_to_render) {
-            // This assumes that the size of the positions and rotations are equal, which should be the case
-            const auto num_bytes = entry.positions.size() * (sizeof(glm::vec3) + sizeof(float));
+            const auto num_bytes = entry.positions.size() * sizeof(glm::vec3) + entry.rotations.size() * sizeof(float);
             instanced_data_buffer_bytes += static_cast<std::uint32_t>(num_bytes);
             instanced_data_offsets.emplace_back(offset_accumulator);
             offset_accumulator += num_bytes;
@@ -466,16 +470,17 @@ namespace inf::gfx {
                 data_to_upload.emplace_back(entry.rotations[i]);
             }
         }
-        vk::MappedBuffer instanced_data_buffer = vk::MappedBuffer::create(
-            logical_device.get(), memory_allocator.get(), vk::BufferType::VERTEX_BUFFER, instanced_data_buffer_bytes);
-        instanced_data_buffer.upload(data_to_upload.data(), instanced_data_buffer_bytes);
+        instanced_data_buffers[frame_index].upload(data_to_upload.data(), instanced_data_buffer_bytes);
 
         // Render instanced meshes
         for (std::size_t i = 0; i < non_casters_to_render.size(); ++i) {
             const auto& entry = non_casters_to_render[i];
             const auto instance_count = static_cast<std::uint32_t>(entry.positions.size());
             std::array<VkDeviceSize, 2> offsets{ 0, instanced_data_offsets.at(i) };
-            std::array<VkBuffer, 2> buffer_handles{ entry.mesh->get_buffer().get_buffer(), instanced_data_buffer.get_buffer() };
+            std::array<VkBuffer, 2> buffer_handles{
+                entry.mesh->get_buffer().get_buffer(),
+                instanced_data_buffers[frame_index].get_buffer()
+            };
             vkCmdBindVertexBuffers(command_buffer_handle, 0, static_cast<std::uint32_t>(buffer_handles.size()), buffer_handles.data(), offsets.data());
             vkCmdDraw(command_buffer_handle, static_cast<std::uint32_t>(entry.mesh->get_number_of_vertices()), instance_count, 0, 0);
         }

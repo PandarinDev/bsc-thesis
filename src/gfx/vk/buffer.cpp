@@ -28,22 +28,25 @@ namespace inf::gfx::vk {
 
         VkBuffer buffer;
         VmaAllocation allocation;
-        if (vmaCreateBuffer(allocator->get_allocator(), &buffer_create_info, &allocation_info, &buffer, &allocation, nullptr) != VK_SUCCESS) {
-            throw std::runtime_error("Failed to allocate Vulkan buffer.");
+        if (const auto result = vmaCreateBuffer(
+            allocator->get_allocator(), &buffer_create_info, &allocation_info, &buffer, &allocation, nullptr); result != VK_SUCCESS) {
+            throw std::runtime_error("Failed to allocate Vulkan buffer: " + std::to_string(result));
         }
 
-        return MappedBuffer(logical_device, allocator, buffer, allocation);
+        return MappedBuffer(logical_device, allocator, buffer, allocation, size);
     }
 
     MappedBuffer::MappedBuffer(
         const LogicalDevice* device,
         const MemoryAllocator* allocator,
         const VkBuffer& buffer,
-        const VmaAllocation& allocation) :
+        const VmaAllocation& allocation,
+        std::uint64_t size) :
         device(device),
         allocator(allocator),
         buffer(buffer),
-        allocation(allocation) {}
+        allocation(allocation),
+        size(size) {}
 
     MappedBuffer::~MappedBuffer() {
         if (device) {
@@ -59,13 +62,15 @@ namespace inf::gfx::vk {
         device(std::exchange(other.device, nullptr)),
         allocator(std::exchange(other.allocator, nullptr)),
         buffer(std::exchange(other.buffer, nullptr)),
-        allocation(std::exchange(other.allocation, nullptr)) {}
+        allocation(std::exchange(other.allocation, nullptr)),
+        size(std::exchange(other.size, 0)) {}
 
     MappedBuffer& MappedBuffer::operator=(MappedBuffer&& other) {
         device = std::exchange(other.device, nullptr);
         allocator = std::exchange(other.allocator, nullptr);
         buffer = std::exchange(other.buffer, nullptr);
         allocation = std::exchange(other.allocation, nullptr);
+        size = std::exchange(other.size, 0);
 
         return *this;
     }
@@ -75,6 +80,14 @@ namespace inf::gfx::vk {
     }
 
     void MappedBuffer::upload(const void* data, std::size_t size) const {
+        if (size == 0) {
+            return;
+        }
+        // TODO: Handle this correctly by expanding the buffer
+        if (size > this->size) {
+            throw std::runtime_error("Uploaded data (" + std::to_string(size) +
+                ") exceeds buffer size (" + std::to_string(this->size) + ").");
+        }
         // TODO: This can be simplified to vmaCopyMemoryToAllocation in VMA 3.1.0
         void* destination;
         vmaMapMemory(allocator->get_allocator(), allocation, &destination);

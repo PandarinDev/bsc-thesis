@@ -27,6 +27,9 @@ namespace inf {
             const auto district_depth = district_bb.depth();
             district.set_position(glm::vec3(intersection.x - district_width * 0.5f, 0.0f, intersection.z - district_depth * 0.5f));
         }
+        else {
+            throw std::runtime_error("Ground intersection not found.");
+        }
 
         // Make sure the district caches have been initialized
         district.update_caches();

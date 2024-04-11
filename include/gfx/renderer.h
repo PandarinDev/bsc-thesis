@@ -1,7 +1,5 @@
 #pragma once
 
-// In this particular case we want to make sure GLM is included first, to ensure depth [0; 1] is applied
-#define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #include <glm/matrix.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
@@ -120,6 +118,7 @@ namespace inf::gfx {
         std::vector<const Mesh*> shadow_casters_to_render;
         std::vector<InstancedMeshToRender> non_casters_to_render;
         std::vector<gfx::vk::MappedBuffer> bounding_boxes_to_render;
+        std::vector<gfx::vk::MappedBuffer> instanced_data_buffers;
         bool show_diagnostics;
         bool show_debug_bbs;
 

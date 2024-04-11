@@ -24,7 +24,8 @@ namespace inf::gfx::vk {
             const LogicalDevice* device,
             const MemoryAllocator* allocator,
             const VkBuffer& buffer,
-            const VmaAllocation& allocation);
+            const VmaAllocation& allocation,
+            std::uint64_t size);
         ~MappedBuffer();
         MappedBuffer(const MappedBuffer&) = delete;
         MappedBuffer& operator=(const MappedBuffer&) = delete;
@@ -41,6 +42,7 @@ namespace inf::gfx::vk {
         const MemoryAllocator* allocator;
         VkBuffer buffer;
         VmaAllocation allocation;
+        std::uint64_t size;
 
     };
 
