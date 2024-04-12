@@ -349,7 +349,11 @@ namespace inf::gfx {
             0, nullptr);
 
         Frustum frustum(projection_matrix * camera.to_view_matrix());
-        frustum = frustum.split<2>()[0];
+        // TODO: The number of splits necessary is mostly resolution dependant. 5 splits seem good enough on a 1440p resolution, while
+        // even 2 splits seem mostly okay on a fullHD screen. If there is time there should be a proper cascaded shadow implementation
+        // instead of this hardcoded value. Or as a janky alternative the engine could dynamically switch to higher splits on higher
+        // resolutions, but that would dramatically reduce shadow distance.
+        frustum = frustum.split<5>()[0];
         const auto frustum_bb = frustum.compute_bounding_box();
         const auto camera_position = camera.get_position();
         const auto sun_position = glm::vec3(
