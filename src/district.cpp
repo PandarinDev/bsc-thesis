@@ -22,6 +22,13 @@ namespace inf {
     DistrictRoad::DistrictRoad(RoadDirection direction, const glm::ivec2& position) :
         direction(direction), position(position) {}
 
+    bool DistrictRoad::is_crossing() const {
+        return direction == RoadDirection::CROSSING_DOWN_LEFT ||
+            direction == RoadDirection::CROSSING_DOWN_RIGHT ||
+            direction == RoadDirection::CROSSING_UP_LEFT ||
+            direction == RoadDirection::CROSSING_UP_RIGHT;
+    }
+
     BoundingBox3D DistrictRoad::get_bounding_box(const glm::vec3& district_position) const {
         const auto min = glm::vec3(district_position.x + position.x, 0.0f, district_position.z + position.y);
         const auto max = glm::vec3(min.x + 1.0f, 0.05f, min.z + 1.0f);
@@ -137,6 +144,10 @@ namespace inf {
         return roads;
     }
 
+    const std::vector<Vehicle>& District::get_vehicles() const {
+        return vehicles;
+    }
+
     void District::add_lot(DistrictLot&& lot) {
         lots.emplace_back(std::move(lot));
     }
@@ -145,7 +156,11 @@ namespace inf {
         roads.emplace_back(std::move(road));
     }
 
-    void District::render(gfx::Renderer& renderer) const {
+    void District::add_vehicle(Vehicle&& vehicle) {
+        vehicles.emplace_back(std::move(vehicle));
+    }
+
+    void District::render(gfx::Renderer& renderer) {
         // Render ground objects (such as roads and foliage)
         const auto& grass_mesh = wfc::GroundPatterns::get_pattern("grass").mesh;
         const auto& road = wfc::GroundPatterns::get_pattern("road").mesh;
@@ -155,8 +170,39 @@ namespace inf {
         renderer.render_instanced(road, road_positions, road_rotations);
         renderer.render_instanced(road_crossing, road_crossing_positions, road_crossing_rotations);
 
-        const auto& car = wfc::GroundPatterns::get_pattern("car").mesh;
-        renderer.render(car);
+        // Vehicle positions need to be recomputed on every frame due to moving
+        vehicle_positions.clear();
+        vehicle_rotations.clear();
+        for (std::size_t i = 0; i < vehicles.size(); ++i) {
+            const auto& vehicle = vehicles[i];
+            glm::vec3 world_position = position + glm::vec3(vehicle.position.x, 0.0f, vehicle.position.y);
+            float rotation = 0.0f;
+            // TODO: These position offsets are needed to line up with the road position offsets (see road position in update_caches()).
+            // This should be solved in a more sophisticated way, as this will not working when turning around corners.
+            switch (vehicle.state) {
+                case VehicleState::HORIZONTAL_LEFT:
+                    world_position += glm::vec3(0.0f, 0.0f, 0.65f);
+                    rotation = glm::radians(90.0f);
+                    break;
+                case VehicleState::VERTICAL_UP:
+                    world_position += glm::vec3(0.35f, 0.0f, 0.0f);
+                    rotation = glm::radians(180.0f);
+                    break;
+                case VehicleState::HORIZONTAL_RIGHT:
+                    world_position += glm::vec3(0.0f, 0.0f, 0.35f);
+                    rotation = glm::radians(270.0f);
+                    break;
+                case VehicleState::VERTICAL_DOWN:
+                    world_position += glm::vec3(0.65f, 0.0f, 0.0f);
+                    break;
+            }
+            vehicle_positions.emplace_back(world_position);
+            vehicle_rotations.emplace_back(rotation);
+        }
+        if (!vehicle_positions.empty()) {
+            // TODO: Group by vehicle type instead (since there is 1 mesh per vehicle type)
+            renderer.render_instanced(*vehicles[0].mesh, vehicle_positions, vehicle_rotations);
+        }
 
         // Render lot buildings
         for (const auto& lot : lots) {

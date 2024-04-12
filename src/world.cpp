@@ -44,8 +44,8 @@ namespace inf {
     }
 
     void World::render(gfx::Renderer& renderer) {
-        for (const auto& entry : districts) {
-            const auto& district = entry.second;
+        for (auto& entry : districts) {
+            auto& district = entry.second;
             district.render(renderer);
         }
     }

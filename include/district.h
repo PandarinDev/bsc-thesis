@@ -3,6 +3,7 @@
 #include "bounding_box.h"
 #include "wfc/building.h"
 #include "wfc/ground.h"
+#include "vehicle.h"
 #include "utils/hash_utils.h"
 
 #include <vector>
@@ -54,6 +55,7 @@ namespace inf {
 
         DistrictRoad(RoadDirection direction, const glm::ivec2& position);
 
+        bool is_crossing() const;
         BoundingBox3D get_bounding_box(const glm::vec3& district_position) const;
 
     };
@@ -77,10 +79,12 @@ namespace inf {
         BoundingBox3D compute_bounding_box() const;
         const std::vector<DistrictLot>& get_lots() const;
         const std::vector<DistrictRoad>& get_roads() const;
+        const std::vector<Vehicle>& get_vehicles() const;
         void add_lot(DistrictLot&& lot);
         void add_road(DistrictRoad&& road);
+        void add_vehicle(Vehicle&& vehicle);
 
-        void render(gfx::Renderer& renderer) const;
+        void render(gfx::Renderer& renderer);
 
     private:
 
@@ -92,6 +96,7 @@ namespace inf {
         BoundingBox3D bounding_box;
         std::vector<DistrictLot> lots;
         std::vector<DistrictRoad> roads;
+        std::vector<Vehicle> vehicles;
         // Cache positions for instanced rendering
         std::vector<glm::vec3> grass_positions;
         std::vector<float> grass_rotations;
@@ -99,6 +104,8 @@ namespace inf {
         std::vector<float> road_rotations;
         std::vector<glm::vec3> road_crossing_positions;
         std::vector<float> road_crossing_rotations;
+        std::vector<glm::vec3> vehicle_positions;
+        std::vector<float> vehicle_rotations;
 
     };
 

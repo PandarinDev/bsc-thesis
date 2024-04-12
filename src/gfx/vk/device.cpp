@@ -8,6 +8,7 @@
 
 namespace inf::gfx::vk {
 
+    static constexpr bool ENABLE_VSYNC = false;
     static const std::vector<const char*> REQUIRED_DEVICE_EXTENSIONS = {
         VK_KHR_SWAPCHAIN_EXTENSION_NAME
     };
@@ -146,12 +147,17 @@ namespace inf::gfx::vk {
         if (swap_chain_support.present_modes.empty()) {
             throw std::runtime_error("Cannot choose present mode for a physical device that doesn't support any.");
         }
-        for (const auto& mode : swap_chain_support.present_modes) {
-            if (mode == VK_PRESENT_MODE_MAILBOX_KHR) {
-                return mode;
+        if constexpr (ENABLE_VSYNC) {
+            for (const auto& mode : swap_chain_support.present_modes) {
+                if (mode == VK_PRESENT_MODE_MAILBOX_KHR) {
+                    return mode;
+                }
             }
+            return VK_PRESENT_MODE_FIFO_KHR;
         }
-        return VK_PRESENT_MODE_FIFO_KHR;
+        else {
+            return VK_PRESENT_MODE_IMMEDIATE_KHR;
+        }
     }
 
     VkExtent2D LogicalDevice::choose_extent() const {

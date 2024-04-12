@@ -1,5 +1,6 @@
 #include "generator.h"
 #include "gfx/geometry.h"
+#include "utils/random_utils.h"
 
 #include <cmath>
 #include <stdexcept>
@@ -199,6 +200,39 @@ namespace inf {
             }
         }
 
+        // Place vehicles randomly onto the road
+        static constexpr auto num_vehicles_per_district = 100;
+        std::vector<const DistrictRoad*> road_vector;
+        road_vector.reserve(roads.size());
+        for (const auto& [_, road] : roads) {
+            // Placing vehicles into crossings is problematic, so skip them
+            if (!road.is_crossing()) {
+                road_vector.emplace_back(&road);
+            }
+        }
+        const auto roads_to_place_vehicles_on = utils::RandomUtils::choose(random_engine, road_vector, num_vehicles_per_district);
+        std::vector<Vehicle> vehicles;
+        const auto car_mesh = &wfc::GroundPatterns::get_pattern("car").mesh;
+        for (const auto& road_ptr : roads_to_place_vehicles_on) {
+            const auto& road = **road_ptr;
+            VehicleState state = VehicleState::VERTICAL_DOWN;
+            switch (road.direction) {
+                case RoadDirection::HORIZONTAL_DOWN:
+                    state = VehicleState::HORIZONTAL_RIGHT;
+                    break;
+                case RoadDirection::HORIZONTAL_UP:
+                    state = VehicleState::HORIZONTAL_LEFT;
+                    break;
+                case RoadDirection::VERTICAL_LEFT:
+                    state = VehicleState::VERTICAL_DOWN;
+                    break;
+                case RoadDirection::VERTICAL_RIGHT:
+                    state = VehicleState::VERTICAL_UP;
+                    break;
+            }
+            vehicles.emplace_back(VehicleType::CAR, road.position, state, car_mesh);
+        }
+
         // Turn partitions into lots by generating buildings on them
         for (const auto& partition : partitions) {
             const auto width = partition.z - partition.x;
@@ -235,6 +269,11 @@ namespace inf {
         // Add created roads to the district
         for (auto& entry : roads) {
             district.add_road(std::move(entry.second));
+        }
+
+        // Add created vehicles to the district
+        for (auto& vehicle : vehicles) {
+            district.add_vehicle(std::move(vehicle));
         }
 
         return district;

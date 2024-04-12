@@ -7,6 +7,7 @@
 #include <stdexcept>
 #include <optional>
 #include <cstring>
+#include <string>
 
 namespace inf::gfx::vk {
 
