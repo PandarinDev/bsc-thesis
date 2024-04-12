@@ -201,7 +201,7 @@ namespace inf {
         }
 
         // Place vehicles randomly onto the road
-        static constexpr auto num_vehicles_per_district = 100;
+        static constexpr auto num_vehicles_per_district = 50;
         std::vector<const DistrictRoad*> road_vector;
         road_vector.reserve(roads.size());
         for (const auto& [_, road] : roads) {

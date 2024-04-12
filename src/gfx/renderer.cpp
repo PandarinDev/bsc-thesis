@@ -348,13 +348,18 @@ namespace inf::gfx {
             &shadow_map_descriptor_sets[frame_index],
             0, nullptr);
 
-        const auto sun_position = camera.get_position() + glm::vec3(15.0f, 5.0f, 0.0f);
+        Frustum frustum(projection_matrix * camera.to_view_matrix());
+        frustum = frustum.split<2>()[0];
+        const auto frustum_bb = frustum.compute_bounding_box();
+        const auto camera_position = camera.get_position();
+        const auto sun_position = glm::vec3(
+            camera_position.x + 10.0f,
+            camera_position.y + 5.0f,
+            frustum_bb.max.z);
         glm::mat4 sun_view_matrix = glm::lookAt(
             sun_position,
             sun_position + glm::vec3(-0.65f, -0.54f, -0.54f),
             glm::vec3(0.0f, 1.0f, 0.0f));
-        Frustum frustum(projection_matrix * camera.to_view_matrix());
-        frustum = frustum.split<5>()[0];
         BoundingBox3D shadow_bb;
         for (const auto& point : frustum.points) {
             const auto transformed = sun_view_matrix * glm::vec4(point, 1.0f);
