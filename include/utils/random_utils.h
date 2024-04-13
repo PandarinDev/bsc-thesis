@@ -26,7 +26,7 @@ namespace inf::utils {
             for (std::size_t i = 0; i < choices; ++i) {
                 std::uniform_int_distribution<std::size_t> distribution(0, indices.size() - 1);
                 const auto index = distribution(rng);
-                result.emplace_back(&from[i]);
+                result.emplace_back(&from[indices[index]]);
                 indices.erase(indices.cbegin() + index);
             }
             return result;
