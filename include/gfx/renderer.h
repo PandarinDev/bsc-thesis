@@ -58,6 +58,7 @@ namespace inf::gfx {
         void begin_frame(std::size_t num_districts, std::size_t num_buildings);
         void render(const Mesh& mesh);
         void render_instanced(const Mesh& mesh, const std::vector<glm::vec3>& positions, const std::vector<float>& rotations);
+        void render_instanced_caster(const Mesh& mesh, const std::vector<glm::vec3>& positions, const std::vector<float>& rotations);
         void render(const BoundingBox3D& bounding_box, const glm::vec3& color);
         void end_frame();
 
@@ -79,26 +80,36 @@ namespace inf::gfx {
         const Timer& timer;
         std::uint32_t image_index;
         std::uint8_t frame_index;
+
+        // Vulkan objects
         std::unique_ptr<vk::Instance> instance;
         std::unique_ptr<vk::Surface> surface;
         std::unique_ptr<vk::PhysicalDevice> physical_device;
         std::unique_ptr<vk::LogicalDevice> logical_device;
         std::unique_ptr<vk::MemoryAllocator> memory_allocator;
         std::unique_ptr<vk::SwapChain> swap_chain;
+
+        // Shaders and descriptor sets
         std::vector<vk::Shader> shaders;
         std::vector<vk::Shader> instanced_shaders;
         std::vector<vk::Shader> shadow_map_shaders;
+        std::vector<vk::Shader> shadow_map_instanced_shaders;
         std::unique_ptr<vk::DescriptorPool> descriptor_pool;
         std::unique_ptr<vk::DescriptorSetLayout> descriptor_set_layout;
         std::unique_ptr<vk::DescriptorSetLayout> instanced_descriptor_set_layout;
         std::unique_ptr<vk::DescriptorSetLayout> shadow_map_descriptor_set_layout;
         std::vector<VkDescriptorSet> descriptor_sets;
         std::vector<VkDescriptorSet> shadow_map_descriptor_sets;
+
+        // Render passes and pipelines
         std::unique_ptr<vk::RenderPass> render_pass;
         std::unique_ptr<vk::RenderPass> shadow_map_render_pass;
         std::unique_ptr<vk::Pipeline> pipeline;
         std::unique_ptr<vk::Pipeline> instanced_pipeline;
         std::unique_ptr<vk::Pipeline> shadow_map_pipeline;
+        std::unique_ptr<vk::Pipeline> shadow_map_instanced_pipeline;
+
+        // Images, frame buffers, samplers
         std::unique_ptr<vk::Image> color_image;
         std::unique_ptr<vk::ImageView> color_image_view;
         std::unique_ptr<vk::DepthBuffer> depth_buffer;
@@ -106,19 +117,31 @@ namespace inf::gfx {
         std::vector<vk::Framebuffer> framebuffers;
         std::unique_ptr<vk::Framebuffer> shadow_map_framebuffer;
         std::unique_ptr<vk::Sampler> shadow_map_sampler;
+
+        // Command pools, semaphores and fences
         std::unique_ptr<vk::CommandPool> command_pool;
         std::vector<vk::CommandBuffer> command_buffers;
         std::vector<vk::Semaphore> image_available_semaphores;
         std::vector<vk::Semaphore> render_finished_semaphores;
         std::vector<vk::Fence> in_flight_fences;
+
+        // Uniform buffers
         std::vector<vk::MappedBuffer> uniform_buffers;
         std::vector<vk::MappedBuffer> shadow_map_uniform_buffers;
+
+        // Projection matrices
         glm::mat4 projection_matrix;
-        glm::mat4 shadow_map_projection_matrix;
+
+        // Mesh data
         std::vector<const Mesh*> shadow_casters_to_render;
-        std::vector<InstancedMeshToRender> non_casters_to_render;
+        std::vector<InstancedMeshToRender> instanced_non_casters_to_render;
+        std::vector<InstancedMeshToRender> instanced_casters_to_render;
         std::vector<gfx::vk::MappedBuffer> bounding_boxes_to_render;
         std::vector<gfx::vk::MappedBuffer> instanced_data_buffers;
+        std::vector<gfx::vk::MappedBuffer> instanced_shadow_data_buffers;
+
+        // Diagnostics flags
+        // TODO: Move these to context
         bool show_diagnostics;
         bool show_debug_bbs;
 

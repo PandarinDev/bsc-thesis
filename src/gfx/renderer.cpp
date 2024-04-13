@@ -55,6 +55,10 @@ namespace inf::gfx {
             
             const auto shadow_map_fs_bytes = utils::FileUtils::read_bytes("assets/shaders/shadow_map.frag.bin");
             shadow_map_shaders.emplace_back(vk::Shader::create_from_bytes(logical_device.get(), vk::ShaderType::FRAGMENT, shadow_map_fs_bytes));
+
+            const auto shadow_map_instanced_vs_bytes = utils::FileUtils::read_bytes("assets/shaders/instanced_shadow_map.vert.bin");
+            shadow_map_instanced_shaders.emplace_back(vk::Shader::create_from_bytes(logical_device.get(), vk::ShaderType::VERTEX, shadow_map_instanced_vs_bytes));
+            shadow_map_instanced_shaders.emplace_back(vk::Shader::create_from_bytes(logical_device.get(), vk::ShaderType::FRAGMENT, shadow_map_fs_bytes));
         }
 
         // Create descriptor pool and set layouts for shader uniform data
@@ -113,6 +117,7 @@ namespace inf::gfx {
             std::nullopt));
         
         // Create shadow map pipeline (uses default vertex bindings and attributes)
+        const auto shadow_map_depth_bias = gfx::vk::PipelineDepthBias{ 1.8f, 2.5f };
         shadow_map_pipeline = std::make_unique<vk::Pipeline>(vk::Pipeline::create_pipeline(
             logical_device.get(),
             *shadow_map_render_pass,
@@ -122,7 +127,18 @@ namespace inf::gfx {
             1, &default_binding_description,
             static_cast<std::uint32_t>(default_attribute_descriptions.size()), default_attribute_descriptions.data(),
             VK_SAMPLE_COUNT_1_BIT,
-            gfx::vk::PipelineDepthBias{ 1.8f, 2.5f }));
+            shadow_map_depth_bias));
+
+        shadow_map_instanced_pipeline = std::make_unique<vk::Pipeline>(vk::Pipeline::create_pipeline(
+            logical_device.get(),
+            *shadow_map_render_pass,
+            SHADOW_MAP_EXTENT,
+            *shadow_map_descriptor_set_layout,
+            shadow_map_instanced_shaders,
+            static_cast<std::uint32_t>(instanced_binding_descriptions.size()), instanced_binding_descriptions.data(),
+            static_cast<std::uint32_t>(instanced_attribute_descriptions.size()), instanced_attribute_descriptions.data(),
+            VK_SAMPLE_COUNT_1_BIT,
+            shadow_map_depth_bias));
 
         // Create a separate color image if necessary because of multisampling
         // If not necessary (sample count = 1), we use the swapchain image instead.
@@ -174,8 +190,10 @@ namespace inf::gfx {
                 logical_device.get(), memory_allocator.get(), vk::BufferType::UNIFORM_BUFFER, sizeof(Matrices)));
             instanced_data_buffers.emplace_back(vk::MappedBuffer::create(
                 logical_device.get(), memory_allocator.get(), vk::BufferType::VERTEX_BUFFER, INSTANCE_DATA_BUFFER_SIZE_INITIAL_BYTES));
+            instanced_shadow_data_buffers.emplace_back(vk::MappedBuffer::create(
+                logical_device.get(), memory_allocator.get(), vk::BufferType::VERTEX_BUFFER, INSTANCE_DATA_BUFFER_SIZE_INITIAL_BYTES));
             shadow_map_uniform_buffers.emplace_back(vk::MappedBuffer::create(
-            logical_device.get(), memory_allocator.get(), vk::BufferType::UNIFORM_BUFFER, sizeof(Matrices)));
+                logical_device.get(), memory_allocator.get(), vk::BufferType::UNIFORM_BUFFER, sizeof(Matrices)));
         }
 
         // Allocate descriptor sets for the uniform buffers and the shadow map sampler
@@ -253,7 +271,8 @@ namespace inf::gfx {
 
     void Renderer::begin_frame(std::size_t num_districts, std::size_t num_buildings) {
         shadow_casters_to_render.clear();
-        non_casters_to_render.clear();
+        instanced_non_casters_to_render.clear();
+        instanced_casters_to_render.clear();
         bounding_boxes_to_render.clear();
         ImGui_ImplVulkan_NewFrame();
         ImGui_ImplGlfw_NewFrame();
@@ -287,7 +306,14 @@ namespace inf::gfx {
         if (positions.empty()) {
             return;
         }
-        non_casters_to_render.emplace_back(InstancedMeshToRender{ &mesh, positions, rotations });
+        instanced_non_casters_to_render.emplace_back(InstancedMeshToRender{ &mesh, positions, rotations });
+    }
+
+    void Renderer::render_instanced_caster(const Mesh& mesh, const std::vector<glm::vec3>& positions, const std::vector<float>& rotations) {
+        if (positions.empty()) {
+            return;
+        }
+        instanced_casters_to_render.emplace_back(InstancedMeshToRender{ &mesh, positions, rotations });
     }
 
     void Renderer::render(const BoundingBox3D& bounding_box, const glm::vec3& color) {
@@ -352,7 +378,7 @@ namespace inf::gfx {
         // TODO: The number of splits necessary is mostly resolution dependant. 5 splits seem good enough on a 1440p resolution, while
         // even 2 splits seem mostly okay on a fullHD screen. If there is time there should be a proper cascaded shadow implementation
         // instead of this hardcoded value. Or as a janky alternative the engine could dynamically switch to higher splits on higher
-        // resolutions, but that would dramatically reduce shadow distance.
+        // resolutions, but that would significantly reduce shadow distance on high resolution displays.
         frustum = frustum.split<5>()[0];
         const auto frustum_bb = frustum.compute_bounding_box();
         const auto camera_position = camera.get_position();
@@ -372,7 +398,7 @@ namespace inf::gfx {
 
         // Upload uniform buffer data
         Matrices shadow_map_matrices;
-        shadow_map_projection_matrix = glm::ortho(
+        glm::mat4 shadow_map_projection_matrix = glm::ortho(
             shadow_bb.min.x,
             shadow_bb.max.x,
             shadow_bb.min.y,
@@ -398,6 +424,55 @@ namespace inf::gfx {
             const auto buffer_handle = mesh->get_buffer().get_buffer();
             vkCmdBindVertexBuffers(command_buffer_handle, 0, 1, &buffer_handle, &offset);
             vkCmdDraw(command_buffer_handle, static_cast<std::uint32_t>(mesh->get_number_of_vertices()), 1, 0, 0);
+        }
+
+        // Render instanced shadow casters
+        {
+            vkCmdBindPipeline(command_buffer.get_command_buffer(), VK_PIPELINE_BIND_POINT_GRAPHICS, shadow_map_instanced_pipeline->get_pipeline());
+            vkCmdBindDescriptorSets(
+                command_buffer.get_command_buffer(),
+                VK_PIPELINE_BIND_POINT_GRAPHICS,
+                shadow_map_instanced_pipeline->get_pipeline_layout(),
+                0, 1,
+                &shadow_map_descriptor_sets[frame_index],
+                0, nullptr);
+
+            // Calculate how many bytes are needed for instance data
+            std::uint32_t instanced_data_buffer_bytes = 0;
+            std::vector<VkDeviceSize> instanced_data_offsets;
+            VkDeviceSize offset_accumulator = 0;
+            for (const auto& entry : instanced_casters_to_render) {
+                const auto num_bytes = entry.positions.size() * sizeof(glm::vec3) + entry.rotations.size() * sizeof(float);
+                instanced_data_buffer_bytes += static_cast<std::uint32_t>(num_bytes);
+                instanced_data_offsets.emplace_back(offset_accumulator);
+                offset_accumulator += num_bytes;
+            }
+
+            // Create a single buffer that will be offset for different meshes
+            std::vector<float> data_to_upload;
+            data_to_upload.reserve(instanced_data_buffer_bytes / sizeof(float));
+            for (const auto& entry : instanced_casters_to_render) {
+                for (std::size_t i = 0; i < entry.positions.size(); ++i) {
+                    data_to_upload.emplace_back(entry.positions[i].x);
+                    data_to_upload.emplace_back(entry.positions[i].y);
+                    data_to_upload.emplace_back(entry.positions[i].z);
+                    data_to_upload.emplace_back(entry.rotations[i]);
+                }
+            }
+            instanced_shadow_data_buffers[frame_index].upload(data_to_upload.data(), instanced_data_buffer_bytes);
+
+            // Render instanced meshes
+            for (std::size_t i = 0; i < instanced_casters_to_render.size(); ++i) {
+                const auto& entry = instanced_casters_to_render[i];
+                const auto instance_count = static_cast<std::uint32_t>(entry.positions.size());
+                std::array<VkDeviceSize, 2> offsets{ 0, instanced_data_offsets.at(i) };
+                std::array<VkBuffer, 2> buffer_handles{
+                    entry.mesh->get_buffer().get_buffer(),
+                    instanced_shadow_data_buffers[frame_index].get_buffer()
+                };
+                vkCmdBindVertexBuffers(command_buffer_handle, 0, static_cast<std::uint32_t>(buffer_handles.size()), buffer_handles.data(), offsets.data());
+                vkCmdDraw(command_buffer_handle, static_cast<std::uint32_t>(entry.mesh->get_number_of_vertices()), instance_count, 0, 0);
+            }
         }
 
         shadow_map_render_pass->end(command_buffer);
@@ -469,7 +544,13 @@ namespace inf::gfx {
         std::uint32_t instanced_data_buffer_bytes = 0;
         std::vector<VkDeviceSize> instanced_data_offsets;
         VkDeviceSize offset_accumulator = 0;
-        for (const auto& entry : non_casters_to_render) {
+        for (const auto& entry : instanced_non_casters_to_render) {
+            const auto num_bytes = entry.positions.size() * sizeof(glm::vec3) + entry.rotations.size() * sizeof(float);
+            instanced_data_buffer_bytes += static_cast<std::uint32_t>(num_bytes);
+            instanced_data_offsets.emplace_back(offset_accumulator);
+            offset_accumulator += num_bytes;
+        }
+        for (const auto& entry : instanced_casters_to_render) {
             const auto num_bytes = entry.positions.size() * sizeof(glm::vec3) + entry.rotations.size() * sizeof(float);
             instanced_data_buffer_bytes += static_cast<std::uint32_t>(num_bytes);
             instanced_data_offsets.emplace_back(offset_accumulator);
@@ -479,7 +560,15 @@ namespace inf::gfx {
         // Create a single buffer that will be offset for different meshes
         std::vector<float> data_to_upload;
         data_to_upload.reserve(instanced_data_buffer_bytes / sizeof(float));
-        for (const auto& entry : non_casters_to_render) {
+        for (const auto& entry : instanced_non_casters_to_render) {
+            for (std::size_t i = 0; i < entry.positions.size(); ++i) {
+                data_to_upload.emplace_back(entry.positions[i].x);
+                data_to_upload.emplace_back(entry.positions[i].y);
+                data_to_upload.emplace_back(entry.positions[i].z);
+                data_to_upload.emplace_back(entry.rotations[i]);
+            }
+        }
+        for (const auto& entry : instanced_casters_to_render) {
             for (std::size_t i = 0; i < entry.positions.size(); ++i) {
                 data_to_upload.emplace_back(entry.positions[i].x);
                 data_to_upload.emplace_back(entry.positions[i].y);
@@ -490,10 +579,21 @@ namespace inf::gfx {
         instanced_data_buffers[frame_index].upload(data_to_upload.data(), instanced_data_buffer_bytes);
 
         // Render instanced meshes
-        for (std::size_t i = 0; i < non_casters_to_render.size(); ++i) {
-            const auto& entry = non_casters_to_render[i];
+        for (std::size_t i = 0; i < instanced_non_casters_to_render.size(); ++i) {
+            const auto& entry = instanced_non_casters_to_render[i];
             const auto instance_count = static_cast<std::uint32_t>(entry.positions.size());
             std::array<VkDeviceSize, 2> offsets{ 0, instanced_data_offsets.at(i) };
+            std::array<VkBuffer, 2> buffer_handles{
+                entry.mesh->get_buffer().get_buffer(),
+                instanced_data_buffers[frame_index].get_buffer()
+            };
+            vkCmdBindVertexBuffers(command_buffer_handle, 0, static_cast<std::uint32_t>(buffer_handles.size()), buffer_handles.data(), offsets.data());
+            vkCmdDraw(command_buffer_handle, static_cast<std::uint32_t>(entry.mesh->get_number_of_vertices()), instance_count, 0, 0);
+        }
+        for (std::size_t i = 0; i < instanced_casters_to_render.size(); ++i) {
+            const auto& entry = instanced_casters_to_render[i];
+            const auto instance_count = static_cast<std::uint32_t>(entry.positions.size());
+            std::array<VkDeviceSize, 2> offsets{ 0, instanced_data_offsets.at(instanced_non_casters_to_render.size() + i) };
             std::array<VkBuffer, 2> buffer_handles{
                 entry.mesh->get_buffer().get_buffer(),
                 instanced_data_buffers[frame_index].get_buffer()

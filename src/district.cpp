@@ -30,8 +30,10 @@ namespace inf {
     }
 
     BoundingBox3D DistrictRoad::get_bounding_box(const glm::vec3& district_position) const {
-        const auto min = glm::vec3(district_position.x + position.x, 0.0f, district_position.z + position.y);
-        const auto max = glm::vec3(min.x + 1.0f, 0.05f, min.z + 1.0f);
+        // TODO: This function is currently unused, only needed for diagnostics/debugging
+        const auto center = glm::vec3(district_position.x + position.x, 0.0f, district_position.z + position.y);
+        const auto min = glm::vec3(center.x - 0.1f, center.y - 0.1f, center.z - 0.1f);
+        const auto max = glm::vec3(center.x + 0.1f, center.y + 0.1f, center.z + 0.1f);
         return BoundingBox3D(min, max);
     }
 
@@ -201,7 +203,7 @@ namespace inf {
         }
         if (!vehicle_positions.empty()) {
             // TODO: Group by vehicle type instead (since there is 1 mesh per vehicle type)
-            renderer.render_instanced(*vehicles[0].mesh, vehicle_positions, vehicle_rotations);
+            renderer.render_instanced_caster(*vehicles[0].mesh, vehicle_positions, vehicle_rotations);
         }
 
         // Render lot buildings
