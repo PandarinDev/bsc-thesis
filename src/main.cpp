@@ -63,6 +63,9 @@ int main() {
             input_manager.update();
             world.update(renderer);
             generator.populate_world(world);
+            if (world.is_dirty()) {
+                world.update_caches();
+            }
             renderer.begin_frame(world.get_number_of_districts(), world.get_number_of_buildings());
             world.render(renderer);
             renderer.end_frame();

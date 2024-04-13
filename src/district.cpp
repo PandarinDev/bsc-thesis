@@ -110,6 +110,14 @@ namespace inf {
         }
     }
 
+    const glm::ivec2& District::get_grid_position() const {
+        return grid_position;
+    }
+
+    const glm::ivec2& District::get_dimensions() const {
+        return dimensions;
+    }
+
     const glm::vec3& District::get_position() const {
         return position;
     }
@@ -144,6 +152,19 @@ namespace inf {
 
     const std::vector<DistrictRoad>& District::get_roads() const {
         return roads;
+    }
+
+    std::unordered_map<glm::ivec2, const DistrictRoad*> District::get_roads_at_edges() const {
+        std::unordered_map<glm::ivec2, const DistrictRoad*> result;
+        for (const auto& road : roads) {
+            if (road.position.x == 0 ||
+                road.position.x == dimensions.x - 1 ||
+                road.position.y == 0 ||
+                road.position.y == dimensions.y - 1) {
+                result.emplace(road.position, &road);
+            }
+        }
+        return result;
     }
 
     const std::vector<Vehicle>& District::get_vehicles() const {

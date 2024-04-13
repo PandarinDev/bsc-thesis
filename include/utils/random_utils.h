@@ -15,7 +15,7 @@ namespace inf::utils {
         RandomUtils() = delete;
 
         template<typename T>
-        static std::vector<const T*> choose(RandomGenerator& rng, const std::vector<T> from, std::size_t choices) {
+        static std::vector<const T*> choose(RandomGenerator& rng, const std::vector<T>& from, std::size_t choices) {
             if (choices > from.size()) {
                 throw std::runtime_error("Number of choices (" + std::to_string(choices) +
                     ") higher than input collection size (" + std::to_string(from.size()) + ").");

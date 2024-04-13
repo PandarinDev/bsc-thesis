@@ -14,7 +14,7 @@ namespace inf {
 
     World WorldGenerator::generate_initial() {
         World world;
-        auto& district = world.districts.emplace(glm::ivec2(0, 0), generate_district(glm::ivec2(0, 0))).first->second;
+        auto& district = world.add_district(glm::ivec2(0, 0), generate_district(glm::ivec2(0, 0)));
 
         // Center the district compared to where the camera initially intersects the ground plane
         const auto& camera = renderer.get_camera();
@@ -39,46 +39,47 @@ namespace inf {
     }
 
     void WorldGenerator::populate_world(World& world) {
+        static constexpr float road_gap = 2.0f;
         // TODO: This should be done recursively instead to avoid scenarios when a large chunk of
         // districts would become visible at once but we only generate one per frame. Realistically
         // this is only a problem in freecam situations and even then it is not a big deal.
-        for (const auto& entry : world.districts) {
+        for (const auto& entry : world.get_districts()) {
             const auto& district = entry.second;
             const auto& grid_position = entry.first;
             const auto& world_position = district.get_position();
             const auto district_bb = district.compute_bounding_box();
             // Left
-            if (!world.has_district_at(grid_position + glm::ivec2(-1, 0)) &&
+            const auto left_position = grid_position + glm::ivec2(-1, 0);
+            if (!world.has_district_at(left_position) &&
                 renderer.is_in_view(district_bb.get_block_to_the_left())) {
-                const auto new_district_grid_position = grid_position + glm::ivec2(-1, 0);
-                auto& new_district = world.districts.emplace(new_district_grid_position, generate_district(new_district_grid_position)).first->second;
+                auto& new_district = world.add_district(left_position, generate_district(left_position));
                 const auto new_district_bb = new_district.compute_bounding_box();
-                new_district.set_position(glm::vec3(world_position.x - new_district_bb.width(), world_position.y, world_position.z));
+                new_district.set_position(glm::vec3(world_position.x - new_district_bb.width() - road_gap, world_position.y, world_position.z));
                 new_district.update_caches();
             }
             // Right
             if (!world.has_district_at(grid_position + glm::ivec2(1, 0)) &&
                 renderer.is_in_view(district_bb.get_block_to_the_right())) {
                 const auto new_district_grid_position = grid_position + glm::ivec2(1, 0);
-                auto& new_district = world.districts.emplace(new_district_grid_position, generate_district(new_district_grid_position)).first->second;
-                new_district.set_position(glm::vec3(world_position.x + district_bb.width(), world_position.y, world_position.z));
+                auto& new_district = world.add_district(new_district_grid_position, generate_district(new_district_grid_position));
+                new_district.set_position(glm::vec3(world_position.x + district_bb.width() + road_gap, world_position.y, world_position.z));
                 new_district.update_caches();
             }
             // Top
             if (!world.has_district_at(grid_position + glm::ivec2(0, 1)) &&
                 renderer.is_in_view(district_bb.get_block_above())) {
                 const auto new_district_grid_position = grid_position + glm::ivec2(0, 1);
-                auto& new_district = world.districts.emplace(new_district_grid_position, generate_district(new_district_grid_position)).first->second;
+                auto& new_district = world.add_district(new_district_grid_position, generate_district(new_district_grid_position));
                 const auto new_district_bb = new_district.compute_bounding_box();
-                new_district.set_position(glm::vec3(world_position.x, world_position.y, world_position.z - new_district_bb.depth()));
+                new_district.set_position(glm::vec3(world_position.x, world_position.y, world_position.z - new_district_bb.depth() - road_gap));
                 new_district.update_caches();
             }
             // Bottom
             if (!world.has_district_at(grid_position + glm::ivec2(0, -1)) &&
                 renderer.is_in_view(district_bb.get_block_below())) {
                 const auto new_district_grid_position = grid_position + glm::ivec2(0, -1);
-                auto& new_district = world.districts.emplace(new_district_grid_position, generate_district(new_district_grid_position)).first->second;
-                new_district.set_position(glm::vec3(world_position.x, world_position.y, world_position.z + district_bb.depth()));
+                auto& new_district = world.add_district(new_district_grid_position, generate_district(new_district_grid_position));
+                new_district.set_position(glm::vec3(world_position.x, world_position.y, world_position.z + district_bb.depth() + road_gap));
                 new_district.update_caches();
             }
         }
@@ -88,8 +89,8 @@ namespace inf {
         static constexpr auto district_width = 100;
         static constexpr auto district_depth = 100;
         std::uniform_real_distribution<float> color_distribution(0.0f, 1.0f);
-        auto district = District(DistrictType::RESIDENTAL, grid_position, glm::ivec2(district_width, district_depth),
-            glm::vec3(color_distribution(random_engine), color_distribution(random_engine), color_distribution(random_engine)));
+        const auto bb_color = glm::vec3(color_distribution(random_engine), color_distribution(random_engine), color_distribution(random_engine));
+        auto district = District(DistrictType::RESIDENTAL, grid_position, glm::ivec2(district_width, district_depth), bb_color);
         // Slice up the district into lots
         static constexpr auto min_lot_width = 8;
         static constexpr auto max_lot_width = 10;
@@ -137,7 +138,7 @@ namespace inf {
                     new_partitions.emplace_back(partition.x, partition.y, partition.x + slice_at, partition.w);
                     new_partitions.emplace_back(partition.x + slice_at + lot_gap, partition.y, partition.z, partition.w);
                     // Add a vertical road strip along the created gap
-                    for (int offset = partition.y; offset <= partition.w; ++offset) {
+                    for (int offset = partition.y; offset < partition.w; ++offset) {
                         const auto road_position_left = glm::ivec2(partition.x + slice_at, offset);
                         const auto road_position_right = road_position_left + glm::ivec2(1, 0);
                         roads.emplace(road_position_left, DistrictRoad(RoadDirection::VERTICAL_LEFT, road_position_left));
@@ -153,7 +154,7 @@ namespace inf {
                     new_partitions.emplace_back(partition.x, partition.y, partition.z, partition.y + slice_at);
                     new_partitions.emplace_back(partition.x, partition.y + slice_at + lot_gap, partition.z, partition.w);
                     // Add a horizontal road strip along the created gap
-                    for (int offset = partition.x; offset <= partition.z; ++offset) {
+                    for (int offset = partition.x; offset < partition.z; ++offset) {
                         const auto road_position_up = glm::ivec2(offset, partition.y + slice_at);
                         const auto road_position_down = road_position_up + glm::ivec2(0, 1);
                         roads.emplace(road_position_up, DistrictRoad(RoadDirection::HORIZONTAL_UP, road_position_up));

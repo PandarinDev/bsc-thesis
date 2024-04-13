@@ -8,7 +8,7 @@
 
 #include <vector>
 #include <optional>
-#include <unordered_set>
+#include <unordered_map>
 
 namespace inf {
 
@@ -73,12 +73,14 @@ namespace inf {
         void update_caches();
 
         const glm::ivec2& get_grid_position() const;
+        const glm::ivec2& get_dimensions() const;
         const glm::vec3& get_position() const;
         void set_position(const glm::vec3& position);
 
         BoundingBox3D compute_bounding_box() const;
         const std::vector<DistrictLot>& get_lots() const;
         const std::vector<DistrictRoad>& get_roads() const;
+        std::unordered_map<glm::ivec2, const DistrictRoad*> get_roads_at_edges() const;
         const std::vector<Vehicle>& get_vehicles() const;
         void add_lot(DistrictLot&& lot);
         void add_road(DistrictRoad&& road);
