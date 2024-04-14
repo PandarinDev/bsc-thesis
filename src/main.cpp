@@ -62,7 +62,7 @@ int main() {
             window.poll_events();
             input_manager.update();
             const auto delta_time = static_cast<float>(timer.get_delta());
-            context.advance_day_of_time(delta_time);
+            context.advance_time_of_day(delta_time);
             world.update(renderer);
             generator.populate_world(world);
             if (world.is_dirty()) {

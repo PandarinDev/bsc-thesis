@@ -12,11 +12,11 @@ namespace inf {
 
     struct Context {
         
-        float day_of_time;
+        float time_of_day;
 
         Context(const std::function<void(bool)>& set_mouse_captured);
 
-        void advance_day_of_time(float delta_time);
+        void advance_time_of_day(float delta_time);
         State get_state() const;
         void set_state(State state);
 

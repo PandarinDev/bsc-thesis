@@ -293,8 +293,8 @@ namespace inf::gfx {
             const auto direction = format_vec3(camera.get_direction());
             ImGui::Text("Camera position: %s", position.c_str());
             ImGui::Text("Camera direction: %s", direction.c_str());
-            ImGui::SliderFloat("Day of time", &context.day_of_time, 0.0f, 1.0f);
-            ImGui::Text("Light factor: %f", glm::sin(context.day_of_time * glm::pi<float>()));
+            ImGui::SliderFloat("Time of day", &context.time_of_day, 0.0f, 1.0f);
+            ImGui::Text("Light factor: %f", glm::sin(context.time_of_day * glm::pi<float>()));
             ImGui::Checkbox("Show debug BBs", &show_debug_bbs);
             ImGui::End();
         }
