@@ -6,10 +6,9 @@ layout(location = 0) in vec3 fragColor;
 layout(location = 1) in vec3 fragNormal;
 layout(location = 2) in vec4 fragPositionInLightSpace;
 layout(location = 3) flat in int fragTransparency;
+layout(location = 4) flat in float ambientLight;
+layout(location = 5) flat in vec3 lightDirection;
 layout(location = 0) out vec4 outColor;
-
-// TODO: This needs to be a uniform once dynamic day of time is implemented.
-const vec3 sunDirection = vec3(0.57735026919, 0.57735026919, 0.57735026919);
 
 float calculateShadowFactor() {
     vec3 projectedCoordinates = fragPositionInLightSpace.xyz / fragPositionInLightSpace.w;
@@ -45,6 +44,7 @@ void main() {
         return;
     }
     float shadowFactor = calculateShadowFactor();
-    float lightFactor = max(dot(fragNormal, sunDirection), 0.2);
-    outColor = vec4(lightFactor * (1.0 - shadowFactor) * fragColor, 1.0);
+    float lightFactor = max(dot(fragNormal, lightDirection), 0.2);
+    float finalLightFactor = clamp(ambientLight * lightFactor * (1.0 - shadowFactor) * 1.5, 0.0, 1.0);
+    outColor = vec4(finalLightFactor * fragColor, 1.0);
 }

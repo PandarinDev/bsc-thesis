@@ -4,6 +4,8 @@ layout(binding = 0) uniform Matrices {
     mat4 projectionMatrix;
     mat4 viewMatrix;
     mat4 lightSpaceMatrix;
+    float ambientLight;
+    vec3 lightDirection;
 } u_Matrices;
 
 layout(location = 0) in vec3 in_Position;
@@ -14,6 +16,8 @@ layout(location = 4) in float instance_Rotation;
 layout(location = 0) out vec3 fs_Color;
 layout(location = 1) out vec3 fs_Normal;
 layout(location = 2) out vec4 fs_PositionInLightSpace;
+layout(location = 3) flat out float fs_AmbientLight;
+layout(location = 4) flat out vec3 fs_LightDirection;
 
 void main() {
     fs_Color = in_Color;
@@ -23,5 +27,7 @@ void main() {
     fs_Normal = rotation_matrix * in_Normal;
     vec3 position = rotation_matrix * in_Position + instance_Position;
     fs_PositionInLightSpace = u_Matrices.lightSpaceMatrix * vec4(position, 1.0);
+    fs_AmbientLight = u_Matrices.ambientLight;
+    fs_LightDirection = u_Matrices.lightDirection;
     gl_Position = u_Matrices.projectionMatrix * u_Matrices.viewMatrix * vec4(position, 1.0);
 }

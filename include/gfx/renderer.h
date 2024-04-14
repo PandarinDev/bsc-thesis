@@ -3,6 +3,7 @@
 #include <glm/matrix.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
+#include "context.h"
 #include "window.h"
 #include "camera.h"
 #include "timer.h"
@@ -32,6 +33,8 @@ namespace inf::gfx {
         glm::mat4 projection_matrix;
         glm::mat4 view_matrix;
         glm::mat4 light_space_matrix;
+        float ambient_light;
+        glm::vec3 light_direction;
     };
 
     struct PushConstants {
@@ -46,7 +49,7 @@ namespace inf::gfx {
         static constexpr float NEAR_PLANE = 0.01f;
         static constexpr float FAR_PLANE = 100.0f;
 
-        Renderer(const Window& window, const Camera& camera, const Timer& timer);
+        Renderer(Context& context, const Window& window, const Camera& camera, const Timer& timer);
 
         const Camera& get_camera() const;
         const vk::Instance& get_vulkan_instance() const;
@@ -76,6 +79,7 @@ namespace inf::gfx {
             const std::vector<float>& rotations;
         };
 
+        Context& context;
         const Camera& camera;
         const Timer& timer;
         std::uint32_t image_index;

@@ -26,12 +26,12 @@ int main() {
         Window window("Infinitown", RelativeWindowSize{ 0.75f }, false);
         Timer timer;
         InputManager input_manager(window, timer);
-
-        Camera camera(glm::vec3(0.0f, 7.0f, 2.0f), glm::vec3(0.0f, -0.6f, -1.0f));
-        Renderer renderer(window, camera, timer);
         Context context([handle = window.get_handle()](bool captured) {
             glfwSetInputMode(handle, GLFW_CURSOR, captured ? GLFW_CURSOR_DISABLED : GLFW_CURSOR_NORMAL);
         });
+
+        Camera camera(glm::vec3(0.0f, 7.0f, 2.0f), glm::vec3(0.0f, -0.6f, -1.0f));
+        Renderer renderer(context, window, camera, timer);
         input_manager.add_handler(std::make_unique<CameraHandler>(context, camera));
         input_manager.add_handler(std::make_unique<DiagnosticsHandler>([&renderer](bool value) {
             renderer.set_show_diagnostics(value);
@@ -61,6 +61,8 @@ int main() {
             timer.tick();
             window.poll_events();
             input_manager.update();
+            const auto delta_time = static_cast<float>(timer.get_delta());
+            context.advance_day_of_time(delta_time);
             world.update(renderer);
             generator.populate_world(world);
             if (world.is_dirty()) {

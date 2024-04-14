@@ -18,8 +18,8 @@ namespace inf::gfx {
     static constexpr VkExtent2D SHADOW_MAP_EXTENT{ SHADOW_MAP_RESOLUTION_X, SHADOW_MAP_RESOLUTION_Y };
     static constexpr std::uint64_t INSTANCE_DATA_BUFFER_SIZE_INITIAL_BYTES = 4 * 1024 * 1024; // 4MBs
 
-    Renderer::Renderer(const Window& window, const Camera& camera, const Timer& timer) :
-        camera(camera), timer(timer), image_index(0), frame_index(0), show_diagnostics(false), show_debug_bbs(false) {
+    Renderer::Renderer(Context& context, const Window& window, const Camera& camera, const Timer& timer) :
+        context(context), camera(camera), timer(timer), image_index(0), frame_index(0), show_diagnostics(false), show_debug_bbs(false) {
         if (!gladLoaderLoadVulkan(VK_NULL_HANDLE, VK_NULL_HANDLE, VK_NULL_HANDLE)) {
             throw std::runtime_error("Failed to load Vulkan function pointers.");
         }
@@ -280,7 +280,7 @@ namespace inf::gfx {
 
         if (show_diagnostics) {
             ImGui::Begin("Diagnostics");
-            ImGui::SetWindowSize({ 400, 140 });
+            ImGui::SetWindowSize({ 400, 170 });
             ImGui::Text("FPS: %d", timer.get_fps());
             ImGui::Text("Districts: %d", static_cast<int>(num_districts));
             ImGui::Text("Buildings: %d", static_cast<int>(num_buildings));
@@ -293,6 +293,8 @@ namespace inf::gfx {
             const auto direction = format_vec3(camera.get_direction());
             ImGui::Text("Camera position: %s", position.c_str());
             ImGui::Text("Camera direction: %s", direction.c_str());
+            ImGui::SliderFloat("Day of time", &context.day_of_time, 0.0f, 1.0f);
+            ImGui::Text("Light factor: %f", glm::sin(context.day_of_time * glm::pi<float>()));
             ImGui::Checkbox("Show debug BBs", &show_debug_bbs);
             ImGui::End();
         }
@@ -382,13 +384,23 @@ namespace inf::gfx {
         frustum = frustum.split<5>()[0];
         const auto frustum_bb = frustum.compute_bounding_box();
         const auto camera_position = camera.get_position();
-        const auto sun_position = glm::vec3(
+        const auto initial_sun_position = glm::vec3(
             camera_position.x + 10.0f,
             camera_position.y + 5.0f,
             frustum_bb.max.z);
+        const auto end_sun_position = glm::vec3(
+            camera_position.x - 10.0f,
+            camera_position.y + 5.0f,
+            frustum_bb.max.z);
+        const auto sun_position = glm::mix(initial_sun_position, end_sun_position, context.day_of_time);
+        static constexpr glm::vec3 sun_start_direction(-0.65f, -0.54f, -0.54f);
+        static constexpr glm::vec3 sun_end_direction(0.65f, -0.54f, -0.54f);
+        const auto sun_direction = glm::mix(sun_start_direction, sun_end_direction, context.day_of_time);
+        const auto sin_dot = glm::sqrt(glm::sin(context.day_of_time * glm::pi<float>()));
+        const auto ambient_light = glm::mix(0.2f, 1.0f, sin_dot);
         glm::mat4 sun_view_matrix = glm::lookAt(
             sun_position,
-            sun_position + glm::vec3(-0.65f, -0.54f, -0.54f),
+            sun_position + sun_direction,
             glm::vec3(0.0f, 1.0f, 0.0f));
         BoundingBox3D shadow_bb;
         for (const auto& point : frustum.points) {
@@ -408,6 +420,8 @@ namespace inf::gfx {
         shadow_map_matrices.projection_matrix = shadow_map_projection_matrix;
         shadow_map_matrices.view_matrix = sun_view_matrix;
         shadow_map_matrices.light_space_matrix = glm::mat4(1.0f);
+        shadow_map_matrices.ambient_light = ambient_light;
+        shadow_map_matrices.light_direction = sun_direction;
         shadow_map_uniform_buffers[frame_index].upload(&shadow_map_matrices, sizeof(Matrices));
 
         const auto command_buffer_handle = command_buffer.get_command_buffer();
@@ -480,7 +494,10 @@ namespace inf::gfx {
         // In the second render pass we render color data
         const auto& extent = swap_chain->get_extent();
         std::vector<VkClearValue> clear_values(2);
-        clear_values[0].color = {{ 0.0f, 0.1f, 0.95f, 1.0f }};
+        static constexpr glm::vec4 start_clear_color(0.670588f, 0.87843f, 1.0f, 1.0f);
+        static constexpr glm::vec4 end_clear_color(0.0156862f, 0.129412f, 0.2f, 1.0f);
+        const auto clear_color = glm::mix(end_clear_color, start_clear_color, sin_dot);
+        clear_values[0].color = {{ clear_color.x, clear_color.y, clear_color.z, clear_color.w }};
         clear_values[1].depthStencil = { 1.0f, 0 };
         render_pass->begin(framebuffers[image_index], extent, command_buffer, clear_values);
         vkCmdBindPipeline(command_buffer.get_command_buffer(), VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline->get_pipeline());
@@ -511,6 +528,8 @@ namespace inf::gfx {
         matrices.projection_matrix = projection_matrix;
         matrices.view_matrix = camera.to_view_matrix();
         matrices.light_space_matrix = shadow_map_projection_matrix * sun_view_matrix;
+        matrices.ambient_light = ambient_light;
+        matrices.light_direction = sun_direction;
         uniform_buffers[frame_index].upload(&matrices, sizeof(Matrices));
 
         // Render the meshes
