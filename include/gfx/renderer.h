@@ -33,8 +33,8 @@ namespace inf::gfx {
         glm::mat4 projection_matrix;
         glm::mat4 view_matrix;
         glm::mat4 light_space_matrix;
-        float ambient_light;
         glm::vec3 light_direction;
+        float ambient_light;
     };
 
     struct PushConstants {

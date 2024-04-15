@@ -44,7 +44,7 @@ void main() {
         return;
     }
     float shadowFactor = calculateShadowFactor();
-    float lightFactor = max(dot(fragNormal, lightDirection), 0.2);
-    float finalLightFactor = clamp(ambientLight * lightFactor * (1.0 - shadowFactor) * 1.5, 0.0, 1.0);
+    float lightFactor = max(dot(fragNormal, -lightDirection), 0.2);
+    float finalLightFactor = ambientLight * lightFactor * (1.0 - shadowFactor);
     outColor = vec4(finalLightFactor * fragColor, 1.0);
 }

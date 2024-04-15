@@ -392,11 +392,11 @@ namespace inf::gfx {
             camera_position.x - 10.0f,
             camera_position.y + 5.0f,
             frustum_bb.max.z);
-        const auto sun_position = glm::mix(initial_sun_position, end_sun_position, context.day_of_time);
+        const auto sun_position = glm::mix(initial_sun_position, end_sun_position, context.time_of_day);
         static constexpr glm::vec3 sun_start_direction(-0.65f, -0.54f, -0.54f);
         static constexpr glm::vec3 sun_end_direction(0.65f, -0.54f, -0.54f);
-        const auto sun_direction = glm::mix(sun_start_direction, sun_end_direction, context.day_of_time);
-        const auto sin_dot = glm::sqrt(glm::sin(context.day_of_time * glm::pi<float>()));
+        const auto sun_direction = glm::normalize(glm::mix(sun_start_direction, sun_end_direction, context.time_of_day));
+        const auto sin_dot = glm::sin(context.time_of_day * glm::pi<float>());
         const auto ambient_light = glm::mix(0.2f, 1.0f, sin_dot);
         glm::mat4 sun_view_matrix = glm::lookAt(
             sun_position,
@@ -528,8 +528,8 @@ namespace inf::gfx {
         matrices.projection_matrix = projection_matrix;
         matrices.view_matrix = camera.to_view_matrix();
         matrices.light_space_matrix = shadow_map_projection_matrix * sun_view_matrix;
-        matrices.ambient_light = ambient_light;
         matrices.light_direction = sun_direction;
+        matrices.ambient_light = ambient_light;
         uniform_buffers[frame_index].upload(&matrices, sizeof(Matrices));
 
         // Render the meshes

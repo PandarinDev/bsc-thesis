@@ -4,8 +4,8 @@ layout(binding = 0) uniform Matrices {
     mat4 projectionMatrix;
     mat4 viewMatrix;
     mat4 lightSpaceMatrix;
-    float ambientLight;
     vec3 lightDirection;
+    float ambientLight;
 } u_Matrices;
 
 layout(location = 0) in vec3 in_Position;
