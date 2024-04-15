@@ -41,7 +41,8 @@ namespace inf {
         return result;
     }
 
-    void World::update(const gfx::Renderer& renderer) {
+    void World::update(const gfx::Renderer& renderer, RandomGenerator& rng, float delta_time) {
+        // Remove districts that are not visible anymore
         std::vector<glm::ivec2> keys_to_remove;
         for (const auto& entry : districts) {
             const auto& district = entry.second;
@@ -55,6 +56,11 @@ namespace inf {
         }
         if (!keys_to_remove.empty()) {
             dirty = true;
+        }
+
+        // Update the remaining districts
+        for (auto& [_, district] : districts) {
+            district.update(rng, delta_time);
         }
     }
 

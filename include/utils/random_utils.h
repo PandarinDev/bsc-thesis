@@ -2,11 +2,14 @@
 
 #include "common.h"
 
+#include <magic_enum.hpp>
+
 #include <deque>
 #include <cstdint>
 #include <numeric>
 #include <string>
 #include <stdexcept>
+#include <type_traits>
 
 namespace inf::utils {
 
@@ -30,6 +33,12 @@ namespace inf::utils {
                 indices.erase(indices.cbegin() + index);
             }
             return result;
+        }
+
+        template<typename T>
+        static std::enable_if_t<std::is_enum_v<T>, T> random_enum(RandomGenerator& rng) {
+            std::uniform_int_distribution<std::size_t> enum_distribution(0, magic_enum::enum_count<T>() - 1);
+            return static_cast<T>(enum_distribution(rng));
         }
 
     };

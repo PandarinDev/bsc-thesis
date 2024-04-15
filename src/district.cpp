@@ -1,5 +1,6 @@
 #include "district.h"
 #include "gfx/renderer.h"
+#include "utils/random_utils.h"
 
 #include <limits>
 
@@ -19,24 +20,6 @@ namespace inf {
         return BoundingBox3D(min, max);
     }
 
-    DistrictRoad::DistrictRoad(RoadDirection direction, const glm::ivec2& position) :
-        direction(direction), position(position) {}
-
-    bool DistrictRoad::is_crossing() const {
-        return direction == RoadDirection::CROSSING_DOWN_LEFT ||
-            direction == RoadDirection::CROSSING_DOWN_RIGHT ||
-            direction == RoadDirection::CROSSING_UP_LEFT ||
-            direction == RoadDirection::CROSSING_UP_RIGHT;
-    }
-
-    BoundingBox3D DistrictRoad::get_bounding_box(const glm::vec3& district_position) const {
-        // TODO: This function is currently unused, only needed for diagnostics/debugging
-        const auto center = glm::vec3(district_position.x + position.x, 0.0f, district_position.z + position.y);
-        const auto min = glm::vec3(center.x - 0.1f, center.y - 0.1f, center.z - 0.1f);
-        const auto max = glm::vec3(center.x + 0.1f, center.y + 0.1f, center.z + 0.1f);
-        return BoundingBox3D(min, max);
-    }
-
     District::District(
         DistrictType type,
         const glm::ivec2& grid_position,
@@ -46,6 +29,40 @@ namespace inf {
         position(), bb_color(bb_color), bounding_box(
             glm::vec3(position.x, 0.0f, position.z),
             glm::vec3(position.x + dimensions.x, 0.0f, position.z + dimensions.y)) {}
+
+    void District::update(RandomGenerator& rng, float delta_time) {
+        static constexpr float vehicle_speed = 1.0f;
+        for (auto& vehicle : vehicles) {
+            const auto road_it = roads.find(vehicle.position);
+            if (road_it == roads.cend()) {
+                continue;
+            }
+            const auto& road = road_it->second;
+            auto direction = RoadUtils::road_direction_to_world_direction(road.direction);
+            // If the road is a crossing we need to act according to the vehicle intention
+            if (road.is_crossing()) {
+                if (vehicle.intention.intention == VehicleIntentionType::KEEP_STRAIGHT) {
+                    direction = vehicle.intention.direction;
+                }
+                // TODO: Handle these cases
+            }
+
+            auto new_offset = vehicle.offset + vehicle_speed * delta_time;
+            if (new_offset > 1.0f) {
+                vehicle.position += glm::ivec2(static_cast<int>(direction.x), static_cast<int>(direction.z));
+                new_offset = std::fmod(new_offset, 1.0f);
+                if (const auto& new_road_it = roads.find(vehicle.position); new_road_it != roads.cend()) {
+                    const auto& new_road = new_road_it->second;
+                    // If the new road that the vehicle enters is a crossing we need to assign an intention
+                    // TODO: Only choose intention based on what's available in the current crossing
+                    if (new_road.is_crossing()) {
+                        vehicle.intention = VehicleIntention(utils::RandomUtils::random_enum<VehicleIntentionType>(rng), direction);
+                    }
+                }
+            }
+            vehicle.offset = new_offset;
+        }
+    }
 
     void District::update_caches() {
         // Update grass data
@@ -65,7 +82,7 @@ namespace inf {
         // Update road positions
         road_positions.clear();
         road_crossing_positions.clear();
-        for (const auto& road : roads) {
+        for (const auto& [_, road] : roads) {
             const auto& direction = road.direction;
             const auto road_position =  glm::vec3(
                 position.x + road.position.x + 0.5f,
@@ -150,18 +167,18 @@ namespace inf {
         return lots;
     }
 
-    const std::vector<DistrictRoad>& District::get_roads() const {
+    const std::unordered_map<glm::ivec2, DistrictRoad>& District::get_roads() const {
         return roads;
     }
 
     std::unordered_map<glm::ivec2, const DistrictRoad*> District::get_roads_at_edges() const {
         std::unordered_map<glm::ivec2, const DistrictRoad*> result;
-        for (const auto& road : roads) {
-            if (road.position.x == 0 ||
-                road.position.x == dimensions.x - 1 ||
-                road.position.y == 0 ||
-                road.position.y == dimensions.y - 1) {
-                result.emplace(road.position, &road);
+        for (const auto& [position, road] : roads) {
+            if (position.x == 0 ||
+                position.x == dimensions.x - 1 ||
+                position.y == 0 ||
+                position.y == dimensions.y - 1) {
+                result.emplace(position, &road);
             }
         }
         return result;
@@ -176,7 +193,8 @@ namespace inf {
     }
 
     void District::add_road(DistrictRoad&& road) {
-        roads.emplace_back(std::move(road));
+        const auto position = road.position;
+        roads.emplace(position, std::move(road));
     }
 
     void District::add_vehicle(Vehicle&& vehicle) {
@@ -219,7 +237,13 @@ namespace inf {
                     world_position += glm::vec3(0.65f, 0.0f, 0.0f);
                     break;
             }
-            vehicle_positions.emplace_back(world_position);
+            glm::vec3 offset;
+            const auto road_it = roads.find(vehicle.position);
+            if (road_it != roads.cend()) {
+                const auto direction = RoadUtils::road_direction_to_world_direction(road_it->second.direction);
+                offset = direction * vehicle.offset;
+            }
+            vehicle_positions.emplace_back(world_position + offset);
             vehicle_rotations.emplace_back(rotation);
         }
         if (!vehicle_positions.empty()) {

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "common.h"
 #include "district.h"
 #include "gfx/renderer.h"
 
@@ -21,7 +22,7 @@ namespace inf {
         std::size_t get_number_of_buildings() const;
         BoundingBox3D compute_bounding_box() const;
 
-        void update(const gfx::Renderer& renderer);
+        void update(const gfx::Renderer& renderer, RandomGenerator& rng, float delta_time);
         void render(gfx::Renderer& renderer);
         bool is_dirty() const;
 

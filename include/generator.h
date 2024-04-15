@@ -4,7 +4,9 @@
 #include "world.h"
 #include "gfx/renderer.h"
 
-#include <deque>
+#include <glm/vec2.hpp>
+
+#include <unordered_map>
 
 namespace inf {
 
@@ -22,6 +24,8 @@ namespace inf {
 
         District generate_district(const glm::ivec2& grid_position);
         wfc::Building generate_building(const wfc::BuildingPattern& pattern, int max_width, int max_depth);
+        bool has_road_direction(const std::unordered_map<glm::ivec2, DistrictRoad>& roads, const glm::ivec2& position, RoadDirection direction);
+        void set_road_directions(std::unordered_map<glm::ivec2, DistrictRoad>& roads);
 
     };
 

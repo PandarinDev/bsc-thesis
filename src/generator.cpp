@@ -169,37 +169,9 @@ namespace inf {
             partitions = std::move(new_partitions);
         }
 
-        // Post process roads to add crossings
-        const auto has_road_direction = [&roads](const glm::ivec2& position, RoadDirection direction) {
-            const auto it = roads.find(position);
-            if (it == roads.cend()) {
-                return false;
-            }
-            return it->second.direction == direction;
-        };
-        for (auto& entry : roads) {
-            const auto& position = entry.first;
-            const auto left_neighbor = position + glm::ivec2(-1, 0);
-            const auto right_neighbor = position + glm::ivec2(1, 0);
-            const auto up_neighbor = position + glm::ivec2(0, -1);
-            const auto down_neighbor = position + glm::ivec2(0, 1);
-            if (has_road_direction(left_neighbor, RoadDirection::HORIZONTAL_UP) &&
-                has_road_direction(up_neighbor, RoadDirection::VERTICAL_LEFT)) {
-                entry.second.direction = RoadDirection::CROSSING_UP_LEFT;
-            }
-            else if (has_road_direction(right_neighbor, RoadDirection::HORIZONTAL_UP) &&
-                has_road_direction(up_neighbor, RoadDirection::VERTICAL_RIGHT)) {
-                entry.second.direction = RoadDirection::CROSSING_UP_RIGHT;
-            }
-            else if (has_road_direction(left_neighbor, RoadDirection::HORIZONTAL_DOWN) &&
-                has_road_direction(down_neighbor, RoadDirection::VERTICAL_LEFT)) {
-                entry.second.direction = RoadDirection::CROSSING_DOWN_LEFT;
-            }
-            else if (has_road_direction(right_neighbor, RoadDirection::HORIZONTAL_DOWN) &&
-                has_road_direction(down_neighbor, RoadDirection::VERTICAL_RIGHT)) {
-                entry.second.direction = RoadDirection::CROSSING_DOWN_RIGHT;
-            }
-        }
+        // Post process roads to set their directions (which is not trivial to do before, because we need to account for crossings)
+        // and to set their neighbors which will be used during path finding to navigate vehicles around in the district.
+        set_road_directions(roads);
 
         // Place vehicles randomly onto the road
         static constexpr auto num_vehicles_per_district = 50;
@@ -287,6 +259,40 @@ namespace inf {
             &renderer.get_memory_allocator(),
             max_width,
             max_depth);
+    }
+
+    bool WorldGenerator::has_road_direction(
+        const std::unordered_map<glm::ivec2, DistrictRoad>& roads,
+        const glm::ivec2& position,
+        RoadDirection direction) {
+        const auto it = roads.find(position);
+        return it != roads.cend() && it->second.direction == direction;
+    }
+
+    void WorldGenerator::set_road_directions(std::unordered_map<glm::ivec2, DistrictRoad>& roads) {
+        for (auto& entry : roads) {
+            const auto& position = entry.first;
+            const auto left_neighbor = position + glm::ivec2(-1, 0);
+            const auto right_neighbor = position + glm::ivec2(1, 0);
+            const auto up_neighbor = position + glm::ivec2(0, -1);
+            const auto down_neighbor = position + glm::ivec2(0, 1);
+            if (has_road_direction(roads, left_neighbor, RoadDirection::HORIZONTAL_UP) &&
+                has_road_direction(roads, up_neighbor, RoadDirection::VERTICAL_LEFT)) {
+                entry.second.direction = RoadDirection::CROSSING_UP_LEFT;
+            }
+            else if (has_road_direction(roads, right_neighbor, RoadDirection::HORIZONTAL_UP) &&
+                has_road_direction(roads, up_neighbor, RoadDirection::VERTICAL_RIGHT)) {
+                entry.second.direction = RoadDirection::CROSSING_UP_RIGHT;
+            }
+            else if (has_road_direction(roads, left_neighbor, RoadDirection::HORIZONTAL_DOWN) &&
+                has_road_direction(roads, down_neighbor, RoadDirection::VERTICAL_LEFT)) {
+                entry.second.direction = RoadDirection::CROSSING_DOWN_LEFT;
+            }
+            else if (has_road_direction(roads, right_neighbor, RoadDirection::HORIZONTAL_DOWN) &&
+                has_road_direction(roads, down_neighbor, RoadDirection::VERTICAL_RIGHT)) {
+                entry.second.direction = RoadDirection::CROSSING_DOWN_RIGHT;
+            }
+        }
     }
 
 }
