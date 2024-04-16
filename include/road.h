@@ -3,9 +3,9 @@
 #include "bounding_box.h"
 
 #include <glm/vec2.hpp>
-#include <glm/vec3.hpp>
 
 #include <vector>
+#include <unordered_map>
 
 namespace inf {
 
@@ -20,14 +20,6 @@ namespace inf {
         CROSSING_DOWN_LEFT
     };
 
-    struct RoadUtils {
-
-        RoadUtils() = delete;
-
-        static glm::vec3 road_direction_to_world_direction(RoadDirection direction);
-
-    };
-
     struct DistrictRoad {
 
         RoadDirection direction;
@@ -37,6 +29,17 @@ namespace inf {
 
         bool is_crossing() const;
         BoundingBox3D get_bounding_box(const glm::vec3& district_position) const;
+
+    };
+
+    struct RoadUtils {
+
+        RoadUtils() = delete;
+
+        static glm::ivec2 road_direction_to_grid_direction(RoadDirection direction);
+        static std::vector<std::vector<glm::ivec2>> get_possible_continuations(
+            const std::unordered_map<glm::ivec2, DistrictRoad>& roads,
+            const glm::ivec2& current_position);
 
     };
 

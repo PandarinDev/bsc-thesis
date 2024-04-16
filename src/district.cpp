@@ -31,36 +31,8 @@ namespace inf {
             glm::vec3(position.x + dimensions.x, 0.0f, position.z + dimensions.y)) {}
 
     void District::update(RandomGenerator& rng, float delta_time) {
-        static constexpr float vehicle_speed = 1.0f;
         for (auto& vehicle : vehicles) {
-            const auto road_it = roads.find(vehicle.position);
-            if (road_it == roads.cend()) {
-                continue;
-            }
-            const auto& road = road_it->second;
-            auto direction = RoadUtils::road_direction_to_world_direction(road.direction);
-            // If the road is a crossing we need to act according to the vehicle intention
-            if (road.is_crossing()) {
-                if (vehicle.intention.intention == VehicleIntentionType::KEEP_STRAIGHT) {
-                    direction = vehicle.intention.direction;
-                }
-                // TODO: Handle these cases
-            }
-
-            auto new_offset = vehicle.offset + vehicle_speed * delta_time;
-            if (new_offset > 1.0f) {
-                vehicle.position += glm::ivec2(static_cast<int>(direction.x), static_cast<int>(direction.z));
-                new_offset = std::fmod(new_offset, 1.0f);
-                if (const auto& new_road_it = roads.find(vehicle.position); new_road_it != roads.cend()) {
-                    const auto& new_road = new_road_it->second;
-                    // If the new road that the vehicle enters is a crossing we need to assign an intention
-                    // TODO: Only choose intention based on what's available in the current crossing
-                    if (new_road.is_crossing()) {
-                        vehicle.intention = VehicleIntention(utils::RandomUtils::random_enum<VehicleIntentionType>(rng), direction);
-                    }
-                }
-            }
-            vehicle.offset = new_offset;
+            vehicle.update(rng, roads, delta_time);
         }
     }
 
@@ -214,36 +186,9 @@ namespace inf {
         // Vehicle positions need to be recomputed on every frame due to moving
         vehicle_positions.clear();
         vehicle_rotations.clear();
-        for (std::size_t i = 0; i < vehicles.size(); ++i) {
-            const auto& vehicle = vehicles[i];
-            glm::vec3 world_position = position + glm::vec3(vehicle.position.x, 0.0f, vehicle.position.y);
-            float rotation = 0.0f;
-            // TODO: These position offsets are needed to line up with the road position offsets (see road position in update_caches()).
-            // This should be solved in a more sophisticated way, as this will not working when turning around corners.
-            switch (vehicle.state) {
-                case VehicleState::HORIZONTAL_LEFT:
-                    world_position += glm::vec3(0.0f, 0.0f, 0.65f);
-                    rotation = glm::radians(90.0f);
-                    break;
-                case VehicleState::VERTICAL_UP:
-                    world_position += glm::vec3(0.35f, 0.0f, 0.0f);
-                    rotation = glm::radians(180.0f);
-                    break;
-                case VehicleState::HORIZONTAL_RIGHT:
-                    world_position += glm::vec3(0.0f, 0.0f, 0.35f);
-                    rotation = glm::radians(270.0f);
-                    break;
-                case VehicleState::VERTICAL_DOWN:
-                    world_position += glm::vec3(0.65f, 0.0f, 0.0f);
-                    break;
-            }
-            glm::vec3 offset;
-            const auto road_it = roads.find(vehicle.position);
-            if (road_it != roads.cend()) {
-                const auto direction = RoadUtils::road_direction_to_world_direction(road_it->second.direction);
-                offset = direction * vehicle.offset;
-            }
-            vehicle_positions.emplace_back(world_position + offset);
+        for (const auto& vehicle : vehicles) {
+            const auto [position, rotation] = vehicle.get_world_position_and_rotation(this->position);
+            vehicle_positions.emplace_back(position);
             vehicle_rotations.emplace_back(rotation);
         }
         if (!vehicle_positions.empty()) {

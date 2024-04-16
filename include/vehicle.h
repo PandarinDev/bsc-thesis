@@ -2,11 +2,12 @@
 
 #include "gfx/mesh.h"
 #include "road.h"
+#include "common.h"
 
 #include <glm/vec2.hpp>
 
 #include <deque>
-#include <optional>
+#include <unordered_map>
 
 namespace inf {
 
@@ -21,35 +22,29 @@ namespace inf {
         VERTICAL_DOWN
     };
 
-    enum class VehicleIntentionType {
-        TURN_LEFT,
-        TURN_RIGHT,
-        KEEP_STRAIGHT
-    };
-
-    struct VehicleIntention {
-
-        VehicleIntentionType intention;
-        glm::vec3 direction;
-
-        VehicleIntention(VehicleIntentionType intention, const glm::vec3& direction);
-
-    };
-
     struct Vehicle {
 
         VehicleType type;
         glm::ivec2 position;
-        VehicleState state;
+        std::deque<glm::ivec2> targets;
         const gfx::Mesh* mesh;
         float offset;
-        VehicleIntention intention;
 
         Vehicle(
             VehicleType type,
             const glm::ivec2& position,
-            VehicleState state,
+            const std::deque<glm::ivec2>& targets,
             const gfx::Mesh* mesh);
+
+        void update(
+            RandomGenerator& rng,
+            const std::unordered_map<glm::ivec2, DistrictRoad>& roads,
+            float delta_time);
+        std::pair<glm::vec3, float> get_world_position_and_rotation(const glm::vec3& district_position) const;
+
+    private:
+
+        VehicleState compute_state() const;
 
     };
 

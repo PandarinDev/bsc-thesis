@@ -188,22 +188,8 @@ namespace inf {
         const auto car_mesh = &wfc::GroundPatterns::get_pattern("car").mesh;
         for (const auto& road_ptr : roads_to_place_vehicles_on) {
             const auto& road = **road_ptr;
-            VehicleState state = VehicleState::VERTICAL_DOWN;
-            switch (road.direction) {
-                case RoadDirection::HORIZONTAL_DOWN:
-                    state = VehicleState::HORIZONTAL_RIGHT;
-                    break;
-                case RoadDirection::HORIZONTAL_UP:
-                    state = VehicleState::HORIZONTAL_LEFT;
-                    break;
-                case RoadDirection::VERTICAL_LEFT:
-                    state = VehicleState::VERTICAL_DOWN;
-                    break;
-                case RoadDirection::VERTICAL_RIGHT:
-                    state = VehicleState::VERTICAL_UP;
-                    break;
-            }
-            vehicles.emplace_back(VehicleType::CAR, road.position, state, car_mesh);
+            std::deque<glm::ivec2> targets = { road.position + RoadUtils::road_direction_to_grid_direction(road.direction) };
+            vehicles.emplace_back(VehicleType::CAR, road.position, targets, car_mesh);
         }
 
         // Turn partitions into lots by generating buildings on them
