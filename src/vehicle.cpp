@@ -3,6 +3,7 @@
 #include "utils/random_utils.h"
 
 #include <glm/glm.hpp>
+#include <glm/gtc/constants.hpp>
 
 #include <string>
 #include <stdexcept>
@@ -46,35 +47,27 @@ namespace inf {
 
     std::pair<glm::vec3, float> Vehicle::get_world_position_and_rotation(const glm::vec3& district_position) const {
         const auto start = glm::vec3(position.x, 0.0f, position.y);
-        float rotation = 0.0f;
         if (targets.empty()) {
-            return std::make_pair(district_position + start, rotation);
+            return std::make_pair(district_position + start, 0.0f);
         }
         const auto& target = targets.front();
         const auto end = glm::vec3(target.x, 0.0f, target.y);
         glm::vec3 world_position = district_position + glm::mix(start, end, offset);
-        // TODO: These position offsets are needed to line up with the road position offsets (see road position in update_caches()).
-        // This should be solved in a more sophisticated way, as this will not working when turning around corners.
-        /*
-        const auto state = compute_state();
-        switch (state) {
-            case VehicleState::HORIZONTAL_LEFT:
-                world_position += glm::vec3(-offset, 0.0f, 0.65f);
-                rotation = glm::radians(90.0f);
-                break;
-            case VehicleState::VERTICAL_UP:
-                world_position += glm::vec3(0.35f, 0.0f, offset);
-                rotation = glm::radians(180.0f);
-                break;
-            case VehicleState::HORIZONTAL_RIGHT:
-                world_position += glm::vec3(offset, 0.0f, 0.35f);
-                rotation = glm::radians(270.0f);
-                break;
-            case VehicleState::VERTICAL_DOWN:
-                world_position += glm::vec3(0.65f, 0.0f, -offset);
-                break;
+        const auto direction = glm::normalize(end - start);
+        // These offsets have to do with how the road vs car meshes are centered
+        if (direction.x == 1) {
+            world_position += glm::vec3(0.0f, 0.0f, 0.35f);
         }
-        */
+        else if (direction.x == -1) {
+            world_position += glm::vec3(0.0f, 0.0f, 0.65f);
+        }
+        if (direction.z == 1) {
+            world_position += glm::vec3(0.65f, 0.0f, 0.0f);
+        }
+        else if (direction.z == -1) {
+            world_position += glm::vec3(0.35f, 0.0f, 0.0f);
+        }
+        const auto rotation = std::atan2(direction.z, direction.x) - glm::pi<float>() * 0.5f;
         return std::make_pair(world_position, rotation);
     }
 
