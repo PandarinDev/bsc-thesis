@@ -236,4 +236,34 @@ namespace inf {
         return BoundingBox3D(below_min, below_max);
     }
 
+    OrientedBoundingBox3D BoundingBox3D::to_oriented(const glm::mat4& transformation) const {
+        OrientedBoundingBox3D result;
+        // These 4 points are enough to determine the basis for the oriented BB
+        std::array<glm::vec3, 4> points {
+            min,                     // Point of reference
+            { max.x, min.y, min.z }, // X axis
+            { min.x, max.y, min.z }, // Y axis
+            { min.x, min.y, max.z }  // Z axis
+        };
+        for (std::size_t i = 0; i < points.size(); ++i) {
+            points[i] = glm::vec3(transformation * glm::vec4(points[i], 1.0f));
+        }
+        result.base[0] = points[1] - points[0];
+        result.base[1] = points[2] - points[0];
+        result.base[2] = points[3] - points[0];
+        result.center = points[0] + 0.5f * (result.base[0] + result.base[1] + result.base[2]);
+        result.size = glm::vec3(glm::length(result.base[0]), glm::length(result.base[1]), glm::length(result.base[2]));
+        for (glm::length_t i = 0; i < 3; ++i) {
+            result.base[i] /= result.size[i];
+        }
+        result.size *= 0.5f;
+        return result;
+    }
+
+    OrientedBoundingBox3D::OrientedBoundingBox3D(
+        const glm::mat3& base,
+        const glm::vec3& center,
+        const glm::vec3& size) :
+        base(base), center(center), size(size) {}
+
 }

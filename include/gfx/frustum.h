@@ -54,9 +54,13 @@ namespace inf::gfx {
             return frustums;
         }
 
+        bool is_inside(const OrientedBoundingBox3D& obb) const;
+
     private:
 
         static std::array<glm::vec3, 8> extract_points(const glm::mat4& matrix);
+
+        std::array<glm::vec3, 5> get_unique_normals() const;
 
     };
 

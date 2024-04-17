@@ -708,6 +708,10 @@ namespace inf::gfx {
         return camera.to_view_matrix();
     }
 
+    Frustum Renderer::get_frustum_in_view_space() const {
+        return Frustum(projection_matrix * camera.to_view_matrix());
+    }
+
     void Renderer::destroy_imgui() {
         ImGui_ImplVulkan_Shutdown();
         ImGui_ImplGlfw_Shutdown();

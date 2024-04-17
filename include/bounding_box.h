@@ -12,6 +12,8 @@ namespace inf {
         struct Vertex;
     }
 
+    struct OrientedBoundingBox3D;
+
     struct BoundingBox3D {
 
         glm::vec3 min;
@@ -40,6 +42,22 @@ namespace inf {
         BoundingBox3D get_block_to_the_right() const;
         BoundingBox3D get_block_above() const;
         BoundingBox3D get_block_below() const;
+
+        OrientedBoundingBox3D to_oriented(const glm::mat4& transformation) const;
+
+    };
+
+    struct OrientedBoundingBox3D {
+
+        glm::mat3 base;
+        glm::vec3 center;
+        glm::vec3 size;
+
+        OrientedBoundingBox3D() = default;
+        OrientedBoundingBox3D(
+            const glm::mat3& base,
+            const glm::vec3& center,
+            const glm::vec3& size);
 
     };
 

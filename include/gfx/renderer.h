@@ -22,6 +22,7 @@
 #include "gfx/vk/memory_allocator.h"
 #include "gfx/mesh.h"
 #include "bounding_box.h"
+#include "frustum.h"
 
 #include <memory>
 #include <vector>
@@ -68,6 +69,7 @@ namespace inf::gfx {
         bool is_in_view(const BoundingBox3D& bounding_box) const;
         const glm::mat4& get_projection_matrix() const;
         glm::mat4 get_view_matrix() const;
+        Frustum get_frustum_in_view_space() const;
 
         void destroy_imgui();
 
