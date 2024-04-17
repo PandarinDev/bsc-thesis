@@ -1,6 +1,7 @@
 #include "bounding_box.h"
 
 #include <catch2/catch_test_macros.hpp>
+#include <catch2/matchers/catch_matchers_floating_point.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
 using namespace inf;
@@ -107,6 +108,33 @@ TEST_CASE("BoundingBox3D::collides()") {
             glm::vec3(20.0f, -10.0f, 10.0f),
             glm::vec3(30.0f, 10.0f, 20.0f));
         REQUIRE(first.collides(second));
+    }
+
+}
+
+TEST_CASE("BoundingBox3D::to_oriented()") {
+
+    SECTION("Converts axis-aligned bounding box to oriented bounding box") {
+        const BoundingBox3D aabb(
+            glm::vec3(-1.0f, -1.0f, -1.0f),
+            glm::vec3(1.0f, 1.0f, 1.0f));
+        const auto forty_five_degree_rotation = glm::rotate(glm::mat4(1.0f), glm::radians(45.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+        const OrientedBoundingBox3D obb = aabb.to_oriented(forty_five_degree_rotation);
+        // Check that the base is orthonormal
+        for (glm::length_t i = 0; i < 3; ++i) {
+            REQUIRE(glm::length(obb.base[i]) == 1.0f);
+            for (glm::length_t j = 0; j < 3; ++j) {
+                if (i != j) {
+                    REQUIRE(glm::dot(obb.base[i], obb.base[j]) == 0.0f);
+                }
+            }
+        }
+        // Verify that the center did not change due to the rotation
+        REQUIRE(obb.center == glm::vec3(0.0f, 0.0f, 0.0f));
+        // Size should remain 1 in each direction (within a small tolerance)
+        for (glm::length_t i = 0; i < 3; ++i) {
+            REQUIRE_THAT(obb.size[i], Catch::Matchers::WithinAbs(1.0f, 1e-7));
+        }
     }
 
 }

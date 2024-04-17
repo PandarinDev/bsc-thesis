@@ -709,7 +709,7 @@ namespace inf::gfx {
     }
 
     Frustum Renderer::get_frustum_in_view_space() const {
-        return Frustum(projection_matrix * camera.to_view_matrix());
+        return Frustum(projection_matrix);
     }
 
     void Renderer::destroy_imgui() {

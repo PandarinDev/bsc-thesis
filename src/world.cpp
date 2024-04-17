@@ -42,12 +42,15 @@ namespace inf {
     }
 
     void World::update(const gfx::Renderer& renderer, RandomGenerator& rng, float delta_time) {
+        const auto frustum = renderer.get_frustum_in_view_space();
+        const auto transformation = renderer.get_projection_matrix() * renderer.get_view_matrix();
         // Remove districts that are not visible anymore
         std::vector<glm::ivec2> keys_to_remove;
         for (const auto& entry : districts) {
             const auto& district = entry.second;
             const auto district_bb = district.compute_bounding_box();
-            if (!renderer.is_in_view(district_bb)) {
+            // TODO: This does not work atm, frustum checking needs to be fixed
+            if (!frustum.is_inside(district_bb.to_oriented(transformation))) {
                 keys_to_remove.emplace_back(entry.first);
             }
         }

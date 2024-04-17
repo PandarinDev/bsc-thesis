@@ -1,4 +1,5 @@
 #include "gfx/frustum.h"
+#include "gfx/renderer.h"
 
 namespace inf::gfx {
 
@@ -24,10 +25,10 @@ namespace inf::gfx {
     }
 
     bool Frustum::is_inside(const OrientedBoundingBox3D& obb) const {
-        const auto& x_near = points[NEAR_BOTTOM_RIGHT_IDX].x;
-        const auto& y_near = points[NEAR_TOP_LEFT_IDX].y;
-        const auto& z_near = points[NEAR_BOTTOM_RIGHT_IDX].z;
-        const auto& z_far = points[FAR_BOTTOM_RIGHT_IDX].z;
+        const auto x_near = points[NEAR_BOTTOM_RIGHT_IDX].x;
+        const auto y_near = points[NEAR_BOTTOM_RIGHT_IDX].y;
+        const auto z_near = Renderer::NEAR_PLANE;
+        const auto z_far = Renderer::FAR_PLANE;
 
         // Using separating axis theorem (SAT) to check if we can find one
         // separating axis of the 26 possibilities that when used the projected
@@ -54,14 +55,14 @@ namespace inf::gfx {
 
         // Compare against the tests axes
         for (const auto& axis : test_axes) {
-            float mox = std::fabs(axis.x);
-            float moy = std::fabs(axis.y);
+            float mox = std::abs(axis.x);
+            float moy = std::abs(axis.y);
             float moz = axis.z;
             float moc = glm::dot(axis, obb.center);
 
             float radius = 0.0f;
             for (glm::length_t i = 0; i < 3; ++i) {
-                radius += std::fabs(glm::dot(axis, obb.base[i])) * obb.size[i];
+                radius += std::abs(glm::dot(axis, obb.base[i])) * obb.size[i];
             }
             float min = moc - radius;
             float max = moc + radius;
@@ -78,11 +79,11 @@ namespace inf::gfx {
             }
 
             if (min > tau_1 || max < tau_0) {
-                return true;
+                return false;
             }
         }
 
-        return false;
+        return true;
     }
 
     std::array<glm::vec3, 8> Frustum::extract_points(const glm::mat4& matrix) {
@@ -110,9 +111,9 @@ namespace inf::gfx {
     }
 
     std::array<glm::vec3, 5> Frustum::get_unique_normals() const {
-        const auto& x_near = points[NEAR_BOTTOM_RIGHT_IDX].x;
-        const auto& y_near = points[NEAR_TOP_LEFT_IDX].y;
-        const auto& z_near = points[NEAR_BOTTOM_RIGHT_IDX].z;
+        const auto x_near = points[NEAR_BOTTOM_RIGHT_IDX].x;
+        const auto y_near = points[NEAR_BOTTOM_RIGHT_IDX].y;
+        const auto z_near = Renderer::NEAR_PLANE;
         return {
             glm::vec3{ z_near, 0.0f, -x_near },
             glm::vec3{ -z_near, 0.0f, -x_near },

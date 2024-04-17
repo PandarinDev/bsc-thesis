@@ -197,9 +197,12 @@ namespace inf {
         }
 
         // Render lot buildings
+        const auto frustum = renderer.get_frustum_in_view_space();
+        const auto transform = renderer.get_projection_matrix() * renderer.get_view_matrix();
         for (const auto& lot : lots) {
             const auto lot_bb = lot.get_bounding_box(position);
-            if (!renderer.is_in_view(lot_bb)) {
+            const auto obb = lot_bb.to_oriented(transform);
+            if (!frustum.is_inside(obb)) {
                 continue;
             }
             const auto& building = lot.building;
