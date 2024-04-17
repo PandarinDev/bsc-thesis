@@ -63,7 +63,7 @@ int main() {
             input_manager.update();
             const auto delta_time = static_cast<float>(timer.get_delta());
             context.advance_time_of_day(delta_time);
-            world.update(renderer);
+            world.update(renderer, random_engine, delta_time);
             generator.populate_world(world);
             if (world.is_dirty()) {
                 world.update_caches();
