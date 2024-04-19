@@ -3,9 +3,13 @@
 
 namespace inf::gfx {
 
-    Frustum::Frustum(const glm::mat4& matrix) : points(extract_points(matrix)) {}
+    Frustum::Frustum(const glm::mat4& matrix) :
+        points(extract_points(matrix)), up(extract_up(matrix)), right(extract_right(matrix)) {}
 
-    Frustum::Frustum(const std::array<glm::vec3, 8>& points) : points(points) {}
+    Frustum::Frustum(
+        const std::array<glm::vec3, 8>& points,
+        const glm::vec3& up,
+        const glm::vec3& right) : points(points), up(up), right(right) {}
 
     glm::vec3 Frustum::center() const {
         glm::vec3 result;
@@ -25,62 +29,60 @@ namespace inf::gfx {
     }
 
     bool Frustum::is_inside(const OrientedBoundingBox3D& obb) const {
-        const auto x_near = points[NEAR_BOTTOM_RIGHT_IDX].x;
-        const auto y_near = points[NEAR_BOTTOM_RIGHT_IDX].y;
-        const auto z_near = Renderer::NEAR_PLANE;
-        const auto z_far = Renderer::FAR_PLANE;
-
         // Using separating axis theorem (SAT) to check if we can find one
         // separating axis of the 26 possibilities that when used the projected
         // coordinates of the frustum and the OBB calculates whether there are
         // any intersections. Resource: https://bruop.github.io/improved_frustum_culling/
-        std::vector<glm::vec3> test_axes;
-        // Base of the OBB
-        for (glm::length_t i = 0; i < 3; ++i) {
-            test_axes.emplace_back(obb.base[i]);
-        }
-        // Unique normals of the frustum
-        for (const auto& normal : get_unique_normals()) {
-            test_axes.emplace_back(normal);
-        }
-        // Base crossed with up, right and points of the near plane
-        for (glm::length_t i = 0; i < 3; ++i) {
-            test_axes.emplace_back(glm::cross(obb.base[i], glm::vec3(0.0f, 1.0f, 0.0f)));
-            test_axes.emplace_back(glm::cross(obb.base[i], glm::vec3(1.0f, 0.0f, 0.0f)));
-            // We only need the points of the near plane
-            for (std::size_t j = NEAR_BOTTOM_LEFT_IDX; j <= NEAR_TOP_RIGHT_IDX; ++j) {
-                test_axes.emplace_back(glm::cross(obb.base[i], points[j]));
-            }
-        }
-
-        // Compare against the tests axes
-        for (const auto& axis : test_axes) {
-            float mox = std::abs(axis.x);
-            float moy = std::abs(axis.y);
-            float moz = axis.z;
-            float moc = glm::dot(axis, obb.center);
-
-            float radius = 0.0f;
-            for (glm::length_t i = 0; i < 3; ++i) {
-                radius += std::abs(glm::dot(axis, obb.base[i])) * obb.size[i];
-            }
-            float min = moc - radius;
-            float max = moc + radius;
-            float p = x_near * mox + y_near * moy;
-            float tau_0 = z_near * moz - p;
-            float tau_1 = z_near * moz + p;
-
-            if (tau_0 < 0.0f) {
-                tau_0 *= z_far / z_near;
+        const auto is_separating_axis = [this, &obb](const glm::vec3& axis) {
+            // Project OBB points to axis
+            float obb_min = std::numeric_limits<float>::max();
+            float obb_max = std::numeric_limits<float>::lowest();
+            const auto obb_points = obb.get_points();
+            for (const auto& point : obb_points) {
+                const auto projected = glm::dot(point, axis);
+                obb_min = std::min(obb_min, projected);
+                obb_max = std::max(obb_max, projected);
             }
 
-            if (tau_1 > 0.0f) {
-                tau_1 *= z_far / z_near;
+            // Project frustum to axis
+            float frustum_min = std::numeric_limits<float>::max();
+            float frustum_max = std::numeric_limits<float>::lowest();
+            for (const auto& point : points) {
+                const auto projected = glm::dot(point, axis);
+                frustum_min = std::min(frustum_min, projected);
+                frustum_max = std::max(frustum_max, projected);
             }
 
-            if (min > tau_1 || max < tau_0) {
+            // Check if ranges are separate
+            return obb_min > frustum_max || frustum_min > obb_max;
+        };
+
+        // Start by checking frustum normals
+        const auto normals = get_unique_normals();
+        for (const auto& normal : normals) {
+            if (is_separating_axis(normal)) {
                 return false;
             }
+        }
+
+        // Check OBB axes
+        for (glm::length_t i = 0; i < 3; ++i) {
+            if (is_separating_axis(obb.base[i])) {
+                return false;
+            }
+        }
+
+        // Check cross products
+        for (glm::length_t i = 0; i < 3; ++i) {
+            if (obb.base[i] != up && is_separating_axis(glm::normalize(glm::cross(obb.base[i], up)))) {
+                return false;
+            }
+
+            if (obb.base[i] != right && is_separating_axis(glm::normalize(glm::cross(obb.base[i], right)))) {
+                return false;
+            }
+
+            // TODO: Add cross product of edges of frustum
         }
 
         return true;
@@ -110,16 +112,32 @@ namespace inf::gfx {
         return result;
     }
 
+    glm::vec3 Frustum::extract_up(const glm::mat4& matrix) {
+        return matrix[1];
+    }
+
+    glm::vec3 Frustum::extract_right(const glm::mat4& matrix) {
+        return matrix[0];
+    }
+
     std::array<glm::vec3, 5> Frustum::get_unique_normals() const {
-        const auto x_near = points[NEAR_BOTTOM_RIGHT_IDX].x;
-        const auto y_near = points[NEAR_BOTTOM_RIGHT_IDX].y;
-        const auto z_near = Renderer::NEAR_PLANE;
+        const auto forward_top_left = points[FAR_TOP_LEFT_IDX] - points[NEAR_TOP_LEFT_IDX];
+        const auto forward_top_right = points[FAR_TOP_RIGHT_IDX] - points[NEAR_TOP_RIGHT_IDX];
+        const auto forward_bottom_left = points[FAR_BOTTOM_LEFT_IDX] - points[NEAR_BOTTOM_LEFT_IDX];
+        const auto far_up = points[FAR_TOP_LEFT_IDX] - points[FAR_BOTTOM_LEFT_IDX];
+        const auto far_right = points[FAR_BOTTOM_RIGHT_IDX] - points[FAR_BOTTOM_LEFT_IDX];
+        const auto far_normal = glm::normalize(glm::cross(far_right, far_up));
+        const auto left_normal = glm::normalize(glm::cross(forward_top_left, far_up));
+        const auto right_normal = glm::normalize(glm::cross(far_up, forward_top_right));
+        const auto top_normal = glm::normalize(glm::cross(forward_top_left, far_right));
+        const auto bottom_normal = glm::normalize(glm::cross(far_right, forward_bottom_left));
+
         return {
-            glm::vec3{ z_near, 0.0f, -x_near },
-            glm::vec3{ -z_near, 0.0f, -x_near },
-            glm::vec3{ 0.0f, -z_near, -y_near },
-            glm::vec3{ 0.0f, z_near, -y_near },
-            glm::vec3{ 0.0f, 0.0f, 1.0f }
+            far_normal,
+            left_normal,
+            right_normal,
+            top_normal,
+            bottom_normal
         };
     }
 

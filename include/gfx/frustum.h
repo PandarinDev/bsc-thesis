@@ -20,10 +20,12 @@ namespace inf::gfx {
             FAR_TOP_LEFT_IDX = 6,
             FAR_TOP_RIGHT_IDX = 7;
         std::array<glm::vec3, 8> points;
+        glm::vec3 up;
+        glm::vec3 right;
 
         Frustum() = default;
         Frustum(const glm::mat4& matrix);
-        Frustum(const std::array<glm::vec3, 8>& points);
+        Frustum(const std::array<glm::vec3, 8>& points, const glm::vec3& up, const glm::vec3& right);
 
         glm::vec3 center() const;
         BoundingBox3D compute_bounding_box() const;
@@ -49,7 +51,7 @@ namespace inf::gfx {
 
             std::array<Frustum, split_count> frustums;
             for (std::size_t i = 0; i < split_count; ++i) {
-                frustums[i] = Frustum(result[i]);
+                frustums[i] = Frustum(result[i], up, right);
             }
             return frustums;
         }
@@ -59,6 +61,8 @@ namespace inf::gfx {
     private:
 
         static std::array<glm::vec3, 8> extract_points(const glm::mat4& matrix);
+        static glm::vec3 extract_up(const glm::mat4& matrix);
+        static glm::vec3 extract_right(const glm::mat4& matrix);
 
         std::array<glm::vec3, 5> get_unique_normals() const;
 

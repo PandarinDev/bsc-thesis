@@ -43,7 +43,7 @@ namespace inf::wfc {
                 auto vertex_buffer = gfx::vk::MappedBuffer::create(
                     logical_device, allocator, gfx::vk::BufferType::VERTEX_BUFFER, vertices.size() * sizeof(gfx::vk::Vertex));
                 vertex_buffer.upload(vertices.data(), vertices.size() * sizeof(gfx::vk::Vertex));
-                auto mesh = gfx::Mesh(std::move(vertex_buffer), vertices.size(), glm::mat4(1.0f));
+                auto mesh = gfx::Mesh(std::move(vertex_buffer), vertices.size(), glm::mat4(1.0f), gfx::vk::Vertex::compute_bounding_box(vertices));
                 patterns.emplace(pattern_name, GroundPattern(pattern_name, std::move(mesh)));
             };
 

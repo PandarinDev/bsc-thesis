@@ -219,7 +219,7 @@ namespace inf::wfc {
             gfx::vk::BufferType::VERTEX_BUFFER,
             sizeof(gfx::vk::Vertex) * vertices.size());
         vertex_buffer.upload(vertices.data(), vertices.size() * sizeof(gfx::vk::Vertex));
-        return Building(gfx::Mesh(std::move(vertex_buffer), vertices.size(), glm::mat4(1.0f)), bounding_box);
+        return Building(gfx::Mesh(std::move(vertex_buffer), vertices.size(), glm::mat4(1.0f), bounding_box), bounding_box);
     }
 
     AbsoluteBuildingDimensions::AbsoluteBuildingDimensions(

@@ -115,7 +115,7 @@ namespace inf {
         this->position = position;
         this->bounding_box = BoundingBox3D(
             glm::vec3(position.x, 0.0f, position.z),
-            glm::vec3(position.x + dimensions.x, 0.0f, position.z + dimensions.y));
+            glm::vec3(position.x + dimensions.x, 10.0f, position.z + dimensions.y));
         for (auto& lot : lots) {
             if (lot.building) {
                 const auto lot_bb = lot.get_bounding_box(position);
@@ -198,7 +198,7 @@ namespace inf {
 
         // Render lot buildings
         const auto frustum = renderer.get_frustum_in_view_space();
-        const auto transform = renderer.get_projection_matrix() * renderer.get_view_matrix();
+        const auto transform = renderer.get_view_matrix();
         for (const auto& lot : lots) {
             const auto lot_bb = lot.get_bounding_box(position);
             const auto obb = lot_bb.to_oriented(transform);

@@ -59,6 +59,8 @@ namespace inf {
             const glm::vec3& center,
             const glm::vec3& size);
 
+        std::array<glm::vec3, 8> get_points() const;
+
     };
 
 }

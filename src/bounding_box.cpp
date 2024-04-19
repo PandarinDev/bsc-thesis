@@ -266,4 +266,20 @@ namespace inf {
         const glm::vec3& size) :
         base(base), center(center), size(size) {}
 
+    std::array<glm::vec3, 8> OrientedBoundingBox3D::get_points() const {
+        const auto right_half = base[0] * size[0];
+        const auto up_half = base[1] * size[1];
+        const auto forward_half = base[2] * size[2];
+        return {
+            center + right_half - up_half - forward_half, // Near bottom right
+            center - right_half - up_half - forward_half, // Near bottom left
+            center - right_half + up_half - forward_half, // Near top left
+            center + right_half + up_half - forward_half, // Near top right
+            center + right_half - up_half + forward_half, // Far bottom right
+            center - right_half - up_half + forward_half, // Far bottom left
+            center - right_half + up_half + forward_half, // Far top left
+            center + right_half + up_half + forward_half, // Far top right
+        };
+    }
+
 }

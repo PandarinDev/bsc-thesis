@@ -30,7 +30,7 @@ int main() {
             glfwSetInputMode(handle, GLFW_CURSOR, captured ? GLFW_CURSOR_DISABLED : GLFW_CURSOR_NORMAL);
         });
 
-        Camera camera(glm::vec3(0.0f, 7.0f, 2.0f), glm::vec3(0.0f, -0.6f, -1.0f));
+        Camera camera(glm::vec3(0.0f, 10.0f, 2.0f), glm::vec3(0.0f, -0.6f, -1.0f));
         Renderer renderer(context, window, camera, timer);
         input_manager.add_handler(std::make_unique<CameraHandler>(context, camera));
         input_manager.add_handler(std::make_unique<DiagnosticsHandler>([&renderer](bool value) {
@@ -64,7 +64,7 @@ int main() {
             const auto delta_time = static_cast<float>(timer.get_delta());
             context.advance_time_of_day(delta_time);
             world.update(renderer, random_engine, delta_time);
-            generator.populate_world(world);
+            // generator.populate_world(world);
             if (world.is_dirty()) {
                 world.update_caches();
             }
