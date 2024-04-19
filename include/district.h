@@ -39,6 +39,10 @@ namespace inf {
     };
 
     struct District {
+    
+        static constexpr int DISTRICT_SIZE = 100;
+        static constexpr int DISTRICT_BB_HEIGHT = 10;
+        static constexpr int ROAD_GAP = 2;
 
         District(
             DistrictType type,
@@ -66,6 +70,11 @@ namespace inf {
         void add_vehicle(Vehicle&& vehicle);
 
         void render(gfx::Renderer& renderer);
+
+        BoundingBox3D get_left_district_bb() const;
+        BoundingBox3D get_right_district_bb() const;
+        BoundingBox3D get_above_district_bb() const;
+        BoundingBox3D get_below_district_bb() const;
 
     private:
 

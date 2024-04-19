@@ -38,11 +38,6 @@ namespace inf {
         bool is_inside(const glm::vec3& point) const;
         bool collides(const BoundingBox3D& other) const;
 
-        BoundingBox3D get_block_to_the_left() const;
-        BoundingBox3D get_block_to_the_right() const;
-        BoundingBox3D get_block_above() const;
-        BoundingBox3D get_block_below() const;
-
         OrientedBoundingBox3D to_oriented(const glm::mat4& transformation) const;
 
     };

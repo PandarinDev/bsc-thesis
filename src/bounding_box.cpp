@@ -192,50 +192,6 @@ namespace inf {
             overlaps(min.z, other.min.z, max.z, other.max.z);
     }
 
-    BoundingBox3D BoundingBox3D::get_block_to_the_left() const {
-        const auto min_x = std::floor(min.x);
-        const auto min_y = std::floor(min.y);
-        const auto min_z = std::floor(min.z);
-        const auto max_y = std::ceil(max.y);
-        const auto max_z = std::ceil(max.z);
-        glm::vec3 left_min(min_x - 1.0f, min_y, min_z);
-        glm::vec3 left_max(min_x, max_y, max_z);
-        return BoundingBox3D(left_min, left_max);
-    }
-
-    BoundingBox3D BoundingBox3D::get_block_to_the_right() const {
-        const auto min_y = std::floor(min.y);
-        const auto min_z = std::floor(min.z);
-        const auto max_x = std::ceil(max.x);
-        const auto max_y = std::ceil(max.y);
-        const auto max_z = std::ceil(max.z);
-        glm::vec3 right_min(max_x, min_y, min_z);
-        glm::vec3 right_max(max_x + 1.0f, max_y, max_z);
-        return BoundingBox3D(right_min, right_max);
-    }
-
-    BoundingBox3D BoundingBox3D::get_block_above() const {
-        const auto min_x = std::floor(min.x);
-        const auto min_y = std::floor(min.y);
-        const auto min_z = std::floor(min.z);
-        const auto max_x = std::ceil(max.x);
-        const auto max_y = std::ceil(max.y);
-        glm::vec3 above_min(min_x, min_y, min_z - 1.0f);
-        glm::vec3 above_max(max_x, max_y, min_z);
-        return BoundingBox3D(above_min, above_max);
-    }
-
-    BoundingBox3D BoundingBox3D::get_block_below() const {
-        const auto min_x = std::floor(min.x);
-        const auto min_y = std::floor(min.y);
-        const auto max_x = std::ceil(max.x);
-        const auto max_y = std::ceil(max.y);
-        const auto max_z = std::ceil(max.z);
-        glm::vec3 below_min(min_x, min_y, max_z);
-        glm::vec3 below_max(max_x, max_y, max_z + 1.0f);
-        return BoundingBox3D(below_min, below_max);
-    }
-
     OrientedBoundingBox3D BoundingBox3D::to_oriented(const glm::mat4& transformation) const {
         OrientedBoundingBox3D result;
         // These 4 points are enough to determine the basis for the oriented BB

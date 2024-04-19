@@ -28,7 +28,7 @@ namespace inf {
         type(type), grid_position(grid_position), dimensions(dimensions),
         position(), bb_color(bb_color), bounding_box(
             glm::vec3(position.x, 0.0f, position.z),
-            glm::vec3(position.x + dimensions.x, 0.0f, position.z + dimensions.y)) {}
+            glm::vec3(position.x + dimensions.x, DISTRICT_BB_HEIGHT, position.z + dimensions.y)) {}
 
     void District::update(RandomGenerator& rng, float delta_time) {
         for (auto& vehicle : vehicles) {
@@ -115,7 +115,7 @@ namespace inf {
         this->position = position;
         this->bounding_box = BoundingBox3D(
             glm::vec3(position.x, 0.0f, position.z),
-            glm::vec3(position.x + dimensions.x, 0.0f, position.z + dimensions.y));
+            glm::vec3(position.x + dimensions.x, DISTRICT_BB_HEIGHT, position.z + dimensions.y)); // TODO: The height here should be computed
         for (auto& lot : lots) {
             if (lot.building) {
                 const auto lot_bb = lot.get_bounding_box(position);
@@ -213,6 +213,30 @@ namespace inf {
             }
         }
         renderer.render(compute_bounding_box(), bb_color);
+    }
+
+    BoundingBox3D District::get_left_district_bb() const {
+        return BoundingBox3D(
+            bounding_box.min + glm::vec3(-DISTRICT_SIZE - ROAD_GAP, 0.0f, 0.0f),
+            bounding_box.max + glm::vec3(-DISTRICT_SIZE - ROAD_GAP, 0.0f, 0.0f));
+    }
+
+    BoundingBox3D District::get_right_district_bb() const {
+        return BoundingBox3D(
+            bounding_box.min + glm::vec3(DISTRICT_SIZE + ROAD_GAP, 0.0f, 0.0f),
+            bounding_box.max + glm::vec3(DISTRICT_SIZE + ROAD_GAP, 0.0f, 0.0f));
+    }
+
+    BoundingBox3D District::get_above_district_bb() const {
+        return BoundingBox3D(
+            bounding_box.min + glm::vec3(0.0f, 0.0f, -DISTRICT_SIZE - ROAD_GAP),
+            bounding_box.max + glm::vec3(0.0f, 0.0f, -DISTRICT_SIZE - ROAD_GAP));
+    }
+
+    BoundingBox3D District::get_below_district_bb() const {
+        return BoundingBox3D(
+            bounding_box.min + glm::vec3(0.0f, 0.0f, DISTRICT_SIZE + ROAD_GAP),
+            bounding_box.max + glm::vec3(0.0f, 0.0f, DISTRICT_SIZE + ROAD_GAP));
     }
 
 }

@@ -141,4 +141,12 @@ namespace inf::gfx::vk {
         return result;
     }
 
+    BoundingBox3D Vertex::compute_bounding_box(const std::vector<Vertex>& vertices) {
+        BoundingBox3D result;
+        for (const auto& vertex : vertices) {
+            result.update(vertex.position);
+        }
+        return result;
+    }
+
 }

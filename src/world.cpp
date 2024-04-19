@@ -49,7 +49,6 @@ namespace inf {
         for (const auto& entry : districts) {
             const auto& district = entry.second;
             const auto district_bb = district.compute_bounding_box();
-            // TODO: This does not work atm, frustum checking needs to be fixed
             if (!frustum.is_inside(district_bb.to_oriented(transformation))) {
                 keys_to_remove.emplace_back(entry.first);
             }
@@ -96,13 +95,17 @@ namespace inf {
             // Place a road to the right of each district to connect their roads seamlessly
             const auto right_district_it = districts.find(grid_position + glm::ivec2(1, 0));
             const auto right_district = (right_district_it != districts.cend()) ? &right_district_it->second : nullptr;
-            const auto right_roads_at_edges = right_district ? right_district->get_roads_at_edges() : std::unordered_map<glm::ivec2, const DistrictRoad*>{};
+            const auto right_roads_at_edges = right_district
+                ? right_district->get_roads_at_edges()
+                : std::unordered_map<glm::ivec2, const DistrictRoad*>{};
             place_vertical_road(&district, roads_at_edges, right_roads_at_edges);
 
             // Place a road to the top of each district to connect their roads seamlessly
             const auto top_district_it = districts.find(grid_position + glm::ivec2(0, -1));
             const auto top_district = (top_district_it != districts.cend()) ? &top_district_it->second : nullptr;
-            const auto top_roads_at_edges = top_district ? top_district->get_roads_at_edges() : std::unordered_map<glm::ivec2, const DistrictRoad*>{};
+            const auto top_roads_at_edges = top_district
+                ? top_district->get_roads_at_edges()
+                : std::unordered_map<glm::ivec2, const DistrictRoad*>{};
             place_horizontal_road(&district, top_roads_at_edges, roads_at_edges);
 
             // Seal the corners

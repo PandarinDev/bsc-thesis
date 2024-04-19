@@ -1,5 +1,7 @@
 #pragma once
 
+#include "bounding_box.h"
+
 #include <glm/vec3.hpp>
 #include <glad/vulkan.h>
 
@@ -37,6 +39,7 @@ namespace inf::gfx::vk {
         static std::array<VkVertexInputBindingDescription, 2> get_instanced_binding_descriptions();
         static std::array<VkVertexInputAttributeDescription, 5> get_instanced_attribute_descriptions();
         static std::vector<Vertex> from_bytes(const std::string& bytes);
+        static BoundingBox3D compute_bounding_box(const std::vector<Vertex>& vertices);
 
     };
 

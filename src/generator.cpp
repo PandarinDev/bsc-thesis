@@ -39,10 +39,11 @@ namespace inf {
     }
 
     void WorldGenerator::populate_world(World& world) {
-        static constexpr float road_gap = 2.0f;
         // TODO: This should be done recursively instead to avoid scenarios when a large chunk of
         // districts would become visible at once but we only generate one per frame. Realistically
         // this is only a problem in freecam situations and even then it is not a big deal.
+        const auto frustum = renderer.get_frustum_in_view_space();
+        const auto transformation = renderer.get_view_matrix();
         for (const auto& entry : world.get_districts()) {
             const auto& district = entry.second;
             const auto& grid_position = entry.first;
@@ -51,46 +52,44 @@ namespace inf {
             // Left
             const auto left_position = grid_position + glm::ivec2(-1, 0);
             if (!world.has_district_at(left_position) &&
-                renderer.is_in_view(district_bb.get_block_to_the_left())) {
+                frustum.is_inside(district.get_left_district_bb().to_oriented(transformation))) {
                 auto& new_district = world.add_district(left_position, generate_district(left_position));
                 const auto new_district_bb = new_district.compute_bounding_box();
-                new_district.set_position(glm::vec3(world_position.x - new_district_bb.width() - road_gap, world_position.y, world_position.z));
+                new_district.set_position(glm::vec3(world_position.x - new_district_bb.width() - District::ROAD_GAP, world_position.y, world_position.z));
                 new_district.update_caches();
             }
             // Right
-            if (!world.has_district_at(grid_position + glm::ivec2(1, 0)) &&
-                renderer.is_in_view(district_bb.get_block_to_the_right())) {
-                const auto new_district_grid_position = grid_position + glm::ivec2(1, 0);
-                auto& new_district = world.add_district(new_district_grid_position, generate_district(new_district_grid_position));
-                new_district.set_position(glm::vec3(world_position.x + district_bb.width() + road_gap, world_position.y, world_position.z));
+            const auto right_position = grid_position + glm::ivec2(1, 0);
+            if (!world.has_district_at(right_position) &&
+                frustum.is_inside(district.get_right_district_bb().to_oriented(transformation))) {
+                auto& new_district = world.add_district(right_position, generate_district(right_position));
+                new_district.set_position(glm::vec3(world_position.x + district_bb.width() + District::ROAD_GAP, world_position.y, world_position.z));
                 new_district.update_caches();
             }
             // Top
-            if (!world.has_district_at(grid_position + glm::ivec2(0, 1)) &&
-                renderer.is_in_view(district_bb.get_block_above())) {
-                const auto new_district_grid_position = grid_position + glm::ivec2(0, 1);
-                auto& new_district = world.add_district(new_district_grid_position, generate_district(new_district_grid_position));
+            const auto top_position = grid_position + glm::ivec2(0, 1);
+            if (!world.has_district_at(top_position) &&
+                frustum.is_inside(district.get_above_district_bb().to_oriented(transformation))) {
+                auto& new_district = world.add_district(top_position, generate_district(top_position));
                 const auto new_district_bb = new_district.compute_bounding_box();
-                new_district.set_position(glm::vec3(world_position.x, world_position.y, world_position.z - new_district_bb.depth() - road_gap));
+                new_district.set_position(glm::vec3(world_position.x, world_position.y, world_position.z - new_district_bb.depth() - District::ROAD_GAP));
                 new_district.update_caches();
             }
             // Bottom
-            if (!world.has_district_at(grid_position + glm::ivec2(0, -1)) &&
-                renderer.is_in_view(district_bb.get_block_below())) {
-                const auto new_district_grid_position = grid_position + glm::ivec2(0, -1);
-                auto& new_district = world.add_district(new_district_grid_position, generate_district(new_district_grid_position));
-                new_district.set_position(glm::vec3(world_position.x, world_position.y, world_position.z + district_bb.depth() + road_gap));
+            const auto bottom_position = grid_position + glm::ivec2(0, -1);
+            if (!world.has_district_at(bottom_position) &&
+                frustum.is_inside(district.get_below_district_bb().to_oriented(transformation))) {
+                auto& new_district = world.add_district(bottom_position, generate_district(bottom_position));
+                new_district.set_position(glm::vec3(world_position.x, world_position.y, world_position.z + district_bb.depth() + District::ROAD_GAP));
                 new_district.update_caches();
             }
         }
     }
 
     District WorldGenerator::generate_district(const glm::ivec2& grid_position) {
-        static constexpr auto district_width = 100;
-        static constexpr auto district_depth = 100;
         std::uniform_real_distribution<float> color_distribution(0.0f, 1.0f);
         const auto bb_color = glm::vec3(color_distribution(random_engine), color_distribution(random_engine), color_distribution(random_engine));
-        auto district = District(DistrictType::RESIDENTAL, grid_position, glm::ivec2(district_width, district_depth), bb_color);
+        auto district = District(DistrictType::RESIDENTAL, grid_position, glm::ivec2(District::DISTRICT_SIZE, District::DISTRICT_SIZE), bb_color);
         // Slice up the district into lots
         static constexpr auto min_lot_width = 8;
         static constexpr auto max_lot_width = 10;
@@ -98,7 +97,7 @@ namespace inf {
         static constexpr auto min_lot_depth = 6;
         static constexpr auto max_lot_depth = 8;
         std::uniform_int_distribution<int> lot_depth_distribution(min_lot_depth, max_lot_depth);
-        std::vector<glm::ivec4> partitions{ glm::vec4{ 0, 0, district_width, district_depth } };
+        std::vector<glm::ivec4> partitions{ glm::vec4{ 0, 0, District::DISTRICT_SIZE, District::DISTRICT_SIZE } };
         std::unordered_map<glm::ivec2, DistrictRoad> roads;
         const auto is_partition_sufficiently_sized = [](const glm::ivec4& partition) {
             const auto width = partition.z - partition.x;
