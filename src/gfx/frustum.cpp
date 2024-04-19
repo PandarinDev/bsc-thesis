@@ -27,8 +27,8 @@ namespace inf::gfx {
     bool Frustum::is_inside(const OrientedBoundingBox3D& obb) const {
         const auto x_near = points[NEAR_BOTTOM_RIGHT_IDX].x;
         const auto y_near = points[NEAR_BOTTOM_RIGHT_IDX].y;
-        const auto z_near = Renderer::NEAR_PLANE;
-        const auto z_far = Renderer::FAR_PLANE;
+        const auto z_near = points[NEAR_BOTTOM_LEFT_IDX].z;
+        const auto z_far = points[FAR_BOTTOM_LEFT_IDX].z;
 
         // Using separating axis theorem (SAT) to check if we can find one
         // separating axis of the 26 possibilities that when used the projected
@@ -41,15 +41,15 @@ namespace inf::gfx {
         }
         // Unique normals of the frustum
         for (const auto& normal : get_unique_normals()) {
-            test_axes.emplace_back(normal);
+            test_axes.emplace_back(glm::normalize(normal));
         }
         // Base crossed with up, right and points of the near plane
         for (glm::length_t i = 0; i < 3; ++i) {
-            test_axes.emplace_back(glm::cross(obb.base[i], glm::vec3(0.0f, 1.0f, 0.0f)));
-            test_axes.emplace_back(glm::cross(obb.base[i], glm::vec3(1.0f, 0.0f, 0.0f)));
+            test_axes.emplace_back(glm::normalize(glm::cross(obb.base[i], glm::vec3(0.0f, 1.0f, 0.0f))));
+            test_axes.emplace_back(glm::normalize(glm::cross(obb.base[i], glm::vec3(1.0f, 0.0f, 0.0f))));
             // We only need the points of the near plane
             for (std::size_t j = NEAR_BOTTOM_LEFT_IDX; j <= NEAR_TOP_RIGHT_IDX; ++j) {
-                test_axes.emplace_back(glm::cross(obb.base[i], points[j]));
+                test_axes.emplace_back(glm::normalize(glm::cross(obb.base[i], points[j])));
             }
         }
 
@@ -113,7 +113,7 @@ namespace inf::gfx {
     std::array<glm::vec3, 5> Frustum::get_unique_normals() const {
         const auto x_near = points[NEAR_BOTTOM_RIGHT_IDX].x;
         const auto y_near = points[NEAR_BOTTOM_RIGHT_IDX].y;
-        const auto z_near = Renderer::NEAR_PLANE;
+        const auto z_near = points[NEAR_BOTTOM_RIGHT_IDX].z;
         return {
             glm::vec3{ z_near, 0.0f, -x_near },
             glm::vec3{ -z_near, 0.0f, -x_near },

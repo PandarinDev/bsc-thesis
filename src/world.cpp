@@ -43,7 +43,7 @@ namespace inf {
 
     void World::update(const gfx::Renderer& renderer, RandomGenerator& rng, float delta_time) {
         const auto frustum = renderer.get_frustum_in_view_space();
-        const auto transformation = renderer.get_projection_matrix() * renderer.get_view_matrix();
+        const auto transformation = renderer.get_view_matrix();
         // Remove districts that are not visible anymore
         std::vector<glm::ivec2> keys_to_remove;
         for (const auto& entry : districts) {
