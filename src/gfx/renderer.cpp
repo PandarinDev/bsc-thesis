@@ -396,8 +396,8 @@ namespace inf::gfx {
         static constexpr glm::vec3 sun_start_direction(-0.65f, -0.54f, -0.54f);
         static constexpr glm::vec3 sun_end_direction(0.65f, -0.54f, -0.54f);
         const auto sun_direction = glm::normalize(glm::mix(sun_start_direction, sun_end_direction, context.time_of_day));
-        const auto sin_dot = glm::sin(context.time_of_day * glm::pi<float>());
-        const auto ambient_light = glm::mix(0.2f, 1.0f, sin_dot);
+        const auto sin_time_of_day = glm::sin(context.time_of_day * glm::pi<float>());
+        const auto ambient_light = glm::mix(0.2f, 1.0f, sin_time_of_day);
         glm::mat4 sun_view_matrix = glm::lookAt(
             sun_position,
             sun_position + sun_direction,
@@ -496,7 +496,7 @@ namespace inf::gfx {
         std::vector<VkClearValue> clear_values(2);
         static constexpr glm::vec4 start_clear_color(0.670588f, 0.87843f, 1.0f, 1.0f);
         static constexpr glm::vec4 end_clear_color(0.0156862f, 0.129412f, 0.2f, 1.0f);
-        const auto clear_color = glm::mix(end_clear_color, start_clear_color, sin_dot);
+        const auto clear_color = glm::mix(end_clear_color, start_clear_color, sin_time_of_day);
         clear_values[0].color = {{ clear_color.x, clear_color.y, clear_color.z, clear_color.w }};
         clear_values[1].depthStencil = { 1.0f, 0 };
         render_pass->begin(framebuffers[image_index], extent, command_buffer, clear_values);

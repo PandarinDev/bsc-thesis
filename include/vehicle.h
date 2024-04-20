@@ -74,6 +74,7 @@ namespace inf {
         VehiclePatterns() = delete;
 
         static void initialize(const std::filesystem::path& vehicles_path);
+        static const VehiclePattern& get_random_pattern(RandomGenerator& rng);
         static const VehiclePattern& get_pattern(const std::string& name);
 
     private:

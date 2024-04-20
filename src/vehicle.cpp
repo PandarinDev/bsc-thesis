@@ -71,7 +71,7 @@ namespace inf {
         else if (direction.z == -1) {
             world_position += glm::vec3(0.35f, 0.0f, 0.0f);
         }
-        const auto rotation = std::atan2(direction.z, direction.x) - glm::pi<float>() * 0.5f;
+        const auto rotation = std::atan2(direction.z, -direction.x) - glm::pi<float>() * 0.5f;
         return std::make_pair(world_position, rotation);
     }
 
@@ -162,6 +162,12 @@ namespace inf {
             auto vertices = gfx::vk::VertexWithMaterialName::from_bytes(base64_decode(data));
             patterns.emplace(name, VehiclePattern(std::move(vertices), std::move(materials)));
         }
+    }
+
+    const VehiclePattern& VehiclePatterns::get_random_pattern(RandomGenerator& rng) {
+        std::uniform_int_distribution<std::size_t> pattern_distribution(0, patterns.size() - 1);
+        const auto pattern_index = pattern_distribution(rng);
+        return std::next(patterns.cbegin(), pattern_index)->second;
     }
 
     const VehiclePattern& VehiclePatterns::get_pattern(const std::string& name) {
