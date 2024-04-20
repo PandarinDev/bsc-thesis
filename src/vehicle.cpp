@@ -1,21 +1,25 @@
 #include "vehicle.h"
+#include "gfx/vk/buffer.h"
 #include "utils/hash_utils.h"
 #include "utils/random_utils.h"
 
 #include <glm/glm.hpp>
 #include <glm/gtc/constants.hpp>
+#include <nlohmann/json.hpp>
+#include <cpp-base64/base64.h>
 
 #include <string>
+#include <random>
+#include <fstream>
 #include <stdexcept>
 
 namespace inf {
 
     Vehicle::Vehicle(
-        VehicleType type,
         const glm::ivec2& position,
         const std::deque<glm::ivec2>& targets,
-        const gfx::Mesh* mesh) :
-        type(type), position(position), targets(targets), mesh(mesh), offset(0.0f) {}
+        gfx::Mesh&& mesh) :
+        position(position), targets(targets), mesh(std::move(mesh)), offset(0.0f) {}
 
     void Vehicle::update(
         RandomGenerator& rng,
@@ -91,6 +95,77 @@ namespace inf {
         }
         throw std::runtime_error("Unhandled vehicle direction in state computation ([" +
             std::to_string(direction.x) + ", " + std::to_string(direction.y) + "])");
+    }
+
+    std::unordered_map<std::string, VehiclePattern> VehiclePatterns::patterns;
+
+    VehiclePattern::VehiclePattern(
+        std::vector<gfx::vk::VertexWithMaterialName>&& vertices,
+        VehicleMaterials&& materials) :
+        vertices(std::move(vertices)),
+        materials(std::move(materials)) {}
+
+    Vehicle VehiclePattern::instantiate(
+        RandomGenerator& rng,
+        const gfx::vk::LogicalDevice* device,
+        const gfx::vk::MemoryAllocator* allocator,
+        const glm::ivec2& position,
+        const std::deque<glm::ivec2>& targets) const {
+        // Choose a color for each material
+        std::unordered_map<std::string, glm::vec3> chosen_materials;
+        for (const auto& [name, candidates] : materials) {
+            std::uniform_int_distribution<std::size_t> candidate_distribution(0, candidates.size() - 1);
+            chosen_materials.emplace(name, candidates[candidate_distribution(rng)]);
+        }
+
+        std::vector<gfx::vk::Vertex> vertices;
+        for (const auto& vertex : this->vertices) {
+            vertices.emplace_back(vertex, chosen_materials.at(vertex.material_name));
+        }
+
+        const auto num_bytes = vertices.size() * sizeof(gfx::vk::Vertex);
+        auto buffer = gfx::vk::MappedBuffer::create(device, allocator, gfx::vk::BufferType::VERTEX_BUFFER, num_bytes);
+        buffer.upload(vertices.data(), num_bytes);
+        const auto bb = gfx::vk::Vertex::compute_bounding_box(vertices);
+        return Vehicle(position, targets, gfx::Mesh(std::move(buffer), vertices.size(), glm::mat4(1.0f), bb));
+    }
+
+    void VehiclePatterns::initialize(const std::filesystem::path& vehicles_path) {
+        if (!std::filesystem::is_directory(vehicles_path)) {
+            throw std::runtime_error("Directory at '" + vehicles_path.string() + "' does not exist.");
+        }
+        for (const auto& file : std::filesystem::directory_iterator(vehicles_path)) {
+            if (!file.is_regular_file()) {
+                continue;
+            }
+            const auto file_path = file.path();
+            if (file_path.extension() != ".json") {
+                continue;
+            }
+            std::ifstream file_handle(file_path);
+            if (!file_handle) {
+                throw std::runtime_error("Failed to open file at '" + file_path.string() + "'.");
+            }
+            VehicleMaterials materials;
+
+            const auto json_contents = nlohmann::json::parse(file_handle);
+            const auto name = json_contents["name"].get<std::string>();
+            const auto data = json_contents["data"].get<std::string>();
+            const auto& materials_obj = json_contents["materials"];
+            for (const auto& entry : materials_obj.items()) {
+                auto& material = materials.emplace(entry.key(), std::vector<glm::vec3>{}).first->second;
+                for (const auto& candidate : entry.value()) {
+                    material.emplace_back(candidate[0].get<float>(), candidate[1].get<float>(), candidate[2].get<float>());
+                }
+            }
+
+            auto vertices = gfx::vk::VertexWithMaterialName::from_bytes(base64_decode(data));
+            patterns.emplace(name, VehiclePattern(std::move(vertices), std::move(materials)));
+        }
+    }
+
+    const VehiclePattern& VehiclePatterns::get_pattern(const std::string& name) {
+        return patterns.at(name);
     }
 
 }

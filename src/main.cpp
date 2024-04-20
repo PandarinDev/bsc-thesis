@@ -40,6 +40,7 @@ int main() {
         const auto asset_load_start_time = timer.get_time();
         wfc::BuildingPatterns::initialize("assets/buildings");
         wfc::GroundPatterns::initialize("assets/grounds", &renderer.get_logical_device(), &renderer.get_memory_allocator());
+        VehiclePatterns::initialize("assets/vehicles");
         const auto asset_load_elapsed_time = timer.get_time() - asset_load_start_time;
         std::cout << "Asset loading took " << asset_load_elapsed_time << " seconds." << std::endl;
 

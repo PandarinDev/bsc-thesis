@@ -184,11 +184,12 @@ namespace inf {
         }
         const auto roads_to_place_vehicles_on = utils::RandomUtils::choose(random_engine, road_vector, num_vehicles_per_district);
         std::vector<Vehicle> vehicles;
-        const auto car_mesh = &wfc::GroundPatterns::get_pattern("car").mesh;
+        const auto& car = VehiclePatterns::get_pattern("car");
         for (const auto& road_ptr : roads_to_place_vehicles_on) {
             const auto& road = **road_ptr;
             std::deque<glm::ivec2> targets = { road.position + RoadUtils::road_direction_to_grid_direction(road.direction) };
-            vehicles.emplace_back(VehicleType::CAR, road.position, targets, car_mesh);
+            vehicles.emplace_back(car.instantiate(
+                random_engine, &renderer.get_logical_device(), &renderer.get_memory_allocator(), road.position, targets));
         }
 
         // Turn partitions into lots by generating buildings on them

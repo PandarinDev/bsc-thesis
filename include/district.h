@@ -94,8 +94,6 @@ namespace inf {
         std::vector<float> road_rotations;
         std::vector<glm::vec3> road_crossing_positions;
         std::vector<float> road_crossing_rotations;
-        std::vector<glm::vec3> vehicle_positions;
-        std::vector<float> vehicle_rotations;
 
     };
 

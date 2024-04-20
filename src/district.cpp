@@ -183,21 +183,25 @@ namespace inf {
         renderer.render_instanced(road, road_positions, road_rotations);
         renderer.render_instanced(road_crossing, road_crossing_positions, road_crossing_rotations);
 
-        // Vehicle positions need to be recomputed on every frame due to moving
-        vehicle_positions.clear();
-        vehicle_rotations.clear();
-        for (const auto& vehicle : vehicles) {
-            const auto [position, rotation] = vehicle.get_world_position_and_rotation(this->position);
-            vehicle_positions.emplace_back(position);
-            vehicle_rotations.emplace_back(rotation);
-        }
-        if (!vehicle_positions.empty()) {
-            // TODO: Group by vehicle type instead (since there is 1 mesh per vehicle type)
-            renderer.render_instanced_caster(*vehicles[0].mesh, vehicle_positions, vehicle_rotations);
+        // Render vehicles
+        const auto frustum = renderer.get_frustum_in_view_space();
+        const auto transformation = renderer.get_view_matrix();
+        for (auto& vehicle : vehicles) {
+            const auto [vehicle_position, rotation] = vehicle.get_world_position_and_rotation(position);
+            const auto model_matrix = glm::rotate(
+                glm::translate(glm::mat4(1.0f), vehicle_position),
+                rotation,
+                glm::vec3(0.0f, 1.0f, 0.0f));
+            vehicle.mesh.set_model_matrix(model_matrix);
+            const auto obb = vehicle.mesh.get_bounding_box_in_model_space()
+                .apply(model_matrix)
+                .to_oriented(transformation);
+            if (frustum.is_inside(obb)) {
+                renderer.render(vehicle.mesh);
+            }
         }
 
         // Render lot buildings
-        const auto frustum = renderer.get_frustum_in_view_space();
         const auto transform = renderer.get_view_matrix();
         for (const auto& lot : lots) {
             const auto lot_bb = lot.get_bounding_box(position);

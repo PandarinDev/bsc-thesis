@@ -1,19 +1,20 @@
 #pragma once
 
 #include "gfx/mesh.h"
+#include "gfx/vk/vertex.h"
+#include "gfx/vk/device.h"
+#include "gfx/vk/memory_allocator.h"
 #include "road.h"
 #include "common.h"
 
 #include <glm/vec2.hpp>
 
 #include <deque>
+#include <vector>
 #include <unordered_map>
+#include <filesystem>
 
 namespace inf {
-
-    enum class VehicleType {
-        CAR
-    };
 
     enum class VehicleState {
         HORIZONTAL_LEFT,
@@ -24,17 +25,15 @@ namespace inf {
 
     struct Vehicle {
 
-        VehicleType type;
         glm::ivec2 position;
         std::deque<glm::ivec2> targets;
-        const gfx::Mesh* mesh;
+        gfx::Mesh mesh;
         float offset;
 
         Vehicle(
-            VehicleType type,
             const glm::ivec2& position,
             const std::deque<glm::ivec2>& targets,
-            const gfx::Mesh* mesh);
+            gfx::Mesh&& mesh);
 
         void update(
             RandomGenerator& rng,
@@ -45,6 +44,41 @@ namespace inf {
     private:
 
         VehicleState compute_state() const;
+
+    };
+
+    using VehicleMaterials = std::unordered_map<std::string, std::vector<glm::vec3>>;
+
+    struct VehiclePattern {
+
+        VehiclePattern(
+            std::vector<gfx::vk::VertexWithMaterialName>&& vertices,
+            VehicleMaterials&& materials);
+
+        Vehicle instantiate(
+            RandomGenerator& rng,
+            const gfx::vk::LogicalDevice* device,
+            const gfx::vk::MemoryAllocator* allocator,
+            const glm::ivec2& position,
+            const std::deque<glm::ivec2>& targets) const;
+
+    private:
+
+        std::vector<gfx::vk::VertexWithMaterialName> vertices;
+        VehicleMaterials materials;
+
+    };
+
+    struct VehiclePatterns {
+
+        VehiclePatterns() = delete;
+
+        static void initialize(const std::filesystem::path& vehicles_path);
+        static const VehiclePattern& get_pattern(const std::string& name);
+
+    private:
+
+        static std::unordered_map<std::string, VehiclePattern> patterns;
 
     };
 
