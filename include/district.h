@@ -21,18 +21,22 @@ namespace inf {
         RESIDENTAL
     };
 
+    using DistrictFoliage = std::unordered_map<const wfc::GroundPattern*, std::vector<glm::vec3>>;
+
     struct DistrictLot {
 
         glm::ivec2 position;
         glm::ivec2 dimensions;
         glm::vec3 bb_color;
         std::optional<wfc::Building> building;
+        DistrictFoliage foliage;
 
         DistrictLot(
             const glm::ivec2& position,
             const glm::ivec2& dimensions,
             const glm::vec3& bb_color,
-            std::optional<wfc::Building>&& building);
+            std::optional<wfc::Building>&& building,
+            DistrictFoliage&& foliage);
 
         BoundingBox3D get_bounding_box(const glm::vec3& district_position) const;
 
@@ -94,6 +98,8 @@ namespace inf {
         std::vector<float> road_rotations;
         std::vector<glm::vec3> road_crossing_positions;
         std::vector<float> road_crossing_rotations;
+        std::unordered_map<const wfc::GroundPattern*, std::vector<glm::vec3>> foliage_positions;
+        std::unordered_map<const wfc::GroundPattern*, std::vector<float>> foliage_rotations;
 
     };
 

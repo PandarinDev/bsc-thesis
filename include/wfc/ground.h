@@ -1,5 +1,6 @@
 #pragma once
 
+#include "common.h"
 #include "gfx/mesh.h"
 #include "gfx/vk/device.h"
 #include "gfx/vk/vertex.h"
@@ -40,11 +41,13 @@ namespace inf::wfc {
             const gfx::vk::MemoryAllocator* allocator);
         static void deinitialize();
 
-        static GroundPattern& get_pattern(const std::string& name);
+        static const GroundPattern& get_pattern(const std::string& name);
+        static const GroundPattern& get_random_foliage_pattern(RandomGenerator& rng);
 
     private:
 
         static std::unordered_map<std::string, GroundPattern> patterns;
+        static std::vector<const GroundPattern*> foliage_patterns;
 
     };
 

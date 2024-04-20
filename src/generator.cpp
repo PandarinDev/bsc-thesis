@@ -216,13 +216,27 @@ namespace inf {
                 }
             }
             // If the dimensions are not suitable for any pattern for the district the lot remains vacant, otherwise generate building that is guaranteed to fit
+            auto building = pattern
+                    ? std::make_optional(generate_building(*pattern, width - 1, depth - 1))
+                    : std::nullopt;
+            
+            DistrictFoliage foliage;
+            const auto building_dimensions = building ? building->get_dimensions() : glm::ivec3();
+            if (building_dimensions.x < width - 2 || building_dimensions.z < depth - 2) {
+                // TODO: Place multiple random foliage entries instead
+                std::uniform_real_distribution<float> random_dist(0.0f, 1.0f);
+                if (random_dist(random_engine) < 0.5f) {
+                    const auto& foliage_pattern = wfc::GroundPatterns::get_random_foliage_pattern(random_engine);
+                    foliage[&foliage_pattern].emplace_back(glm::vec3(1.0f, 0.0f, 1.0f));
+                }
+            }
+
             district.add_lot(DistrictLot(
                 glm::ivec2(partition),
                 glm::ivec2(width, depth),
                 glm::vec3(color_distribution(random_engine), color_distribution(random_engine), color_distribution(random_engine)),
-                pattern
-                    ? std::make_optional(generate_building(*pattern, width - 1, depth - 1))
-                    : std::nullopt));
+                std::move(building),
+                std::move(foliage)));
         }
 
         // Add created roads to the district

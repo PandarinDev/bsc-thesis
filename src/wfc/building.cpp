@@ -219,7 +219,7 @@ namespace inf::wfc {
             gfx::vk::BufferType::VERTEX_BUFFER,
             sizeof(gfx::vk::Vertex) * vertices.size());
         vertex_buffer.upload(vertices.data(), vertices.size() * sizeof(gfx::vk::Vertex));
-        return Building(gfx::Mesh(std::move(vertex_buffer), vertices.size(), glm::mat4(1.0f), bounding_box), bounding_box);
+        return Building(gfx::Mesh(std::move(vertex_buffer), vertices.size(), glm::mat4(1.0f), bounding_box), glm::ivec3(width, height, depth));
     }
 
     AbsoluteBuildingDimensions::AbsoluteBuildingDimensions(
@@ -409,22 +409,26 @@ namespace inf::wfc {
         return &it->second;
     }
 
-    Building::Building(gfx::Mesh&& mesh, const BoundingBox3D& bounding_box) :
-        Building(std::move(mesh), bounding_box, glm::vec3()) {}
+    Building::Building(gfx::Mesh&& mesh, const glm::ivec3& dimensions) :
+        Building(std::move(mesh), dimensions, glm::vec3()) {}
 
-    Building::Building(gfx::Mesh&& mesh, const BoundingBox3D& bounding_box, const glm::vec3& position) :
-        mesh(std::move(mesh)), bounding_box(bounding_box), position(position) {}
+    Building::Building(gfx::Mesh&& mesh, const glm::ivec3& dimensions, const glm::vec3& position) :
+        mesh(std::move(mesh)), dimensions(dimensions), position(position) {}
 
     const gfx::Mesh& Building::get_mesh() const {
         return mesh;
     }
 
-    const BoundingBox3D& Building::get_local_bounding_box() const {
-        return bounding_box;
+    const BoundingBox3D& Building::get_bounding_box_in_model_space() const {
+        return mesh.get_bounding_box_in_model_space();
     }
 
-    BoundingBox3D Building::get_bounding_box() const {
-        return bounding_box.apply(mesh.get_model_matrix());
+    BoundingBox3D Building::get_bounding_box_in_world_space() const {
+        return get_bounding_box_in_model_space().apply(mesh.get_model_matrix());
+    }
+
+    const glm::ivec3& Building::get_dimensions() const {
+        return dimensions;
     }
 
     const glm::vec3& Building::get_position() const {

@@ -10,12 +10,13 @@ namespace inf {
         const glm::ivec2& position,
         const glm::ivec2& dimensions,
         const glm::vec3& bb_color,
-        std::optional<wfc::Building>&& building) :
-        position(position), dimensions(dimensions), bb_color(bb_color), building(std::move(building)) {}
+        std::optional<wfc::Building>&& building,
+        DistrictFoliage&& foliage) :
+        position(position), dimensions(dimensions), bb_color(bb_color), building(std::move(building)), foliage(std::move(foliage)) {}
 
     BoundingBox3D DistrictLot::get_bounding_box(const glm::vec3& district_position) const {
         const auto min = glm::vec3(district_position.x + position.x, 0.0f, district_position.z + position.y);
-        const auto max_y = building ? building->get_bounding_box().max.y : 0.1f;
+        const auto max_y = building ? building->get_bounding_box_in_world_space().max.y : 0.1f;
         const auto max = glm::vec3(min.x + dimensions.x, max_y, min.z + dimensions.y);
         return BoundingBox3D(min, max);
     }
@@ -97,6 +98,20 @@ namespace inf {
                     break;
             }
         }
+
+        // Update foliage data
+        foliage_positions.clear();
+        foliage_rotations.clear();
+        for (const auto& lot : lots) {
+            for (const auto& [foliage_ptr, new_positions] : lot.foliage) {
+                auto& positions = foliage_positions[foliage_ptr];
+                auto& rotations = foliage_rotations[foliage_ptr];
+                for (const auto& foliage_position : new_positions) {
+                    positions.emplace_back(position + glm::vec3(lot.position.x, 0.0f, lot.position.y) + foliage_position);
+                    rotations.emplace_back(0.0f);
+                }
+            }
+        }
     }
 
     const glm::ivec2& District::get_grid_position() const {
@@ -119,7 +134,7 @@ namespace inf {
         for (auto& lot : lots) {
             if (lot.building) {
                 const auto lot_bb = lot.get_bounding_box(position);
-                const auto& building_bb = lot.building->get_local_bounding_box();
+                const auto& building_bb = lot.building->get_bounding_box_in_model_space();
                 const auto half_width_difference = (lot_bb.width() - building_bb.width()) * 0.5f;
                 const auto half_depth_difference = (lot_bb.depth() - building_bb.depth()) * 0.5f;
                 const auto building_position = glm::vec3(
@@ -201,7 +216,7 @@ namespace inf {
             }
         }
 
-        // Render lot buildings
+        // Render lot buildings and collect foliage data
         const auto transform = renderer.get_view_matrix();
         for (const auto& lot : lots) {
             const auto lot_bb = lot.get_bounding_box(position);
@@ -216,6 +231,13 @@ namespace inf {
                 // renderer.render(building->get_bounding_box(), glm::vec3(1.0f, 0.0f, 0.0f));
             }
         }
+
+        // Render foliage
+        for (const auto& [ptr, positions] : foliage_positions) {
+            const auto& rotations = foliage_rotations.at(ptr);
+            renderer.render_instanced_caster(ptr->mesh, positions, rotations);
+        }
+
         renderer.render(compute_bounding_box(), bb_color);
     }
 

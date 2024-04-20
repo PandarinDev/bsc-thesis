@@ -9,6 +9,7 @@
 namespace inf::wfc {
 
     std::unordered_map<std::string, GroundPattern> GroundPatterns::patterns;
+    std::vector<const GroundPattern*> GroundPatterns::foliage_patterns;
 
     Ground::Ground(gfx::Mesh& mesh, const glm::vec3& position) :
         mesh(mesh), position(position) {}
@@ -56,14 +57,25 @@ namespace inf::wfc {
                 parse_pattern(json_contents);
             }
         }
+
+        // Set foliage patterns that will be used to fill empty spaces around buildings
+        foliage_patterns = {
+            &GroundPatterns::get_pattern("tree"),
+            &GroundPatterns::get_pattern("pinetree")
+        };
     }
 
     void GroundPatterns::deinitialize() {
         patterns.clear();
     }
 
-    GroundPattern& GroundPatterns::get_pattern(const std::string& name) {
+    const GroundPattern& GroundPatterns::get_pattern(const std::string& name) {
         return patterns.at(name);
+    }
+
+    const GroundPattern& GroundPatterns::get_random_foliage_pattern(RandomGenerator& rng) {
+        std::uniform_int_distribution<std::size_t> foliage_distribution(0, foliage_patterns.size() - 1);
+        return *foliage_patterns[foliage_distribution(rng)];
     }
 
 }
