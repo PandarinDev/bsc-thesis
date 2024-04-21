@@ -39,7 +39,8 @@ namespace inf {
         static glm::ivec2 road_direction_to_grid_direction(RoadDirection direction);
         static std::vector<std::vector<glm::ivec2>> get_possible_continuations(
             const std::unordered_map<glm::ivec2, DistrictRoad>& roads,
-            const glm::ivec2& current_position);
+            const glm::ivec2& current_position,
+            RoadDirection direction);
 
     };
 

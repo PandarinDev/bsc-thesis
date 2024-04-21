@@ -35,7 +35,8 @@ namespace inf {
 
     std::vector<std::vector<glm::ivec2>> RoadUtils::get_possible_continuations(
         const std::unordered_map<glm::ivec2, DistrictRoad>& roads,
-        const glm::ivec2& current_position) {
+        const glm::ivec2& current_position,
+        RoadDirection direction) {
         // It can happen in unlucky scenarios (when a car is put at the edge of a district
         // facing outwards of the district) that the first time this function is called the
         // vehicle is already out-of-bounds, so check if the current position is valid.
@@ -56,7 +57,41 @@ namespace inf {
             if (roads.find(forward_position) != roads.cend()) {
                 result.push_back({ forward_position });
             }
-            // TODO: Check if we can turn left
+            
+            // Check if we can turn left
+            if (road.direction == RoadDirection::VERTICAL_RIGHT) {
+                if (const auto it = roads.find(current_position + glm::ivec2(-1, -1)); it != roads.cend() && it->second.direction == RoadDirection::CROSSING_UP_LEFT) {
+                    result.push_back({
+                        current_position + glm::ivec2(-1, -1),
+                        current_position + glm::ivec2(-2, -1)
+                    });
+                }
+            }
+            else if (road.direction == RoadDirection::VERTICAL_LEFT) {
+                if (const auto it = roads.find(current_position + glm::ivec2(1, 1)); it != roads.cend() && it->second.direction == RoadDirection::CROSSING_DOWN_RIGHT) {
+                    result.push_back({
+                        current_position + glm::ivec2(1, 1),
+                        current_position + glm::ivec2(2, 1)
+                    });
+                }
+            }
+            else if (road.direction == RoadDirection::HORIZONTAL_UP) {
+                if (const auto it = roads.find(current_position + glm::ivec2(-1, 1)); it != roads.cend() && it->second.direction == RoadDirection::CROSSING_DOWN_LEFT) {
+                    result.push_back({
+                        current_position + glm::ivec2(-1, 1),
+                        current_position + glm::ivec2(-1, 2)
+                    });
+                }
+            }
+            else if (road.direction == RoadDirection::HORIZONTAL_DOWN) {
+                if (const auto it = roads.find(current_position + glm::ivec2(1, -1)); it != roads.cend() && it->second.direction == RoadDirection::CROSSING_UP_RIGHT) {
+                    result.push_back({
+                        current_position + glm::ivec2(1, -1),
+                        current_position + glm::ivec2(1, -2)
+                    });
+                }
+            }
+
             return result;
         }
 
@@ -70,7 +105,7 @@ namespace inf {
                 result.push_back({ current_position + glm::ivec2(-1, -1), current_position + glm::ivec2(-2, -1) });
             }
             // Check if going straight is possible
-            if (roads.find(current_position + glm::ivec2(0, -2)) != roads.cend()) {
+            if (const auto it = roads.find(current_position + glm::ivec2(0, -2)); it != roads.cend() && it->second.direction == direction) {
                 result.push_back({ current_position + glm::ivec2(0, -1), current_position + glm::ivec2(0, -2) });
             }
             return result;
@@ -83,7 +118,7 @@ namespace inf {
                 result.push_back({ current_position + glm::ivec2(-1, 1), current_position + glm::ivec2(-1, 2) });
             }
             // Check if going straight is possible
-            if (roads.find(current_position + glm::ivec2(-2, 0)) != roads.cend()) {
+            if (const auto it = roads.find(current_position + glm::ivec2(-2, 0)); it != roads.cend() && it->second.direction == direction) {
                 result.push_back({ current_position + glm::ivec2(-1, 0), current_position + glm::ivec2(-2, 0) });
             }
             return result;
@@ -96,7 +131,7 @@ namespace inf {
                 result.push_back({ current_position + glm::ivec2(1, -1), current_position + glm::ivec2(2, -1) });
             }
             // Check if going straight is possible
-            if (roads.find(current_position + glm::ivec2(0, 2)) != roads.cend()) {
+            if (const auto it = roads.find(current_position + glm::ivec2(0, 2)); it != roads.cend() && it->second.direction == direction) {
                 result.push_back({ current_position + glm::ivec2(0, 1), current_position + glm::ivec2(0, 2) });
             }
             return result;
@@ -109,7 +144,7 @@ namespace inf {
                 result.push_back({ current_position + glm::ivec2(1, -1), current_position + glm::ivec2(1, -2) });
             }
             // Check if going straight is possible
-            if (roads.find(current_position + glm::ivec2(2, 0)) != roads.cend()) {
+            if (const auto it = roads.find(current_position + glm::ivec2(2, 0)); it != roads.cend() && it->second.direction == direction) {
                 result.push_back({ current_position + glm::ivec2(1, 0), current_position + glm::ivec2(2, 0) });
             }
             return result;

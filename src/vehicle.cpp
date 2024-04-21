@@ -31,12 +31,13 @@ namespace inf {
         }
         auto new_offset = offset + vehicle_speed * delta_time;
         if (new_offset > 1.0f) {
+            const auto direction = roads.at(position).direction;
             position = targets.front();
             targets.pop_front();
             new_offset = std::fmod(new_offset, 1.0f);
             // If we removed the last target add a new one based on the current road direction
             if (targets.empty()) {
-                const auto possible_continuations = RoadUtils::get_possible_continuations(roads, position);
+                const auto possible_continuations = RoadUtils::get_possible_continuations(roads, position, direction);
                 if (!possible_continuations.empty()) {
                     std::uniform_int_distribution<std::size_t> continuation_distribution(0, possible_continuations.size() - 1);
                     const auto& continuation = possible_continuations[continuation_distribution(rng)];
@@ -65,7 +66,7 @@ namespace inf {
         else if (direction.x == -1) {
             world_position += glm::vec3(0.0f, 0.0f, 0.65f);
         }
-        if (direction.z == 1) {
+        else if (direction.z == 1) {
             world_position += glm::vec3(0.65f, 0.0f, 0.0f);
         }
         else if (direction.z == -1) {
