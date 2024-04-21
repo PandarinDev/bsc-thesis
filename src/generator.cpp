@@ -222,12 +222,33 @@ namespace inf {
             
             DistrictFoliage foliage;
             const auto building_dimensions = building ? building->get_dimensions() : glm::ivec3();
-            if (building_dimensions.x < width - 2 || building_dimensions.z < depth - 2) {
-                // TODO: Place multiple random foliage entries instead
-                std::uniform_real_distribution<float> random_dist(0.0f, 1.0f);
-                if (random_dist(random_engine) < 0.5f) {
+            // TODO: Foliage placement logic could be improved quite a bit, but this works for now
+            static constexpr auto foliage_chance = 0.25f;
+            std::uniform_real_distribution<float> random_dist(0.0f, 1.0f);
+            if (building_dimensions.x < width - 2) {
+                std::uniform_int_distribution<int> vertical_dist(1, depth - 1);
+                // Potentially put foliage on the left
+                if (random_dist(random_engine) < foliage_chance) {
                     const auto& foliage_pattern = wfc::GroundPatterns::get_random_foliage_pattern(random_engine);
-                    foliage[&foliage_pattern].emplace_back(glm::vec3(1.0f, 0.0f, 1.0f));
+                    foliage[&foliage_pattern].emplace_back(glm::vec3(1.0f, 0.0f, vertical_dist(random_engine)));
+                }
+                // Potentially to put foliage on the right
+                if (random_dist(random_engine) < foliage_chance) {
+                    const auto& foliage_pattern = wfc::GroundPatterns::get_random_foliage_pattern(random_engine);
+                    foliage[&foliage_pattern].emplace_back(glm::vec3(width - 1.0f, 0.0f, vertical_dist(random_engine)));
+                }
+            }
+            if (building_dimensions.z < depth - 2) {
+                std::uniform_int_distribution<int> horizontal_dist(1, width - 1);
+                // Potentially put foliage on top
+                if (random_dist(random_engine) < foliage_chance) {
+                    const auto& foliage_pattern = wfc::GroundPatterns::get_random_foliage_pattern(random_engine);
+                    foliage[&foliage_pattern].emplace_back(glm::vec3(horizontal_dist(random_engine), 0.0f, 1.0f));
+                }
+                // Potentially put foliage on bottom
+                if (random_dist(random_engine) < foliage_chance) {
+                    const auto& foliage_pattern = wfc::GroundPatterns::get_random_foliage_pattern(random_engine);
+                    foliage[&foliage_pattern].emplace_back(glm::vec3(horizontal_dist(random_engine), 0.0f, depth - 1.0f));
                 }
             }
 
