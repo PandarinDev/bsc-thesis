@@ -82,6 +82,18 @@ namespace inf {
 
     private:
 
+        struct InstanceData {
+
+            std::vector<glm::vec3> positions;
+            std::vector<float> rotations;
+
+            void clear() {
+                positions.clear();
+                rotations.clear();
+            }
+
+        };
+
         DistrictType type;
         glm::ivec2 grid_position;
         glm::ivec2 dimensions;
@@ -92,14 +104,9 @@ namespace inf {
         std::unordered_map<glm::ivec2, DistrictRoad> roads;
         std::vector<Vehicle> vehicles;
         // Cache positions for instanced rendering
-        std::vector<glm::vec3> grass_positions;
-        std::vector<float> grass_rotations;
-        std::vector<glm::vec3> road_positions;
-        std::vector<float> road_rotations;
-        std::vector<glm::vec3> road_crossing_positions;
-        std::vector<float> road_crossing_rotations;
-        std::unordered_map<const wfc::GroundPattern*, std::vector<glm::vec3>> foliage_positions;
-        std::unordered_map<const wfc::GroundPattern*, std::vector<float>> foliage_rotations;
+        InstanceData grass_instances;
+        std::unordered_map<const gfx::Mesh*, InstanceData> road_instances;
+        std::unordered_map<const wfc::GroundPattern*, InstanceData> foliage_instances;
 
     };
 

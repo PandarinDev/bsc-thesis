@@ -10,6 +10,7 @@ namespace inf::wfc {
 
     std::unordered_map<std::string, GroundPattern> GroundPatterns::patterns;
     std::vector<const GroundPattern*> GroundPatterns::foliage_patterns;
+    std::vector<std::pair<const GroundPattern*, float>> GroundPatterns::crossing_patterns;
 
     Ground::Ground(gfx::Mesh& mesh, const glm::vec3& position) :
         mesh(mesh), position(position) {}
@@ -63,6 +64,13 @@ namespace inf::wfc {
             &GroundPatterns::get_pattern("tree"),
             &GroundPatterns::get_pattern("pinetree")
         };
+
+        // Set crossing patterns that will be used randomly for crossings
+        crossing_patterns = {
+            { &GroundPatterns::get_pattern("road_crossing"), 10.0f },
+            { &GroundPatterns::get_pattern("road_crossing_give_way"), 1.0f },
+            { &GroundPatterns::get_pattern("road_crossing_lamp"), 1.0f }
+        };
     }
 
     void GroundPatterns::deinitialize() {
@@ -76,6 +84,23 @@ namespace inf::wfc {
     const GroundPattern& GroundPatterns::get_random_foliage_pattern(RandomGenerator& rng) {
         std::uniform_int_distribution<std::size_t> foliage_distribution(0, foliage_patterns.size() - 1);
         return *foliage_patterns[foliage_distribution(rng)];
+    }
+
+    const GroundPattern& GroundPatterns::get_random_crossing_pattern(RandomGenerator& rng) {
+        float weight_sum = 0.0f;
+        for (const auto& [_, weight] : crossing_patterns) {
+            weight_sum += weight;
+        }
+        std::uniform_real_distribution<float> crossing_distribution(0.0f, weight_sum);
+        float result = crossing_distribution(rng);
+        float accumulator = 0.0f;
+        for (const auto& [pattern, weight] : crossing_patterns) {
+            if (result <= accumulator + weight) {
+                return *pattern;
+            }
+            accumulator += weight;
+        }
+        throw std::runtime_error("Failed to get crossing pattern.");
     }
 
 }

@@ -123,6 +123,7 @@ namespace inf {
         };
         // Lot gap is used to introduce gaps between lots where roads will be placed
         static constexpr auto lot_gap = 2;
+        const auto road_mesh = &wfc::GroundPatterns::get_pattern("road").mesh;
         while (!are_partitions_sufficiently_sized()) {
             std::vector<glm::ivec4> new_partitions;
             for (const auto& partition : partitions) {
@@ -140,8 +141,8 @@ namespace inf {
                     for (int offset = partition.y; offset < partition.w; ++offset) {
                         const auto road_position_left = glm::ivec2(partition.x + slice_at, offset);
                         const auto road_position_right = road_position_left + glm::ivec2(1, 0);
-                        roads.emplace(road_position_left, DistrictRoad(RoadDirection::VERTICAL_LEFT, road_position_left));
-                        roads.emplace(road_position_right, DistrictRoad(RoadDirection::VERTICAL_RIGHT, road_position_right));
+                        roads.emplace(road_position_left, DistrictRoad(RoadDirection::VERTICAL_LEFT, road_position_left, road_mesh));
+                        roads.emplace(road_position_right, DistrictRoad(RoadDirection::VERTICAL_RIGHT, road_position_right, road_mesh));
                     }
                 }
                 // Cut partition horizontally if needed
@@ -156,8 +157,8 @@ namespace inf {
                     for (int offset = partition.x; offset < partition.z; ++offset) {
                         const auto road_position_up = glm::ivec2(offset, partition.y + slice_at);
                         const auto road_position_down = road_position_up + glm::ivec2(0, 1);
-                        roads.emplace(road_position_up, DistrictRoad(RoadDirection::HORIZONTAL_UP, road_position_up));
-                        roads.emplace(road_position_down, DistrictRoad(RoadDirection::HORIZONTAL_DOWN, road_position_down));
+                        roads.emplace(road_position_up, DistrictRoad(RoadDirection::HORIZONTAL_UP, road_position_up, road_mesh));
+                        roads.emplace(road_position_down, DistrictRoad(RoadDirection::HORIZONTAL_DOWN, road_position_down, road_mesh));
                     }
                 }
                 // Otherwise the partition is sufficiently sized and we simply move it the list of new partitions
@@ -300,18 +301,22 @@ namespace inf {
             if (has_road_direction(roads, left_neighbor, RoadDirection::HORIZONTAL_UP) &&
                 has_road_direction(roads, up_neighbor, RoadDirection::VERTICAL_LEFT)) {
                 entry.second.direction = RoadDirection::CROSSING_UP_LEFT;
+                entry.second.mesh = &wfc::GroundPatterns::get_random_crossing_pattern(random_engine).mesh;
             }
             else if (has_road_direction(roads, right_neighbor, RoadDirection::HORIZONTAL_UP) &&
                 has_road_direction(roads, up_neighbor, RoadDirection::VERTICAL_RIGHT)) {
                 entry.second.direction = RoadDirection::CROSSING_UP_RIGHT;
+                entry.second.mesh = &wfc::GroundPatterns::get_random_crossing_pattern(random_engine).mesh;
             }
             else if (has_road_direction(roads, left_neighbor, RoadDirection::HORIZONTAL_DOWN) &&
                 has_road_direction(roads, down_neighbor, RoadDirection::VERTICAL_LEFT)) {
                 entry.second.direction = RoadDirection::CROSSING_DOWN_LEFT;
+                entry.second.mesh = &wfc::GroundPatterns::get_random_crossing_pattern(random_engine).mesh;
             }
             else if (has_road_direction(roads, right_neighbor, RoadDirection::HORIZONTAL_DOWN) &&
                 has_road_direction(roads, down_neighbor, RoadDirection::VERTICAL_RIGHT)) {
                 entry.second.direction = RoadDirection::CROSSING_DOWN_RIGHT;
+                entry.second.mesh = &wfc::GroundPatterns::get_random_crossing_pattern(random_engine).mesh;
             }
         }
     }

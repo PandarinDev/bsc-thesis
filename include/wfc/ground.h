@@ -43,11 +43,13 @@ namespace inf::wfc {
 
         static const GroundPattern& get_pattern(const std::string& name);
         static const GroundPattern& get_random_foliage_pattern(RandomGenerator& rng);
+        static const GroundPattern& get_random_crossing_pattern(RandomGenerator& rng);
 
     private:
 
         static std::unordered_map<std::string, GroundPattern> patterns;
         static std::vector<const GroundPattern*> foliage_patterns;
+        static std::vector<std::pair<const GroundPattern*, float>> crossing_patterns;
 
     };
 

@@ -112,7 +112,7 @@ def main():
     for i in range(0, len(vertices), 3):
         v0, v1, v2 = vertices[i], vertices[i + 1], vertices[i + 2]
         # Assume that all vertices use the same material
-        material_name = materials[v0.color] if vertices[i] is Vertex else "empty"
+        material_name = materials[v0.color] if mode == ConversionMode.STATIC else "empty"
         p0, p1, p2 = position_indices[v0.position], position_indices[v1.position], position_indices[v2.position]
         n0, n1, n2 = normal_indices[v0.normal], normal_indices[v1.normal], normal_indices[v2.normal]
         face_str = f"f {p0}//{n0} {p1}//{n1} {p2}//{n2}\n" # Faces are indexed from 1

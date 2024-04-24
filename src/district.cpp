@@ -39,73 +39,54 @@ namespace inf {
 
     void District::update_caches() {
         // Update grass data
-        grass_positions.clear();
+        grass_instances.clear();
         for (const auto& lot : lots) {
             for (int x = 0; x < lot.dimensions.x; ++x) {
                 for (int y = 0; y < lot.dimensions.y; ++y) {
-                    grass_positions.emplace_back(glm::vec3(
+                    grass_instances.positions.emplace_back(glm::vec3(
                         position.x + lot.position.x + x + 0.5f,
                         position.y + 0.5f,
                         position.z + lot.position.y + y + 0.5f));
-                    grass_rotations.emplace_back(0.0f);
+                    grass_instances.rotations.emplace_back(0.0f);
                 }
             }
         }
 
         // Update road positions
-        road_positions.clear();
-        road_crossing_positions.clear();
+        road_instances.clear();
         for (const auto& [_, road] : roads) {
             const auto& direction = road.direction;
             const auto road_position =  glm::vec3(
                 position.x + road.position.x + 0.5f,
                 position.y + 0.5f,
                 position.z + road.position.y + 0.5f);
+            road_instances[road.mesh].positions.emplace_back(road_position);
             switch (direction) {
-                // Straight roads
                 case RoadDirection::VERTICAL_LEFT:
-                    road_positions.emplace_back(road_position);
-                    road_rotations.emplace_back(0.0f);
+                case RoadDirection::CROSSING_DOWN_LEFT:
+                    road_instances[road.mesh].rotations.emplace_back(0.0f);
                     break;
                 case RoadDirection::VERTICAL_RIGHT:
-                    road_positions.emplace_back(road_position);
-                    road_rotations.emplace_back(glm::radians(180.f));
+                case RoadDirection::CROSSING_UP_RIGHT:
+                    road_instances[road.mesh].rotations.emplace_back(glm::radians(180.f));
                     break;
                 case RoadDirection::HORIZONTAL_UP:
-                    road_positions.emplace_back(road_position);
-                    road_rotations.emplace_back(glm::radians(90.0f));
+                case RoadDirection::CROSSING_UP_LEFT:
+                    road_instances[road.mesh].rotations.emplace_back(glm::radians(90.0f));
                     break;
                 case RoadDirection::HORIZONTAL_DOWN:
-                    road_positions.emplace_back(road_position);
-                    road_rotations.emplace_back(glm::radians(270.0f));
-                    break;
-                // Crossings
-                case RoadDirection::CROSSING_DOWN_LEFT:
-                    road_crossing_positions.emplace_back(road_position);
-                    road_crossing_rotations.emplace_back(0.0f);
-                    break;
                 case RoadDirection::CROSSING_DOWN_RIGHT:
-                    road_crossing_positions.emplace_back(road_position);
-                    road_crossing_rotations.emplace_back(glm::radians(270.0f));
-                    break;
-                case RoadDirection::CROSSING_UP_RIGHT:
-                    road_crossing_positions.emplace_back(road_position);
-                    road_crossing_rotations.emplace_back(glm::radians(180.0f));
-                    break;
-                case RoadDirection::CROSSING_UP_LEFT:
-                    road_crossing_positions.emplace_back(road_position);
-                    road_crossing_rotations.emplace_back(glm::radians(90.0f));
+                    road_instances[road.mesh].rotations.emplace_back(glm::radians(270.0f));
                     break;
             }
         }
 
         // Update foliage data
-        foliage_positions.clear();
-        foliage_rotations.clear();
+        foliage_instances.clear();
         for (const auto& lot : lots) {
             for (const auto& [foliage_ptr, new_positions] : lot.foliage) {
-                auto& positions = foliage_positions[foliage_ptr];
-                auto& rotations = foliage_rotations[foliage_ptr];
+                auto& positions = foliage_instances[foliage_ptr].positions;
+                auto& rotations = foliage_instances[foliage_ptr].rotations;
                 for (const auto& foliage_position : new_positions) {
                     positions.emplace_back(position + glm::vec3(lot.position.x, 0.0f, lot.position.y) + foliage_position);
                     rotations.emplace_back(0.0f);
@@ -191,12 +172,11 @@ namespace inf {
     void District::render(gfx::Renderer& renderer) {
         // Render ground objects (such as roads and foliage)
         const auto& grass_mesh = wfc::GroundPatterns::get_pattern("grass").mesh;
-        const auto& road = wfc::GroundPatterns::get_pattern("road").mesh;
-        const auto& road_crossing = wfc::GroundPatterns::get_pattern("road_crossing").mesh;
 
-        renderer.render_instanced(grass_mesh, grass_positions, grass_rotations);
-        renderer.render_instanced(road, road_positions, road_rotations);
-        renderer.render_instanced(road_crossing, road_crossing_positions, road_crossing_rotations);
+        renderer.render_instanced(grass_mesh, grass_instances.positions, grass_instances.rotations);
+        for (const auto& [mesh_ptr, instance_data] : road_instances) {
+            renderer.render_instanced_caster(*mesh_ptr, instance_data.positions, instance_data.rotations);
+        }
 
         // Render vehicles
         const auto frustum = renderer.get_frustum_in_view_space();
@@ -233,9 +213,8 @@ namespace inf {
         }
 
         // Render foliage
-        for (const auto& [ptr, positions] : foliage_positions) {
-            const auto& rotations = foliage_rotations.at(ptr);
-            renderer.render_instanced_caster(ptr->mesh, positions, rotations);
+        for (const auto& [ptr, instance_data] : foliage_instances) {
+            renderer.render_instanced_caster(ptr->mesh, instance_data.positions, instance_data.rotations);
         }
 
         renderer.render(compute_bounding_box(), bb_color);

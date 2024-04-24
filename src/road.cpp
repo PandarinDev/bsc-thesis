@@ -5,8 +5,8 @@
 
 namespace inf {
 
-    DistrictRoad::DistrictRoad(RoadDirection direction, const glm::ivec2& position) :
-        direction(direction), position(position) {}
+    DistrictRoad::DistrictRoad(RoadDirection direction, const glm::ivec2& position, const gfx::Mesh* mesh) :
+        direction(direction), position(position), mesh(mesh) {}
 
     bool DistrictRoad::is_crossing() const {
         return direction == RoadDirection::CROSSING_DOWN_LEFT ||
