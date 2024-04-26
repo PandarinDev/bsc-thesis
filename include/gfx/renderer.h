@@ -63,6 +63,7 @@ namespace inf::gfx {
         void render(const Mesh& mesh);
         void render_instanced(const Mesh& mesh, const std::vector<glm::vec3>& positions, const std::vector<float>& rotations);
         void render_instanced_caster(const Mesh& mesh, const std::vector<glm::vec3>& positions, const std::vector<float>& rotations);
+        void render_particles(const Mesh& mesh, const std::vector<glm::vec3>& positions);
         void render(const BoundingBox3D& bounding_box, const glm::vec3& color);
         void end_frame();
 
@@ -70,6 +71,7 @@ namespace inf::gfx {
         const glm::mat4& get_projection_matrix() const;
         glm::mat4 get_view_matrix() const;
         Frustum get_frustum_in_view_space() const;
+        Frustum get_frustum_in_world_space() const;
 
         void destroy_imgui();
 
@@ -79,6 +81,11 @@ namespace inf::gfx {
             const Mesh* mesh;
             const std::vector<glm::vec3>& positions;
             const std::vector<float>& rotations;
+        };
+
+        struct ParticlesToRender {
+            const Mesh* mesh;
+            const std::vector<glm::vec3>& positions;
         };
 
         Context& context;
@@ -100,12 +107,15 @@ namespace inf::gfx {
         std::vector<vk::Shader> instanced_shaders;
         std::vector<vk::Shader> shadow_map_shaders;
         std::vector<vk::Shader> shadow_map_instanced_shaders;
+        std::vector<vk::Shader> particle_shaders;
         std::unique_ptr<vk::DescriptorPool> descriptor_pool;
         std::unique_ptr<vk::DescriptorSetLayout> descriptor_set_layout;
         std::unique_ptr<vk::DescriptorSetLayout> instanced_descriptor_set_layout;
         std::unique_ptr<vk::DescriptorSetLayout> shadow_map_descriptor_set_layout;
+        std::unique_ptr<vk::DescriptorSetLayout> particle_descriptor_set_layout;
         std::vector<VkDescriptorSet> descriptor_sets;
         std::vector<VkDescriptorSet> shadow_map_descriptor_sets;
+        std::vector<VkDescriptorSet> particle_descriptor_sets;
 
         // Render passes and pipelines
         std::unique_ptr<vk::RenderPass> render_pass;
@@ -114,6 +124,7 @@ namespace inf::gfx {
         std::unique_ptr<vk::Pipeline> instanced_pipeline;
         std::unique_ptr<vk::Pipeline> shadow_map_pipeline;
         std::unique_ptr<vk::Pipeline> shadow_map_instanced_pipeline;
+        std::unique_ptr<vk::Pipeline> particle_pipeline;
 
         // Images, frame buffers, samplers
         std::unique_ptr<vk::Image> color_image;
@@ -134,6 +145,7 @@ namespace inf::gfx {
         // Uniform buffers
         std::vector<vk::MappedBuffer> uniform_buffers;
         std::vector<vk::MappedBuffer> shadow_map_uniform_buffers;
+        std::vector<vk::MappedBuffer> particle_uniform_buffers;
 
         // Projection matrices
         glm::mat4 projection_matrix;
@@ -142,9 +154,11 @@ namespace inf::gfx {
         std::vector<const Mesh*> shadow_casters_to_render;
         std::vector<InstancedMeshToRender> instanced_non_casters_to_render;
         std::vector<InstancedMeshToRender> instanced_casters_to_render;
+        std::vector<ParticlesToRender> particles_to_render;
         std::vector<gfx::vk::MappedBuffer> bounding_boxes_to_render;
         std::vector<gfx::vk::MappedBuffer> instanced_data_buffers;
         std::vector<gfx::vk::MappedBuffer> instanced_shadow_data_buffers;
+        std::vector<gfx::vk::MappedBuffer> particle_data_buffers;
 
         // Diagnostics flags
         // TODO: Move these to context

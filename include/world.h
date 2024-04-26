@@ -3,14 +3,22 @@
 #include "common.h"
 #include "district.h"
 #include "gfx/renderer.h"
+#include "gfx/particles.h"
 
+#include <memory>
 #include <unordered_map>
 
 namespace inf {
 
+    enum class Weather {
+        SUNNY,
+        RAINY,
+        STORMY
+    };
+
     struct World {
 
-        World();
+        World(gfx::ParticleSystem&& rain_particles);
 
         void update_caches();
 
@@ -34,6 +42,8 @@ namespace inf {
         std::vector<glm::vec3> crossing_positions;
         std::vector<float> crossing_rotations;
         bool dirty; // Indicates whether caches need to be updated before rendering
+        Weather weather;
+        gfx::ParticleSystem rain_particles;
 
         void place_vertical_road(
             const District* left,

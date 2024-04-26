@@ -59,10 +59,15 @@ namespace inf::gfx {
             const auto shadow_map_instanced_vs_bytes = utils::FileUtils::read_bytes("assets/shaders/instanced_shadow_map.vert.bin");
             shadow_map_instanced_shaders.emplace_back(vk::Shader::create_from_bytes(logical_device.get(), vk::ShaderType::VERTEX, shadow_map_instanced_vs_bytes));
             shadow_map_instanced_shaders.emplace_back(vk::Shader::create_from_bytes(logical_device.get(), vk::ShaderType::FRAGMENT, shadow_map_fs_bytes));
+
+            const auto rain_shader_vs_bytes = utils::FileUtils::read_bytes("assets/shaders/rain.vert.bin");
+            const auto rain_shader_fs_bytes = utils::FileUtils::read_bytes("assets/shaders/rain.frag.bin");
+            particle_shaders.emplace_back(vk::Shader::create_from_bytes(logical_device.get(), vk::ShaderType::VERTEX, rain_shader_vs_bytes));
+            particle_shaders.emplace_back(vk::Shader::create_from_bytes(logical_device.get(), vk::ShaderType::FRAGMENT, rain_shader_fs_bytes));
         }
 
         // Create descriptor pool and set layouts for shader uniform data
-        descriptor_pool = std::make_unique<vk::DescriptorPool>(vk::DescriptorPool::create(logical_device.get(), 5));
+        descriptor_pool = std::make_unique<vk::DescriptorPool>(vk::DescriptorPool::create(logical_device.get(), 10));
         descriptor_set_layout = std::make_unique<vk::DescriptorSetLayout>(vk::DescriptorSetLayout::create(
             logical_device.get(), {
                 VkDescriptorSetLayoutBinding{ 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT, nullptr },
@@ -76,6 +81,11 @@ namespace inf::gfx {
         shadow_map_descriptor_set_layout = std::make_unique<vk::DescriptorSetLayout>(vk::DescriptorSetLayout::create(
             logical_device.get(), {
                 VkDescriptorSetLayoutBinding{ 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT, nullptr },
+            }
+        ));
+        particle_descriptor_set_layout = std::make_unique<vk::DescriptorSetLayout>(vk::DescriptorSetLayout::create(
+            logical_device.get(), {
+                VkDescriptorSetLayoutBinding{ 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT, nullptr }
             }
         ));
 
@@ -140,6 +150,36 @@ namespace inf::gfx {
             VK_SAMPLE_COUNT_1_BIT,
             shadow_map_depth_bias));
 
+        // Create pipeline for rain effects
+        std::array<VkVertexInputBindingDescription, 2> particle_binding_descriptions;
+        particle_binding_descriptions[0].binding = 0;
+        particle_binding_descriptions[0].stride = sizeof(glm::vec3);
+        particle_binding_descriptions[0].inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+        particle_binding_descriptions[1].binding = 1;
+        particle_binding_descriptions[1].stride = sizeof(glm::vec3);
+        particle_binding_descriptions[1].inputRate = VK_VERTEX_INPUT_RATE_INSTANCE;
+
+        std::array<VkVertexInputAttributeDescription, 2> particle_attribute_descriptions;
+        particle_attribute_descriptions[0].binding = 0;
+        particle_attribute_descriptions[0].location = 0;
+        particle_attribute_descriptions[0].format = VK_FORMAT_R32G32B32_SFLOAT;
+        particle_attribute_descriptions[0].offset = 0;
+        particle_attribute_descriptions[1].binding = 1;
+        particle_attribute_descriptions[1].location = 1;
+        particle_attribute_descriptions[1].format = VK_FORMAT_R32G32B32_SFLOAT;
+        particle_attribute_descriptions[1].offset = 0;
+
+        particle_pipeline = std::make_unique<vk::Pipeline>(vk::Pipeline::create_pipeline(
+            logical_device.get(),
+            *render_pass,
+            swap_chain_extent,
+            *particle_descriptor_set_layout,
+            particle_shaders,
+            static_cast<std::uint32_t>(particle_binding_descriptions.size()), particle_binding_descriptions.data(),
+            static_cast<std::uint32_t>(particle_attribute_descriptions.size()), particle_attribute_descriptions.data(),
+            sample_count,
+            std::nullopt));
+
         // Create a separate color image if necessary because of multisampling
         // If not necessary (sample count = 1), we use the swapchain image instead.
         if (sample_count > VK_SAMPLE_COUNT_1_BIT) {
@@ -192,7 +232,11 @@ namespace inf::gfx {
                 logical_device.get(), memory_allocator.get(), vk::BufferType::VERTEX_BUFFER, INSTANCE_DATA_BUFFER_SIZE_INITIAL_BYTES));
             instanced_shadow_data_buffers.emplace_back(vk::MappedBuffer::create(
                 logical_device.get(), memory_allocator.get(), vk::BufferType::VERTEX_BUFFER, INSTANCE_DATA_BUFFER_SIZE_INITIAL_BYTES));
+            particle_data_buffers.emplace_back(vk::MappedBuffer::create(
+                logical_device.get(), memory_allocator.get(), vk::BufferType::VERTEX_BUFFER, INSTANCE_DATA_BUFFER_SIZE_INITIAL_BYTES));
             shadow_map_uniform_buffers.emplace_back(vk::MappedBuffer::create(
+                logical_device.get(), memory_allocator.get(), vk::BufferType::UNIFORM_BUFFER, sizeof(Matrices)));
+            particle_uniform_buffers.emplace_back(vk::MappedBuffer::create(
                 logical_device.get(), memory_allocator.get(), vk::BufferType::UNIFORM_BUFFER, sizeof(Matrices)));
         }
 
@@ -234,6 +278,19 @@ namespace inf::gfx {
         shadow_map_descriptor_sets = descriptor_pool->allocate_sets(
             *shadow_map_descriptor_set_layout, shadow_map_write_descriptor_sets, static_cast<std::uint32_t>(shadow_map_uniform_buffers.size()));
 
+        std::vector<VkDescriptorBufferInfo> particle_buffer_infos(particle_uniform_buffers.size());
+        std::vector<std::vector<VkWriteDescriptorSet>> particle_write_descriptor_sets(particle_uniform_buffers.size());
+        for (std::size_t i = 0; i < particle_uniform_buffers.size(); ++i) {
+            auto& particle_buffer_info = particle_buffer_infos[i];
+            particle_buffer_info = {};
+            particle_buffer_info.buffer = particle_uniform_buffers[i].get_buffer();
+            particle_buffer_info.offset = 0;
+            particle_buffer_info.range = VK_WHOLE_SIZE;
+            particle_write_descriptor_sets[i].emplace_back(gfx::vk::WriteDescriptorSet::create_for_buffer(particle_buffer_info, 0));
+        }
+        particle_descriptor_sets = descriptor_pool->allocate_sets(
+            *particle_descriptor_set_layout, particle_write_descriptor_sets, static_cast<std::uint32_t>(particle_uniform_buffers.size()));
+
         projection_matrix = glm::perspective(
             FOVY,
             static_cast<float>(swap_chain_extent.width) / swap_chain_extent.height,
@@ -274,6 +331,7 @@ namespace inf::gfx {
         instanced_non_casters_to_render.clear();
         instanced_casters_to_render.clear();
         bounding_boxes_to_render.clear();
+        particles_to_render.clear();
         ImGui_ImplVulkan_NewFrame();
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
@@ -316,6 +374,13 @@ namespace inf::gfx {
             return;
         }
         instanced_casters_to_render.emplace_back(InstancedMeshToRender{ &mesh, positions, rotations });
+    }
+
+    void Renderer::render_particles(const Mesh& mesh, const std::vector<glm::vec3>& positions) {
+        if (positions.empty()) {
+            return;
+        }
+        particles_to_render.emplace_back(ParticlesToRender{ &mesh, positions });
     }
 
     void Renderer::render(const BoundingBox3D& bounding_box, const glm::vec3& color) {
@@ -648,6 +713,39 @@ namespace inf::gfx {
             }
         }
 
+        // Render particles
+        if (!particles_to_render.empty()) {
+            vkCmdBindPipeline(command_buffer.get_command_buffer(), VK_PIPELINE_BIND_POINT_GRAPHICS, particle_pipeline->get_pipeline());
+            vkCmdBindDescriptorSets(
+                command_buffer.get_command_buffer(),
+                VK_PIPELINE_BIND_POINT_GRAPHICS,
+                particle_pipeline->get_pipeline_layout(),
+                0, 1,
+                &particle_descriptor_sets[frame_index],
+                0, nullptr);
+            
+            // Upload uniform data
+            Matrices particle_matrices;
+            particle_matrices.projection_matrix = projection_matrix;
+            particle_matrices.view_matrix = camera.to_view_matrix();
+            particle_uniform_buffers[frame_index].upload(&particle_matrices, sizeof(Matrices));
+
+            for (const auto& particle_system : particles_to_render) {
+                std::array<VkDeviceSize, 2> offsets{ 0, 0 };
+                std::array<VkBuffer, 2> buffer_handles {
+                    particle_system.mesh->get_buffer().get_buffer(),
+                    particle_data_buffers[frame_index].get_buffer()
+                };
+                const auto& positions = particle_system.positions;
+                const auto instance_count = static_cast<std::uint32_t>(positions.size());
+                const auto positions_num_bytes = instance_count * sizeof(glm::vec3);
+                // TODO: This will NOT work when we are trying to render more than one particle system at a time
+                particle_data_buffers[frame_index].upload(positions.data(), positions_num_bytes);
+                vkCmdBindVertexBuffers(command_buffer_handle, 0, static_cast<std::uint32_t>(buffer_handles.size()), buffer_handles.data(), offsets.data());
+                vkCmdDraw(command_buffer_handle, static_cast<std::uint32_t>(particle_system.mesh->get_number_of_vertices()), instance_count, 0, 0);
+            }
+        }
+
         // Render imgui data
         ImGui::Render();
         const auto draw_data = ImGui::GetDrawData();
@@ -710,6 +808,10 @@ namespace inf::gfx {
 
     Frustum Renderer::get_frustum_in_view_space() const {
         return Frustum(projection_matrix);
+    }
+
+    Frustum Renderer::get_frustum_in_world_space() const {
+        return Frustum(projection_matrix * camera.to_view_matrix());
     }
 
     void Renderer::destroy_imgui() {

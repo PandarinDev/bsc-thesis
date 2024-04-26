@@ -2,7 +2,8 @@
 
 namespace inf {
 
-    World::World() : dirty(true) {}
+    World::World(gfx::ParticleSystem&& rain_particles) :
+        dirty(true), weather(Weather::SUNNY), rain_particles(std::move(rain_particles)) {}
 
     bool World::has_district_at(const glm::ivec2& position) const {
         return districts.find(position) != districts.cend();
@@ -64,6 +65,9 @@ namespace inf {
         for (auto& [_, district] : districts) {
             district.update(rng, delta_time);
         }
+
+        // Update particle system
+        rain_particles.update(renderer.get_frustum_in_world_space(), delta_time);
     }
 
     void World::render(gfx::Renderer& renderer) {
@@ -77,6 +81,9 @@ namespace inf {
         const auto& crossing = wfc::GroundPatterns::get_pattern("road_crossing").mesh;
         renderer.render_instanced(road, road_positions, road_rotations);
         renderer.render_instanced(crossing, crossing_positions, crossing_rotations);
+        
+        // Render rain particles
+        renderer.render_particles(rain_particles.mesh, rain_particles.positions);
     }
 
     bool World::is_dirty() const {

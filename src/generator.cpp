@@ -2,6 +2,7 @@
 #include "gfx/geometry.h"
 #include "utils/random_utils.h"
 
+#include <array>
 #include <cmath>
 #include <stdexcept>
 #include <functional>
@@ -9,11 +10,35 @@
 
 namespace inf {
 
+    static constexpr auto NUM_RAIN_PARTICLES = 1000;
+
     WorldGenerator::WorldGenerator(RandomGenerator& random_engine, const gfx::Renderer& renderer) :
         random_engine(random_engine), renderer(renderer) {}
 
     World WorldGenerator::generate_initial() {
-        World world;
+        static constexpr float rain_half_size = 0.018f;
+        static const std::array<glm::vec3, 6> rain_mesh_vertices {
+            glm::vec3(-rain_half_size, -rain_half_size, 0.0f),
+            glm::vec3(rain_half_size, -rain_half_size, 0.0f),
+            glm::vec3(rain_half_size, rain_half_size, 0.0f),
+            glm::vec3(-rain_half_size, -rain_half_size, 0.0f),
+            glm::vec3(rain_half_size, rain_half_size, 0.0f),
+            glm::vec3(-rain_half_size, rain_half_size, 0.0f)
+        };
+        static constexpr auto rain_mesh_vertex_bytes = rain_mesh_vertices.size() * sizeof(glm::vec3);
+        gfx::vk::MappedBuffer rain_mesh_buffer = gfx::vk::MappedBuffer::create(
+            &renderer.get_logical_device(),
+            &renderer.get_memory_allocator(),
+            gfx::vk::BufferType::VERTEX_BUFFER,
+            rain_mesh_vertex_bytes);
+        rain_mesh_buffer.upload(rain_mesh_vertices.data(), rain_mesh_vertex_bytes);
+        gfx::ParticleSystem rain_particles(
+            gfx::Mesh(std::move(rain_mesh_buffer), rain_mesh_vertices.size(), glm::mat4(1.0f), BoundingBox3D()),
+            random_engine,
+            renderer.get_frustum_in_world_space(),
+            NUM_RAIN_PARTICLES);
+
+        World world(std::move(rain_particles));
         auto& district = world.add_district(glm::ivec2(0, 0), generate_district(glm::ivec2(0, 0)));
 
         // Center the district compared to where the camera initially intersects the ground plane
