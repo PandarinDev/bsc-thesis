@@ -16,14 +16,15 @@ namespace inf {
         random_engine(random_engine), renderer(renderer) {}
 
     World WorldGenerator::generate_initial() {
-        static constexpr float rain_half_size = 0.018f;
+        static constexpr float rain_half_width = 0.01f;
+        static constexpr float rain_half_height = rain_half_width * 2.0f;
         static const std::array<glm::vec3, 6> rain_mesh_vertices {
-            glm::vec3(-rain_half_size, -rain_half_size, 0.0f),
-            glm::vec3(rain_half_size, -rain_half_size, 0.0f),
-            glm::vec3(rain_half_size, rain_half_size, 0.0f),
-            glm::vec3(-rain_half_size, -rain_half_size, 0.0f),
-            glm::vec3(rain_half_size, rain_half_size, 0.0f),
-            glm::vec3(-rain_half_size, rain_half_size, 0.0f)
+            glm::vec3(-rain_half_width, -rain_half_height, 0.0f),
+            glm::vec3(rain_half_width, -rain_half_height, 0.0f),
+            glm::vec3(rain_half_width, rain_half_height, 0.0f),
+            glm::vec3(-rain_half_width, -rain_half_height, 0.0f),
+            glm::vec3(rain_half_width, rain_half_height, 0.0f),
+            glm::vec3(-rain_half_width, rain_half_height, 0.0f)
         };
         static constexpr auto rain_mesh_vertex_bytes = rain_mesh_vertices.size() * sizeof(glm::vec3);
         gfx::vk::MappedBuffer rain_mesh_buffer = gfx::vk::MappedBuffer::create(

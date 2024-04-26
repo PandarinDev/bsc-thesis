@@ -15,9 +15,9 @@ namespace inf::gfx {
     void ParticleSystem::update(const gfx::Frustum& frustum, float delta_time) {
         const auto frustum_bb = frustum.compute_bounding_box();
         std::uniform_real_distribution<float> x_distribution(frustum_bb.min.x, frustum_bb.max.x);
-        std::uniform_real_distribution<float> y_distribution(frustum_bb.max.y - 0.5f, frustum_bb.max.y + 0.5f);
+        std::uniform_real_distribution<float> y_distribution(frustum_bb.min.y, frustum_bb.max.y + 0.5f);
         std::uniform_real_distribution<float> z_distribution(frustum_bb.min.z, frustum_bb.max.z);
-        std::uniform_real_distribution<float> velocity_distribution(2.0f, 4.0f);
+        std::uniform_real_distribution<float> velocity_distribution(5.0f, 7.0f);
         for (std::size_t i = 0; i < positions.size(); ++i) {
             auto& position = positions[i];
             auto& velocity = velocities[i];
@@ -36,9 +36,9 @@ namespace inf::gfx {
     void ParticleSystem::initialize(const gfx::Frustum& frustum) {
         const auto frustum_bb = frustum.compute_bounding_box();
         std::uniform_real_distribution<float> x_distribution(frustum_bb.min.x, frustum_bb.max.x);
-        std::uniform_real_distribution<float> y_distribution(frustum_bb.max.y - 0.5f, frustum_bb.max.y + 0.5f);
+        std::uniform_real_distribution<float> y_distribution(frustum_bb.min.y, frustum_bb.max.y + 0.5f);
         std::uniform_real_distribution<float> z_distribution(frustum_bb.min.z, frustum_bb.max.z);
-        std::uniform_real_distribution<float> velocity_distribution(2.0f, 4.0f);
+        std::uniform_real_distribution<float> velocity_distribution(5.0f, 7.0f);
         for (std::size_t i = 0; i < positions.size(); ++i) {
             positions[i] = glm::vec3(
                 x_distribution(rng),
