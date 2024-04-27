@@ -237,7 +237,7 @@ namespace inf::gfx {
             shadow_map_uniform_buffers.emplace_back(vk::MappedBuffer::create(
                 logical_device.get(), memory_allocator.get(), vk::BufferType::UNIFORM_BUFFER, sizeof(Matrices)));
             particle_uniform_buffers.emplace_back(vk::MappedBuffer::create(
-                logical_device.get(), memory_allocator.get(), vk::BufferType::UNIFORM_BUFFER, sizeof(Matrices)));
+                logical_device.get(), memory_allocator.get(), vk::BufferType::UNIFORM_BUFFER, sizeof(ParticleMatrices)));
         }
 
         // Allocate descriptor sets for the uniform buffers and the shadow map sampler
@@ -441,7 +441,8 @@ namespace inf::gfx {
             &shadow_map_descriptor_sets[frame_index],
             0, nullptr);
 
-        Frustum frustum(projection_matrix * camera.to_view_matrix());
+        const auto view_matrix = camera.to_view_matrix();
+        Frustum frustum(projection_matrix * view_matrix);
         // TODO: The number of splits necessary is mostly resolution dependant. 5 splits seem good enough on a 1440p resolution, while
         // even 2 splits seem mostly okay on a fullHD screen. If there is time there should be a proper cascaded shadow implementation
         // instead of this hardcoded value. Or as a janky alternative the engine could dynamically switch to higher splits on higher
@@ -462,7 +463,7 @@ namespace inf::gfx {
         static constexpr glm::vec3 sun_end_direction(0.65f, -0.54f, -0.54f);
         const auto sun_direction = glm::normalize(glm::mix(sun_start_direction, sun_end_direction, context.time_of_day));
         const auto sin_time_of_day = glm::sin(context.time_of_day * glm::pi<float>());
-        const auto ambient_light = glm::mix(0.2f, 1.0f, sin_time_of_day);
+        const auto ambient_light = glm::mix(0.05f, 1.0f, sin_time_of_day);
         glm::mat4 sun_view_matrix = glm::lookAt(
             sun_position,
             sun_position + sun_direction,
@@ -591,7 +592,7 @@ namespace inf::gfx {
         // Upload uniform buffer data
         Matrices matrices;
         matrices.projection_matrix = projection_matrix;
-        matrices.view_matrix = camera.to_view_matrix();
+        matrices.view_matrix = view_matrix;
         matrices.light_space_matrix = shadow_map_projection_matrix * sun_view_matrix;
         matrices.light_direction = sun_direction;
         matrices.ambient_light = ambient_light;
@@ -725,10 +726,12 @@ namespace inf::gfx {
                 0, nullptr);
             
             // Upload uniform data
-            Matrices particle_matrices;
+            ParticleMatrices particle_matrices;
             particle_matrices.projection_matrix = projection_matrix;
-            particle_matrices.view_matrix = camera.to_view_matrix();
-            particle_uniform_buffers[frame_index].upload(&particle_matrices, sizeof(Matrices));
+            particle_matrices.view_matrix = view_matrix;
+            particle_matrices.inverse_view_matrix = glm::inverse(view_matrix);
+            particle_matrices.ambient_light = ambient_light;
+            particle_uniform_buffers[frame_index].upload(&particle_matrices, sizeof(ParticleMatrices));
 
             for (const auto& particle_system : particles_to_render) {
                 std::array<VkDeviceSize, 2> offsets{ 0, 0 };

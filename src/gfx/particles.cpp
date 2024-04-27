@@ -13,7 +13,7 @@ namespace inf::gfx {
     }
 
     void ParticleSystem::update(const gfx::Frustum& frustum, float delta_time) {
-        const auto frustum_bb = frustum.compute_bounding_box();
+        const auto frustum_bb = frustum.split<10>()[0].compute_bounding_box();
         std::uniform_real_distribution<float> x_distribution(frustum_bb.min.x, frustum_bb.max.x);
         std::uniform_real_distribution<float> y_distribution(frustum_bb.min.y, frustum_bb.max.y + 0.5f);
         std::uniform_real_distribution<float> z_distribution(frustum_bb.min.z, frustum_bb.max.z);

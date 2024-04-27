@@ -67,7 +67,7 @@ namespace inf {
         }
 
         // Update particle system
-        rain_particles.update(renderer.get_frustum_in_world_space().split<10>()[0], delta_time);
+        rain_particles.update(renderer.get_frustum_in_world_space(), delta_time);
     }
 
     void World::render(gfx::Renderer& renderer) {

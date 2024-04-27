@@ -43,6 +43,13 @@ namespace inf::gfx {
         std::int32_t debug_bb; // Boolean, but GLSL bools are 4 bytes
     };
 
+    struct ParticleMatrices {
+        glm::mat4 projection_matrix;
+        glm::mat4 view_matrix;
+        glm::mat4 inverse_view_matrix;
+        float ambient_light;
+    };
+
     struct Renderer {
 
         static constexpr std::uint8_t MAX_FRAMES_IN_FLIGHT = 2;

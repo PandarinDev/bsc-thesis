@@ -35,7 +35,7 @@ float calculateShadowFactor() {
         }
     }
 
-    return min(shadow / 9.0, 0.8);
+    return min(shadow / 9.0, 0.8) * ambientLight;
 }
 
 void main() {
