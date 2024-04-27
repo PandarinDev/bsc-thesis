@@ -1,5 +1,6 @@
 #include "generator.h"
 #include "gfx/geometry.h"
+#include "gfx/particles.h"
 #include "utils/random_utils.h"
 
 #include <array>
@@ -10,36 +11,19 @@
 
 namespace inf {
 
-    static constexpr auto NUM_RAIN_PARTICLES = 1000;
-
     WorldGenerator::WorldGenerator(RandomGenerator& random_engine, const gfx::Renderer& renderer) :
         random_engine(random_engine), renderer(renderer) {}
 
-    World WorldGenerator::generate_initial() {
-        static constexpr float rain_half_width = 0.01f;
-        static constexpr float rain_half_height = rain_half_width * 2.0f;
-        static const std::array<glm::vec3, 6> rain_mesh_vertices {
-            glm::vec3(-rain_half_width, -rain_half_height, 0.0f),
-            glm::vec3(rain_half_width, -rain_half_height, 0.0f),
-            glm::vec3(rain_half_width, rain_half_height, 0.0f),
-            glm::vec3(-rain_half_width, -rain_half_height, 0.0f),
-            glm::vec3(rain_half_width, rain_half_height, 0.0f),
-            glm::vec3(-rain_half_width, rain_half_height, 0.0f)
+    World WorldGenerator::generate_initial(const Timer& timer) {
+        const auto rain_particles_factory = [this](int num_rain_particles) {
+            return gfx::ParticleSystem(
+                &gfx::ParticleMeshes::get_rain_mesh(),
+                random_engine,
+                renderer.get_frustum_in_world_space(),
+                num_rain_particles);
         };
-        static constexpr auto rain_mesh_vertex_bytes = rain_mesh_vertices.size() * sizeof(glm::vec3);
-        gfx::vk::MappedBuffer rain_mesh_buffer = gfx::vk::MappedBuffer::create(
-            &renderer.get_logical_device(),
-            &renderer.get_memory_allocator(),
-            gfx::vk::BufferType::VERTEX_BUFFER,
-            rain_mesh_vertex_bytes);
-        rain_mesh_buffer.upload(rain_mesh_vertices.data(), rain_mesh_vertex_bytes);
-        gfx::ParticleSystem rain_particles(
-            gfx::Mesh(std::move(rain_mesh_buffer), rain_mesh_vertices.size(), glm::mat4(1.0f), BoundingBox3D()),
-            random_engine,
-            renderer.get_frustum_in_world_space(),
-            NUM_RAIN_PARTICLES);
 
-        World world(std::move(rain_particles));
+        World world(timer, rain_particles_factory);
         auto& district = world.add_district(glm::ivec2(0, 0), generate_district(glm::ivec2(0, 0)));
 
         // Center the district compared to where the camera initially intersects the ground plane

@@ -3,12 +3,45 @@
 
 namespace inf::gfx {
 
+    std::unique_ptr<Mesh> ParticleMeshes::rain_mesh;
+
+    void ParticleMeshes::initialize(
+        const vk::LogicalDevice* device,
+        const vk::MemoryAllocator* allocator) {
+        static constexpr float rain_half_width = 0.01f;
+        static constexpr float rain_half_height = rain_half_width * 2.0f;
+        static const std::array<glm::vec3, 6> rain_mesh_vertices {
+            glm::vec3(-rain_half_width, -rain_half_height, 0.0f),
+            glm::vec3(rain_half_width, -rain_half_height, 0.0f),
+            glm::vec3(rain_half_width, rain_half_height, 0.0f),
+            glm::vec3(-rain_half_width, -rain_half_height, 0.0f),
+            glm::vec3(rain_half_width, rain_half_height, 0.0f),
+            glm::vec3(-rain_half_width, rain_half_height, 0.0f)
+        };
+        static constexpr auto rain_mesh_vertex_bytes = rain_mesh_vertices.size() * sizeof(glm::vec3);
+        gfx::vk::MappedBuffer rain_mesh_buffer = gfx::vk::MappedBuffer::create(
+            device,
+            allocator,
+            gfx::vk::BufferType::VERTEX_BUFFER,
+            rain_mesh_vertex_bytes);
+        rain_mesh_buffer.upload(rain_mesh_vertices.data(), rain_mesh_vertex_bytes);
+        rain_mesh = std::make_unique<Mesh>(Mesh(std::move(rain_mesh_buffer), rain_mesh_vertices.size(), glm::mat4(1.0f), BoundingBox3D()));
+    }
+
+    void ParticleMeshes::deinitialize() {
+        rain_mesh.reset();
+    }
+
+    const Mesh& ParticleMeshes::get_rain_mesh() {
+        return *rain_mesh;
+    }
+
     ParticleSystem::ParticleSystem(
-        Mesh&& mesh,
+        const Mesh* mesh,
         RandomGenerator& rng,
         const gfx::Frustum& frustum,
         std::size_t num_max_particles) :
-        mesh(std::move(mesh)), rng(rng), positions(num_max_particles), velocities(num_max_particles) {
+        mesh(mesh), rng(rng), positions(num_max_particles), velocities(num_max_particles) {
         initialize(frustum.split<10>()[0]);
     }
 

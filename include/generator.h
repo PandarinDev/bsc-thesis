@@ -14,7 +14,7 @@ namespace inf {
 
         WorldGenerator(RandomGenerator& random_engine, const gfx::Renderer& renderer);
 
-        World generate_initial();
+        World generate_initial(const Timer& timer);
         void populate_world(World& world);
 
     private:

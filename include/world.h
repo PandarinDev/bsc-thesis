@@ -1,24 +1,32 @@
 #pragma once
 
 #include "common.h"
+#include "timer.h"
 #include "district.h"
 #include "gfx/renderer.h"
 #include "gfx/particles.h"
 
 #include <memory>
+#include <functional>
 #include <unordered_map>
 
 namespace inf {
 
     enum class Weather {
         SUNNY,
-        RAINY,
-        STORMY
+        RAINY
+    };
+
+    enum class RainIntensity {
+        NONE,
+        LIGHT,
+        MODERATE,
+        HEAVY
     };
 
     struct World {
 
-        World(gfx::ParticleSystem&& rain_particles);
+        World(const Timer& timer, std::function<gfx::ParticleSystem(int)> rain_particle_factory);
 
         void update_caches();
 
@@ -36,6 +44,8 @@ namespace inf {
 
     private:
     
+        const Timer& timer;
+        std::function<gfx::ParticleSystem(int)> rain_particle_factory;
         std::unordered_map<glm::ivec2, District> districts;
         std::vector<glm::vec3> road_positions;
         std::vector<float> road_rotations;
@@ -43,7 +53,9 @@ namespace inf {
         std::vector<float> crossing_rotations;
         bool dirty; // Indicates whether caches need to be updated before rendering
         Weather weather;
-        gfx::ParticleSystem rain_particles;
+        RainIntensity rain_intensity;
+        float last_weather_change_check;
+        std::unique_ptr<gfx::ParticleSystem> rain_particles;
 
         void place_vertical_road(
             const District* left,
@@ -53,6 +65,9 @@ namespace inf {
             const District* bottom,
             const std::unordered_map<glm::ivec2, const DistrictRoad*>& top_roads_at_edges,
             const std::unordered_map<glm::ivec2, const DistrictRoad*>& bottom_roads_at_edges);
+
+        std::vector<std::pair<Weather, RainIntensity>> get_possible_new_weathers() const;
+        void on_weather_change(Weather new_weather, RainIntensity new_rain_intensity);
 
     };
 

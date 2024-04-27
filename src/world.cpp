@@ -1,9 +1,26 @@
 #include "world.h"
+#include "utils/random_utils.h"
+
+#include <array>
+#include <magic_enum.hpp>
 
 namespace inf {
 
-    World::World(gfx::ParticleSystem&& rain_particles) :
-        dirty(true), weather(Weather::SUNNY), rain_particles(std::move(rain_particles)) {}
+    // TODO: Move these to context and make them user controllable
+    static constexpr float WEATHER_CHANGE_CHECK_FREQUENCY_SECONDS = 10.0f;
+    static constexpr float WEATHER_CHANGE_CHANCE_PERCENTAGE = 0.5f;
+
+    static const std::array<int, magic_enum::enum_count<RainIntensity>()> rain_intensity_to_num_particles {
+        0,
+        1000,
+        3000,
+        5000
+    };
+
+    World::World(const Timer& timer, std::function<gfx::ParticleSystem(int)> rain_particle_factory) :
+        timer(timer), dirty(true), weather(Weather::SUNNY),
+        rain_intensity(RainIntensity::NONE), rain_particle_factory(rain_particle_factory),
+        last_weather_change_check(static_cast<float>(timer.get_time())) {}
 
     bool World::has_district_at(const glm::ivec2& position) const {
         return districts.find(position) != districts.cend();
@@ -66,8 +83,25 @@ namespace inf {
             district.update(rng, delta_time);
         }
 
+        // Potentially change weather
+        const auto time = static_cast<float>(timer.get_time());
+        if (time - last_weather_change_check > WEATHER_CHANGE_CHECK_FREQUENCY_SECONDS) {
+            std::uniform_real_distribution<float> weather_change_distribution(0.0f, 1.0f);
+            const auto result = weather_change_distribution(rng);
+            if (result <= WEATHER_CHANGE_CHANCE_PERCENTAGE) {
+                const auto possible_new_weathers = get_possible_new_weathers();
+                std::uniform_int_distribution<std::size_t> weather_index_distribution(0, possible_new_weathers.size() - 1);
+                const auto weather_index = weather_index_distribution(rng);
+                const auto [new_weather, new_rain_intensity] = possible_new_weathers[weather_index];
+                on_weather_change(new_weather, new_rain_intensity);
+            }
+            last_weather_change_check = time;
+        }
+
         // Update particle system
-        rain_particles.update(renderer.get_frustum_in_world_space(), delta_time);
+        if (rain_particles) {
+            rain_particles->update(renderer.get_frustum_in_world_space(), delta_time);
+        }
     }
 
     void World::render(gfx::Renderer& renderer) {
@@ -83,7 +117,9 @@ namespace inf {
         renderer.render_instanced(crossing, crossing_positions, crossing_rotations);
         
         // Render rain particles
-        renderer.render_particles(rain_particles.mesh, rain_particles.positions);
+        if (rain_particles) {
+            renderer.render_particles(*rain_particles->mesh, rain_particles->positions);
+        }
     }
 
     bool World::is_dirty() const {
@@ -202,6 +238,36 @@ namespace inf {
                 }
             }
     }
-    
+
+    std::vector<std::pair<Weather, RainIntensity>> World::get_possible_new_weathers() const {
+        if (weather == Weather::SUNNY) {
+            return {{ Weather::RAINY, RainIntensity::LIGHT }};
+        }
+        if (rain_intensity == RainIntensity::LIGHT) {
+            return {
+                { Weather::SUNNY, RainIntensity::NONE },
+                { Weather::RAINY, RainIntensity::MODERATE }
+            };
+        }
+        if (rain_intensity == RainIntensity::MODERATE) {
+            return {
+                { Weather::RAINY, RainIntensity::LIGHT },
+                { Weather::RAINY, RainIntensity::HEAVY }
+            };
+        }
+        return {{ Weather::RAINY, RainIntensity::MODERATE }};
+    }
+
+    void World::on_weather_change(Weather new_weather, RainIntensity new_rain_intensity) {
+        if (new_weather == Weather::SUNNY) {
+            rain_particles.reset();
+        }
+        else {
+            const auto num_rain_particles = rain_intensity_to_num_particles[static_cast<std::size_t>(new_rain_intensity)];
+            rain_particles = std::make_unique<gfx::ParticleSystem>(rain_particle_factory(num_rain_particles));
+        }
+        this->weather = new_weather;
+        this->rain_intensity = new_rain_intensity;
+    }
 
 }

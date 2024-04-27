@@ -41,6 +41,7 @@ int main() {
         wfc::BuildingPatterns::initialize("assets/buildings");
         wfc::GroundPatterns::initialize("assets/grounds", &renderer.get_logical_device(), &renderer.get_memory_allocator());
         VehiclePatterns::initialize("assets/vehicles");
+        ParticleMeshes::initialize(&renderer.get_logical_device(), &renderer.get_memory_allocator());
         const auto asset_load_elapsed_time = timer.get_time() - asset_load_start_time;
         std::cout << "Asset loading took " << asset_load_elapsed_time << " seconds." << std::endl;
 
@@ -48,7 +49,7 @@ int main() {
         RandomGenerator random_engine(random_device());
         const auto generation_start_time = timer.get_time();
         WorldGenerator generator(random_engine, renderer);
-        World world = generator.generate_initial();
+        World world = generator.generate_initial(timer);
         const auto generation_elapsed_time = timer.get_time() - generation_start_time;
         std::cout << "World generation took " << generation_elapsed_time << " seconds." << std::endl;
 
@@ -76,9 +77,10 @@ int main() {
         // Wait until the device becomes idle (flushes queues) to destroy in a well-defined state
         renderer.get_logical_device().wait_until_idle();
         renderer.destroy_imgui();
-        // Ground pattern meshes are not dynamically generated, so they are statically stored.
+        // Ground pattern and particle meshes are not dynamically generated, so they are statically stored.
         // Hence, they need to be cleaned up explicitly before shutdown to avoid validation layers complaining.
         wfc::GroundPatterns::deinitialize();
+        ParticleMeshes::deinitialize();
         glfwTerminate();
         return 0;
     } catch (const std::exception& e) {
