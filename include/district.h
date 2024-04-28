@@ -94,7 +94,7 @@ namespace inf {
 
         };
 
-        DistrictType type;
+        [[maybe_unused]] DistrictType type;
         glm::ivec2 grid_position;
         glm::ivec2 dimensions;
         glm::vec3 position;

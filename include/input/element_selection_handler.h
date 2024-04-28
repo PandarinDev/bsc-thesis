@@ -30,9 +30,9 @@ namespace inf::input {
     private:
 
         Context& context;
-        const World& world;
-        const Camera& camera;
-        const glm::mat4 projection_matrix;
+        [[maybe_unused]] const World& world;
+        [[maybe_unused]] const Camera& camera;
+        [[maybe_unused]] const glm::mat4 projection_matrix;
 
     };
 

@@ -18,8 +18,8 @@ namespace inf {
     };
 
     World::World(const Timer& timer, std::function<gfx::ParticleSystem(int)> rain_particle_factory) :
-        timer(timer), dirty(true), weather(Weather::SUNNY),
-        rain_intensity(RainIntensity::NONE), rain_particle_factory(rain_particle_factory),
+        timer(timer), rain_particle_factory(rain_particle_factory),
+        dirty(true), weather(Weather::SUNNY), rain_intensity(RainIntensity::NONE),
         last_weather_change_check(static_cast<float>(timer.get_time())) {}
 
     bool World::has_district_at(const glm::ivec2& position) const {
