@@ -26,7 +26,6 @@ namespace inf {
         void update(const glm::vec3& position);
         void update(const BoundingBox3D& other);
         std::array<glm::vec3, 8> get_points() const;
-        std::vector<glm::ivec3> get_occupied_blocks() const;
         std::vector<gfx::vk::Vertex> to_vertices(float gap, const glm::vec3& color) const;
 
         float width() const;
@@ -35,8 +34,6 @@ namespace inf {
 
         BoundingBox3D apply(const glm::mat4& transformation) const;
         BoundingBox3D apply_and_transform_to_ndc(const glm::mat4& transformation) const;
-        bool is_inside(const glm::vec3& point) const;
-        bool collides(const BoundingBox3D& other) const;
 
         OrientedBoundingBox3D to_oriented(const glm::mat4& transformation) const;
 

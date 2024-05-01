@@ -871,29 +871,6 @@ namespace inf::gfx {
         frame_index = (frame_index + 1) % MAX_FRAMES_IN_FLIGHT;
     }
 
-    bool Renderer::is_in_view(const BoundingBox3D& bounding_box) const {
-        // We expect the bounding box to already have the model matrix applied
-        static constexpr std::array<glm::vec4, 8> ndc_points {
-            glm::vec4(-1.0f, -1.0f, 0.0f, 1.0f),
-            glm::vec4(1.0f, -1.0f, 0.0f, 1.0f),
-            glm::vec4(-1.0f, 1.0f, 0.0f, 1.0f),
-            glm::vec4(1.0f, 1.0f, 0.0f, 1.f),
-            glm::vec4(-1.0f, -1.0f, 1.0f, 1.0f),
-            glm::vec4(1.0f, -1.0f, 1.0f, 1.0f),
-            glm::vec4(-1.0f, 1.0f, 1.0f, 1.0f),
-            glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
-        };
-        // TODO: Change this to OBB frustum checking (https://bruop.github.io/improved_frustum_culling/) to be more accurate.
-        const auto inverse_clip_matrix = glm::inverse(projection_matrix * camera.to_view_matrix());
-        BoundingBox3D frustum_bb;
-        for (const auto& point : ndc_points) {
-            const auto result = inverse_clip_matrix * point;
-            frustum_bb.update(glm::vec3(result / result.w));
-        }
-
-        return frustum_bb.collides(bounding_box);
-    }
-
     const glm::mat4& Renderer::get_projection_matrix() const {
         return projection_matrix;
     }

@@ -77,7 +77,6 @@ namespace inf::gfx {
         void render(const BoundingBox3D& bounding_box, const glm::vec3& color);
         void end_frame();
 
-        bool is_in_view(const BoundingBox3D& bounding_box) const;
         const glm::mat4& get_projection_matrix() const;
         glm::mat4 get_view_matrix() const;
         Frustum get_frustum_in_view_space() const;

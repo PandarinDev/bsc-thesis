@@ -43,24 +43,6 @@ namespace inf {
         };
     }
 
-    std::vector<glm::ivec3> BoundingBox3D::get_occupied_blocks() const {
-        std::vector<glm::ivec3> result;
-        const auto min_x = static_cast<int>(std::floor(min.x));
-        const auto max_x = static_cast<int>(std::ceil(max.x));
-        const auto min_y = static_cast<int>(std::floor(min.y));
-        const auto max_y = static_cast<int>(std::ceil(max.y));
-        const auto min_z = static_cast<int>(std::floor(min.z));
-        const auto max_z = static_cast<int>(std::ceil(max.z));
-        for (int x = min_x; x < max_x; ++x) {
-            for (int y = min_y; y < max_y; ++y) {
-                for (int z = min_z; z < max_z; ++z) {
-                    result.emplace_back(x, y, z);
-                }
-            }
-        }
-        return result;
-    }
-
     std::vector<gfx::vk::Vertex> BoundingBox3D::to_vertices(float gap, const glm::vec3& color) const {
         const auto points = get_points();
         std::vector<gfx::vk::Vertex> result;
@@ -176,20 +158,6 @@ namespace inf {
             result.update(glm::vec3(transformed));
         }
         return result;
-    }
-
-    bool BoundingBox3D::is_inside(const glm::vec3& point) const {
-        return point.x >= min.x && point.y >= min.y && point.z >= min.z &&
-            point.x <= max.x && point.y <= max.y && point.z <= max.z;
-    }
-
-    bool BoundingBox3D::collides(const BoundingBox3D& other) const {
-        static const auto overlaps = [](float min1, float min2, float max1, float max2) {
-            return max1 >= min2 && max2 >= min1;
-        };
-        return overlaps(min.x, other.min.x, max.x, other.max.x) &&
-            overlaps(min.y, other.min.y, max.y, other.max.y) &&
-            overlaps(min.z, other.min.z, max.z, other.max.z);
     }
 
     OrientedBoundingBox3D BoundingBox3D::to_oriented(const glm::mat4& transformation) const {

@@ -3,6 +3,7 @@ file(GLOB_RECURSE INFINITOWN_TEST_SRC_FILES "*.cpp")
 add_executable(infinitown-tests ${INFINITOWN_TEST_SRC_FILES}
     "../src/utils/string_utils.cpp"
     "../src/bounding_box.cpp"
+    "../src/road.cpp"
     "../src/gfx/geometry.cpp"
     "../src/gfx/frustum.cpp"
     "../src/gfx/vk/vertex.cpp")
