@@ -11,8 +11,8 @@
 
 namespace inf {
 
-    WorldGenerator::WorldGenerator(RandomGenerator& random_engine, const gfx::Renderer& renderer) :
-        random_engine(random_engine), renderer(renderer) {}
+    WorldGenerator::WorldGenerator(Context& context, RandomGenerator& random_engine, const gfx::Renderer& renderer) :
+        context(context), random_engine(random_engine), renderer(renderer) {}
 
     World WorldGenerator::generate_initial(const Timer& timer) {
         const auto rain_particles_factory = [this](int num_rain_particles) {
@@ -23,7 +23,7 @@ namespace inf {
                 num_rain_particles);
         };
 
-        World world(timer, rain_particles_factory);
+        World world(timer, context, rain_particles_factory);
         auto& district = world.add_district(glm::ivec2(0, 0), generate_district(glm::ivec2(0, 0)));
 
         // Center the district compared to where the camera initially intersects the ground plane

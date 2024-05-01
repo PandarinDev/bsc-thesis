@@ -14,13 +14,14 @@ namespace inf {
 
     struct WorldGenerator {
 
-        WorldGenerator(RandomGenerator& random_engine, const gfx::Renderer& renderer);
+        WorldGenerator(Context& context, RandomGenerator& random_engine, const gfx::Renderer& renderer);
 
         World generate_initial(const Timer& timer);
         void populate_world(World& world);
 
     private:
 
+        Context& context;
         RandomGenerator& random_engine;
         const gfx::Renderer& renderer;
 

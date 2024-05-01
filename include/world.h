@@ -3,6 +3,7 @@
 #include "common.h"
 #include "timer.h"
 #include "district.h"
+#include "weather.h"
 #include "gfx/renderer.h"
 #include "gfx/particles.h"
 
@@ -12,21 +13,9 @@
 
 namespace inf {
 
-    enum class Weather {
-        SUNNY,
-        RAINY
-    };
-
-    enum class RainIntensity {
-        NONE,
-        LIGHT,
-        MODERATE,
-        HEAVY
-    };
-
     struct World {
 
-        World(const Timer& timer, std::function<gfx::ParticleSystem(int)> rain_particle_factory);
+        World(const Timer& timer, Context& context, std::function<gfx::ParticleSystem(int)> rain_particle_factory);
 
         void update_caches();
 
@@ -36,6 +25,8 @@ namespace inf {
 
         std::size_t get_number_of_districts() const;
         std::size_t get_number_of_buildings() const;
+        Weather get_weather() const;
+        RainIntensity get_rain_intensity() const;
         BoundingBox3D compute_bounding_box() const;
 
         void update(const gfx::Renderer& renderer, RandomGenerator& rng, float delta_time);
@@ -45,6 +36,7 @@ namespace inf {
     private:
     
         const Timer& timer;
+        Context& context;
         std::function<gfx::ParticleSystem(int)> rain_particle_factory;
         std::unordered_map<glm::ivec2, District> districts;
         std::vector<glm::vec3> road_positions;

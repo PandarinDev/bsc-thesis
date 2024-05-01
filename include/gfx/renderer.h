@@ -64,9 +64,12 @@ namespace inf::gfx {
         const vk::PhysicalDevice& get_physical_device() const;
         const vk::LogicalDevice& get_logical_device() const;
         const vk::MemoryAllocator& get_memory_allocator() const;
-        void set_show_diagnostics(bool show);
 
-        void begin_frame(std::size_t num_districts, std::size_t num_buildings);
+        void begin_frame(
+            Weather world_weather,
+            RainIntensity world_rain_intensity,
+            std::size_t num_districts,
+            std::size_t num_buildings);
         void render(const Mesh& mesh);
         void render_instanced(const Mesh& mesh, const std::vector<glm::vec3>& positions, const std::vector<float>& rotations);
         void render_instanced_caster(const Mesh& mesh, const std::vector<glm::vec3>& positions, const std::vector<float>& rotations);
@@ -166,11 +169,6 @@ namespace inf::gfx {
         std::vector<gfx::vk::MappedBuffer> instanced_data_buffers;
         std::vector<gfx::vk::MappedBuffer> instanced_shadow_data_buffers;
         std::vector<gfx::vk::MappedBuffer> particle_data_buffers;
-
-        // Diagnostics flags
-        // TODO: Move these to context
-        bool show_diagnostics;
-        bool show_debug_bbs;
 
         void init_imgui(const Window& window, VkSampleCountFlagBits sample_count);
 

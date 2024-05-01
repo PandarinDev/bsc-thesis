@@ -7,6 +7,7 @@
 #include <imgui_impl_vulkan.h>
 #include <imgui_impl_glfw.h>
 #include <glad/vulkan.h>
+#include <magic_enum.hpp>
 
 #include <limits>
 #include <stdexcept>
@@ -19,7 +20,7 @@ namespace inf::gfx {
     static constexpr std::uint64_t INSTANCE_DATA_BUFFER_SIZE_INITIAL_BYTES = 4 * 1024 * 1024; // 4MBs
 
     Renderer::Renderer(Context& context, const Window& window, const Camera& camera, const Timer& timer) :
-        context(context), camera(camera), timer(timer), image_index(0), frame_index(0), show_diagnostics(false), show_debug_bbs(false) {
+        context(context), camera(camera), timer(timer), image_index(0), frame_index(0) {
         if (!gladLoaderLoadVulkan(VK_NULL_HANDLE, VK_NULL_HANDLE, VK_NULL_HANDLE)) {
             throw std::runtime_error("Failed to load Vulkan function pointers.");
         }
@@ -322,11 +323,11 @@ namespace inf::gfx {
         return *memory_allocator;
     }
 
-    void Renderer::set_show_diagnostics(bool show) {
-        show_diagnostics = show;
-    }
-
-    void Renderer::begin_frame(std::size_t num_districts, std::size_t num_buildings) {
+    void Renderer::begin_frame(
+        Weather world_weather,
+        RainIntensity world_rain_intensity,
+        std::size_t num_districts,
+        std::size_t num_buildings) {
         shadow_casters_to_render.clear();
         instanced_non_casters_to_render.clear();
         instanced_casters_to_render.clear();
@@ -336,24 +337,116 @@ namespace inf::gfx {
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
 
-        if (show_diagnostics) {
+        if (context.show_diagnostics) {
             ImGui::Begin("Diagnostics");
-            ImGui::SetWindowSize({ 400, 170 });
+            ImVec2 window_size(400, 350);
+
+            // Performance data
             ImGui::Text("FPS: %d", timer.get_fps());
             ImGui::Text("Districts: %d", static_cast<int>(num_districts));
             ImGui::Text("Buildings: %d", static_cast<int>(num_buildings));
 
+            // Camera data
             const auto format_vec3 = [](const glm::vec3& vec) {
                 return "[" + std::to_string(vec.x) + ", " + std::to_string(vec.y) + ", " + std::to_string(vec.z) + "]";
             };
-
             const auto position = format_vec3(camera.get_position());
             const auto direction = format_vec3(camera.get_direction());
+            ImGui::Separator();
             ImGui::Text("Camera position: %s", position.c_str());
             ImGui::Text("Camera direction: %s", direction.c_str());
+            ImGui::SliderFloat("Camera speed", &context.camera_speed, Context::CAMERA_SPEED_MIN, Context::CAMERA_SPEED_MAX);
+
+            // Time of day
+            ImGui::Separator();
+            ImGui::Checkbox("Fix time of day", &context.fix_time_of_day);
             ImGui::SliderFloat("Time of day", &context.time_of_day, 0.0f, 1.0f);
             ImGui::Text("Light factor: %f", glm::sin(context.time_of_day * glm::pi<float>()));
-            ImGui::Checkbox("Show debug BBs", &show_debug_bbs);
+            ImGui::Separator();
+
+            // Weather
+            if (ImGui::Checkbox("Override weather", &context.override_weather)) {
+                context.force_weather_change(world_weather, world_rain_intensity);
+            }
+            if (context.override_weather) {
+                // Display weather combo box
+                const auto context_weather = context.get_overriden_weather();
+                std::string weather_str(magic_enum::enum_name(context_weather));
+                if (ImGui::BeginCombo("Weather", weather_str.c_str())) {
+                    for (std::size_t i = 0; i < magic_enum::enum_count<Weather>(); ++i) {
+                        const auto enum_member = magic_enum::enum_value<Weather>(i);
+                        std::string enum_name(magic_enum::enum_name(enum_member));
+                        bool is_selected = enum_member == context_weather;
+                        if (ImGui::Selectable(enum_name.c_str(), is_selected)) {
+                            RainIntensity rain_intensity;
+                            if (enum_member == Weather::SUNNY) {
+                                rain_intensity = RainIntensity::NONE;
+                            }
+                            else if (context.get_overriden_rain_intensity() == RainIntensity::NONE) {
+                                rain_intensity = RainIntensity::LIGHT;
+                            }
+                            else {
+                                rain_intensity = context.get_overriden_rain_intensity();
+                            }
+                            context.force_weather_change(enum_member, rain_intensity);
+                        }
+                        if (is_selected) {
+                            ImGui::SetItemDefaultFocus();
+                        }
+                    }
+                    ImGui::EndCombo();
+                }
+
+                // Display rain intensity combo box if the overriden weather is set to rainy
+                if (context_weather == Weather::RAINY) {
+                    const auto context_rain_intensity = context.get_overriden_rain_intensity();
+                    std::string rain_intensity_str(magic_enum::enum_name(context_rain_intensity));
+                    if (ImGui::BeginCombo("Rain intensity", rain_intensity_str.c_str())) {
+                        for (std::size_t i = 0; i < magic_enum::enum_count<RainIntensity>(); ++i) {
+                            const auto enum_member = magic_enum::enum_value<RainIntensity>(i);
+                            if (enum_member == RainIntensity::NONE) {
+                                continue;
+                            }
+                            std::string enum_name(magic_enum::enum_name(enum_member));
+                            bool is_selected = enum_member == context_rain_intensity;
+                            if (ImGui::Selectable(enum_name.c_str(), is_selected)) {
+                                context.force_weather_change(context.get_overriden_weather(), enum_member);
+                            }
+                            if (is_selected) {
+                                ImGui::SetItemDefaultFocus();
+                            }
+                        }
+                        ImGui::EndCombo();
+                    }
+                }
+            }
+            else {
+                ImGui::SliderFloat(
+                    "Change frequency",
+                    &context.weather_change_frequency_seconds,
+                    Context::WEATHER_CHANGE_FREQUENCY_SECONDS_MIN,
+                    Context::WEATHER_CHANGE_FREQUENCY_SECONDS_MAX,
+                    "%.3f seconds");
+                ImGui::SliderFloat(
+                    "Change chance",
+                    &context.weather_change_chance_percentage,
+                    Context::WEATHER_CHANGE_CHANCE_PERCENTAGE_MIN,
+                    Context::WEATHER_CHANGE_CHANCE_PERCENTAGE_MAX,
+                    "%.3f%");
+            }
+            const std::string weather_str(magic_enum::enum_name(context.override_weather
+                ? context.get_overriden_weather()
+                : world_weather));
+            ImGui::Text("Weather: %s", weather_str.c_str());
+            const std::string rain_intensity_str(magic_enum::enum_name(context.override_weather
+                ? context.get_overriden_rain_intensity()
+                : world_rain_intensity));
+            ImGui::Text("Rain intensity: %s", rain_intensity_str.c_str());
+
+            // Development features
+            ImGui::Separator();
+            ImGui::Checkbox("Show debug BBs", &context.show_debug_bbs);
+            ImGui::SetWindowSize({ window_size.x, window_size.y });
             ImGui::End();
         }
     }
@@ -384,7 +477,7 @@ namespace inf::gfx {
     }
 
     void Renderer::render(const BoundingBox3D& bounding_box, const glm::vec3& color) {
-        if (!show_debug_bbs) {
+        if (!context.show_debug_bbs) {
             return;
         }
         const auto& bb = bounding_box;
@@ -688,7 +781,7 @@ namespace inf::gfx {
         }
 
         // Render debug bounding boxes (we do this after instanced data and switch pipelines again, because BBs are transparent so all opaque data needs to be rendered before)
-        if (show_debug_bbs && !bounding_boxes_to_render.empty()) {
+        if (context.show_debug_bbs && !bounding_boxes_to_render.empty()) {
             vkCmdBindPipeline(command_buffer.get_command_buffer(), VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline->get_pipeline());
             vkCmdBindDescriptorSets(
                 command_buffer.get_command_buffer(),

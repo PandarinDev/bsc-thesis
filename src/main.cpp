@@ -33,8 +33,8 @@ int main() {
         Camera camera(glm::vec3(0.0f, 7.0f, 2.0f), glm::vec3(0.0f, -0.6f, -1.0f));
         Renderer renderer(context, window, camera, timer);
         input_manager.add_handler(std::make_unique<CameraHandler>(context, camera));
-        input_manager.add_handler(std::make_unique<DiagnosticsHandler>([&renderer](bool value) {
-            renderer.set_show_diagnostics(value);
+        input_manager.add_handler(std::make_unique<DiagnosticsHandler>([&context](bool value) {
+            context.show_diagnostics = value;
         }));
 
         const auto asset_load_start_time = timer.get_time();
@@ -48,7 +48,7 @@ int main() {
         std::random_device random_device;
         RandomGenerator random_engine(random_device());
         const auto generation_start_time = timer.get_time();
-        WorldGenerator generator(random_engine, renderer);
+        WorldGenerator generator(context, random_engine, renderer);
         World world = generator.generate_initial(timer);
         const auto generation_elapsed_time = timer.get_time() - generation_start_time;
         std::cout << "World generation took " << generation_elapsed_time << " seconds." << std::endl;
@@ -70,7 +70,11 @@ int main() {
             if (world.is_dirty()) {
                 world.update_caches();
             }
-            renderer.begin_frame(world.get_number_of_districts(), world.get_number_of_buildings());
+            renderer.begin_frame(
+                world.get_weather(),
+                world.get_rain_intensity(),
+                world.get_number_of_districts(),
+                world.get_number_of_buildings());
             world.render(renderer);
             renderer.end_frame();
         }

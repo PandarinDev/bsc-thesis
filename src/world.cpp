@@ -6,10 +6,6 @@
 
 namespace inf {
 
-    // TODO: Move these to context and make them user controllable
-    static constexpr float WEATHER_CHANGE_CHECK_FREQUENCY_SECONDS = 10.0f;
-    static constexpr float WEATHER_CHANGE_CHANCE_PERCENTAGE = 0.3f;
-
     static const std::array<int, magic_enum::enum_count<RainIntensity>()> rain_intensity_to_num_particles {
         0,
         1000,
@@ -17,8 +13,8 @@ namespace inf {
         5000
     };
 
-    World::World(const Timer& timer, std::function<gfx::ParticleSystem(int)> rain_particle_factory) :
-        timer(timer), rain_particle_factory(rain_particle_factory),
+    World::World(const Timer& timer, Context& context, std::function<gfx::ParticleSystem(int)> rain_particle_factory) :
+        timer(timer), context(context), rain_particle_factory(rain_particle_factory),
         dirty(true), weather(Weather::SUNNY), rain_intensity(RainIntensity::NONE),
         last_weather_change_check(static_cast<float>(timer.get_time())) {}
 
@@ -48,6 +44,14 @@ namespace inf {
             accumulator += district.get_lots().size();
         }
         return accumulator;
+    }
+
+    Weather World::get_weather() const {
+        return weather;
+    }
+
+    RainIntensity World::get_rain_intensity() const {
+        return rain_intensity;
     }
 
     BoundingBox3D World::compute_bounding_box() const {
@@ -84,11 +88,19 @@ namespace inf {
         }
 
         // Potentially change weather
+        // First check if the weather was overriden by the user in the previous frame
+        if (context.override_weather && context.should_force_weather_change()) {
+            const auto new_weather = context.get_overriden_weather();
+            const auto new_rain_intensity = context.get_overriden_rain_intensity();
+            on_weather_change(new_weather, new_rain_intensity);
+        }
+
+        // Second, potentially change the weather naturally, but only if it is currently not overriden by the user
         const auto time = static_cast<float>(timer.get_time());
-        if (time - last_weather_change_check > WEATHER_CHANGE_CHECK_FREQUENCY_SECONDS) {
+        if (!context.override_weather && time - last_weather_change_check > context.weather_change_frequency_seconds) {
             std::uniform_real_distribution<float> weather_change_distribution(0.0f, 1.0f);
             const auto result = weather_change_distribution(rng);
-            if (result <= WEATHER_CHANGE_CHANCE_PERCENTAGE) {
+            if (result <= context.weather_change_chance_percentage) {
                 const auto possible_new_weathers = get_possible_new_weathers();
                 std::uniform_int_distribution<std::size_t> weather_index_distribution(0, possible_new_weathers.size() - 1);
                 const auto weather_index = weather_index_distribution(rng);

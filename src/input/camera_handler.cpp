@@ -7,7 +7,6 @@
 
 namespace inf::input {
 
-    static constexpr float CAMERA_SPEED = 1.0f;
     static constexpr float CAMERA_SENSITIVITY = 1.0f;
     static constexpr glm::vec3 BACK_DIRECTION(0.0f, 0.0f, 1.0f);
 
@@ -28,7 +27,7 @@ namespace inf::input {
         }
         if (context.get_state() == State::PANNING) {
             // If direct controls are not enabled simply pan the camera slowly back
-            camera.set_position(camera.get_position() + BACK_DIRECTION * delta_time * CAMERA_SPEED);
+            camera.set_position(camera.get_position() + BACK_DIRECTION * delta_time * context.camera_speed);
         }
         if (context.get_state() != State::FREECAM) {
             return;
@@ -55,22 +54,22 @@ namespace inf::input {
         // Handle camera movement using the W,A,S,D and Q,E (up/down) keys
         glm::vec3 translation{};
         if (is_key_down(GLFW_KEY_W)) {
-            translation += direction * CAMERA_SPEED;
+            translation += direction * context.camera_speed;
         }
         if (is_key_down(GLFW_KEY_S)) {
-            translation -= direction * CAMERA_SPEED;
+            translation -= direction * context.camera_speed;
         }
         if (is_key_down(GLFW_KEY_A)) {
-            translation -= right * CAMERA_SPEED;
+            translation -= right * context.camera_speed;
         }
         if (is_key_down(GLFW_KEY_D)) {
-            translation += right * CAMERA_SPEED;
+            translation += right * context.camera_speed;
         }
         if (is_key_down(GLFW_KEY_Q)) {
-            translation.y += CAMERA_SPEED;
+            translation.y += context.camera_speed;
         }
         if (is_key_down(GLFW_KEY_E)) {
-            translation.y -= CAMERA_SPEED;
+            translation.y -= context.camera_speed;
         }
         translation *= delta_time;
         camera.set_position(camera.get_position() + translation);
