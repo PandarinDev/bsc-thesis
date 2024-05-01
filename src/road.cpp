@@ -5,8 +5,8 @@
 
 namespace inf {
 
-    DistrictRoad::DistrictRoad(RoadDirection direction, const glm::ivec2& position, const gfx::Mesh* mesh) :
-        direction(direction), position(position), mesh(mesh) {}
+    DistrictRoad::DistrictRoad(RoadDirection direction, const glm::ivec2& position, bool traversable, const gfx::Mesh* mesh) :
+        direction(direction), position(position), traversable(traversable), mesh(mesh) {}
 
     bool DistrictRoad::is_crossing() const {
         return direction == RoadDirection::CROSSING_DOWN_LEFT ||
@@ -17,7 +17,7 @@ namespace inf {
 
     BoundingBox3D DistrictRoad::get_bounding_box(const glm::vec3& district_position) const {
         // TODO: This function is currently unused, only needed for diagnostics/debugging
-        const auto center = glm::vec3(district_position.x + position.x, 0.0f, district_position.z + position.y);
+        const auto center = glm::vec3(district_position.x + position.x + 0.5f, 0.0f, district_position.z + position.y + 0.5f);
         const auto min = glm::vec3(center.x - 0.1f, center.y - 0.1f, center.z - 0.1f);
         const auto max = glm::vec3(center.x + 0.1f, center.y + 0.1f, center.z + 0.1f);
         return BoundingBox3D(min, max);
@@ -47,20 +47,30 @@ namespace inf {
         }
         const auto& road = road_it->second;
         
+        const auto get_traversable_road_at = [&roads](const glm::ivec2& position) -> const DistrictRoad* {
+            const auto it = roads.find(position);
+            return (it != roads.cend() && it->second.traversable)
+                ? &it->second
+                : nullptr;
+        };
+
         // For straight roads the choices are simpler. We can always go straight, just need
         // to check if we can also turn left (which is not considered as stepping on a crossing
         // if there is no opportunity to turn right).
         if (!road.is_crossing()) {
             std::vector<std::vector<glm::ivec2>> result;
-            const auto forward_position = current_position + RoadUtils::road_direction_to_grid_direction(road.direction);
+            const auto grid_direction = RoadUtils::road_direction_to_grid_direction(road.direction);
             // Only add forward if it does not go out of bounds
-            if (roads.find(forward_position) != roads.cend()) {
-                result.push_back({ forward_position });
+            if (get_traversable_road_at(current_position + grid_direction) &&
+                get_traversable_road_at(current_position + grid_direction * 2)) {
+                result.push_back({ current_position + grid_direction });
             }
             
             // Check if we can turn left
             if (road.direction == RoadDirection::VERTICAL_RIGHT) {
-                if (const auto it = roads.find(current_position + glm::ivec2(-1, -1)); it != roads.cend() && it->second.direction == RoadDirection::CROSSING_UP_LEFT) {
+                if (const auto crossing = get_traversable_road_at(current_position + glm::ivec2(-1, -1));
+                    crossing && crossing->direction == RoadDirection::CROSSING_UP_LEFT &&
+                    get_traversable_road_at(current_position + glm::ivec2(-2, -1))) {
                     result.push_back({
                         current_position + glm::ivec2(-1, -1),
                         current_position + glm::ivec2(-2, -1)
@@ -68,7 +78,9 @@ namespace inf {
                 }
             }
             else if (road.direction == RoadDirection::VERTICAL_LEFT) {
-                if (const auto it = roads.find(current_position + glm::ivec2(1, 1)); it != roads.cend() && it->second.direction == RoadDirection::CROSSING_DOWN_RIGHT) {
+                if (const auto it = get_traversable_road_at(current_position + glm::ivec2(1, 1));
+                    it && it->direction == RoadDirection::CROSSING_DOWN_RIGHT &&
+                    get_traversable_road_at(current_position + glm::ivec2(2, 1))) {
                     result.push_back({
                         current_position + glm::ivec2(1, 1),
                         current_position + glm::ivec2(2, 1)
@@ -76,7 +88,9 @@ namespace inf {
                 }
             }
             else if (road.direction == RoadDirection::HORIZONTAL_UP) {
-                if (const auto it = roads.find(current_position + glm::ivec2(-1, 1)); it != roads.cend() && it->second.direction == RoadDirection::CROSSING_DOWN_LEFT) {
+                if (const auto it = get_traversable_road_at(current_position + glm::ivec2(-1, 1));
+                    it && it->direction == RoadDirection::CROSSING_DOWN_LEFT &&
+                    get_traversable_road_at(current_position + glm::ivec2(-1, 2))) {
                     result.push_back({
                         current_position + glm::ivec2(-1, 1),
                         current_position + glm::ivec2(-1, 2)
@@ -84,7 +98,9 @@ namespace inf {
                 }
             }
             else if (road.direction == RoadDirection::HORIZONTAL_DOWN) {
-                if (const auto it = roads.find(current_position + glm::ivec2(1, -1)); it != roads.cend() && it->second.direction == RoadDirection::CROSSING_UP_RIGHT) {
+                if (const auto it = get_traversable_road_at(current_position + glm::ivec2(1, -1));
+                    it && it->direction == RoadDirection::CROSSING_UP_RIGHT &&
+                    get_traversable_road_at(current_position + glm::ivec2(1, -2))) {
                     result.push_back({
                         current_position + glm::ivec2(1, -1),
                         current_position + glm::ivec2(1, -2)
@@ -98,53 +114,73 @@ namespace inf {
         // In crossings we need to decide between keeping straight, turning right or turning left (if possible)
         std::vector<std::vector<glm::ivec2>> result;
         if (road.direction == RoadDirection::CROSSING_DOWN_RIGHT) {
-            // Turning right is always possible
-            result.push_back({ current_position + glm::ivec2(1, 0) });
+            // Turning right is always possible if it does not go out of bounds
+            if (get_traversable_road_at(current_position + glm::ivec2(1, 0))) {
+                result.push_back({ current_position + glm::ivec2(1, 0) });
+            }
             // Check if turning left is possible
-            if (const auto it = roads.find(current_position + glm::ivec2(-1, -1)); it != roads.cend() && it->second.direction == RoadDirection::CROSSING_UP_LEFT) {
+            if (const auto it = get_traversable_road_at(current_position + glm::ivec2(-1, -1));
+                it && (it->direction == RoadDirection::CROSSING_UP_LEFT || it->direction == RoadDirection::HORIZONTAL_UP) &&
+                get_traversable_road_at(current_position + glm::ivec2(-2, -1))) {
                 result.push_back({ current_position + glm::ivec2(-1, -1), current_position + glm::ivec2(-2, -1) });
             }
             // Check if going straight is possible
-            if (const auto it = roads.find(current_position + glm::ivec2(0, -2)); it != roads.cend() && it->second.direction == direction) {
+            if (const auto it = get_traversable_road_at(current_position + glm::ivec2(0, -2));
+                it && it->direction == direction) {
                 result.push_back({ current_position + glm::ivec2(0, -1), current_position + glm::ivec2(0, -2) });
             }
             return result;
         }
         if (road.direction == RoadDirection::CROSSING_UP_RIGHT) {
-            // Turning right is always possible
-            result.push_back({ current_position + glm::ivec2(0, -1) });
+            // Turning right is always possible if it does not go out of bounds
+            if (get_traversable_road_at(current_position + glm::ivec2(0, -1))) {
+                result.push_back({ current_position + glm::ivec2(0, -1) });
+            }
             // Check if turning left is possible
-            if (const auto it = roads.find(current_position + glm::ivec2(-1, 1)); it != roads.cend() && it->second.direction == RoadDirection::CROSSING_DOWN_LEFT) {
+            if (const auto it = get_traversable_road_at(current_position + glm::ivec2(-1, 1));
+                it && (it->direction == RoadDirection::CROSSING_DOWN_LEFT || it->direction == RoadDirection::VERTICAL_LEFT) &&
+                get_traversable_road_at(current_position + glm::ivec2(-1, 2))) {
                 result.push_back({ current_position + glm::ivec2(-1, 1), current_position + glm::ivec2(-1, 2) });
             }
             // Check if going straight is possible
-            if (const auto it = roads.find(current_position + glm::ivec2(-2, 0)); it != roads.cend() && it->second.direction == direction) {
+            if (const auto it = get_traversable_road_at(current_position + glm::ivec2(-2, 0));
+                it && it->direction == direction) {
                 result.push_back({ current_position + glm::ivec2(-1, 0), current_position + glm::ivec2(-2, 0) });
             }
             return result;
         }
         if (road.direction == RoadDirection::CROSSING_UP_LEFT) {
-            // Turning right is always possible
-            result.push_back({ current_position + glm::ivec2(-1, 0) });
+            // Turning right is always possible if it does not go out of bounds
+            if (get_traversable_road_at(current_position + glm::ivec2(-1, 0))) {
+                result.push_back({ current_position + glm::ivec2(-1, 0) });
+            }
             // Check if turning left is possible
-            if (const auto it = roads.find(current_position + glm::ivec2(1, -1)); it != roads.cend() && it->second.direction == RoadDirection::CROSSING_DOWN_RIGHT) {
+            if (const auto it = get_traversable_road_at(current_position + glm::ivec2(1, -1));
+                it && (it->direction == RoadDirection::CROSSING_DOWN_RIGHT || it->direction == RoadDirection::HORIZONTAL_DOWN) &&
+                get_traversable_road_at(current_position + glm::ivec2(2, -1))) {
                 result.push_back({ current_position + glm::ivec2(1, -1), current_position + glm::ivec2(2, -1) });
             }
             // Check if going straight is possible
-            if (const auto it = roads.find(current_position + glm::ivec2(0, 2)); it != roads.cend() && it->second.direction == direction) {
+            if (const auto it = get_traversable_road_at(current_position + glm::ivec2(0, 2));
+                it && it->direction == direction) {
                 result.push_back({ current_position + glm::ivec2(0, 1), current_position + glm::ivec2(0, 2) });
             }
             return result;
         }
         if (road.direction == RoadDirection::CROSSING_DOWN_LEFT) {
-            // Turning right is always possible
-            result.push_back({ current_position + glm::ivec2(0, 1) });
+            // Turning right is always possible if it does not go out of bounds
+            if (get_traversable_road_at(current_position + glm::ivec2(0, 1))) {
+                result.push_back({ current_position + glm::ivec2(0, 1) });
+            }
             // Check if turning left is possible
-            if (const auto it = roads.find(current_position + glm::ivec2(1, -1)); it != roads.cend() && it->second.direction == RoadDirection::CROSSING_UP_RIGHT) {
+            if (const auto it = get_traversable_road_at(current_position + glm::ivec2(1, -1));
+                it && (it->direction == RoadDirection::CROSSING_UP_RIGHT || it->direction == RoadDirection::VERTICAL_RIGHT) &&
+                get_traversable_road_at(current_position + glm::ivec2(1, -2))) {
                 result.push_back({ current_position + glm::ivec2(1, -1), current_position + glm::ivec2(1, -2) });
             }
             // Check if going straight is possible
-            if (const auto it = roads.find(current_position + glm::ivec2(2, 0)); it != roads.cend() && it->second.direction == direction) {
+            if (const auto it = get_traversable_road_at(current_position + glm::ivec2(2, 0));
+                it && it->direction == direction) {
                 result.push_back({ current_position + glm::ivec2(1, 0), current_position + glm::ivec2(2, 0) });
             }
             return result;

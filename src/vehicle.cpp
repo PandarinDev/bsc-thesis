@@ -19,7 +19,7 @@ namespace inf {
         const glm::ivec2& position,
         const std::deque<glm::ivec2>& targets,
         gfx::Mesh&& mesh) :
-        position(position), targets(targets), mesh(std::move(mesh)), offset(0.0f) {}
+        position(position), targets(targets), mesh(std::move(mesh)), offset(0.0f), stuck(false) {}
 
     void Vehicle::update(
         RandomGenerator& rng,
@@ -44,6 +44,12 @@ namespace inf {
                     for (const auto& next : continuation) {
                         targets.emplace_back(next);
                     }
+                }
+                // If there is nowhere for the vehicle to go there was a problem with finding a new path (which can occur
+                // in the current path finding code if multiple crossings follow eachother). In this case mark the vehicle
+                // as stuck and do not display it. This should be fixed by making the path finding code smarter.
+                else {
+                    stuck = true;
                 }
             }
         }

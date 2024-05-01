@@ -29,6 +29,7 @@ namespace inf {
         std::deque<glm::ivec2> targets;
         gfx::Mesh mesh;
         float offset;
+        bool stuck;
 
         Vehicle(
             const glm::ivec2& position,

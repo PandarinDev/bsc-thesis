@@ -25,9 +25,10 @@ namespace inf {
 
         RoadDirection direction;
         glm::ivec2 position;
+        bool traversable;
         const gfx::Mesh* mesh;
 
-        DistrictRoad(RoadDirection direction, const glm::ivec2& position, const gfx::Mesh* mesh);
+        DistrictRoad(RoadDirection direction, const glm::ivec2& position, bool traversable, const gfx::Mesh* mesh);
 
         bool is_crossing() const;
         BoundingBox3D get_bounding_box(const glm::vec3& district_position) const;

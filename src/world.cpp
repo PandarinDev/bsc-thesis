@@ -8,7 +8,7 @@ namespace inf {
 
     // TODO: Move these to context and make them user controllable
     static constexpr float WEATHER_CHANGE_CHECK_FREQUENCY_SECONDS = 10.0f;
-    static constexpr float WEATHER_CHANGE_CHANCE_PERCENTAGE = 0.5f;
+    static constexpr float WEATHER_CHANGE_CHANCE_PERCENTAGE = 0.3f;
 
     static const std::array<int, magic_enum::enum_count<RainIntensity>()> rain_intensity_to_num_particles {
         0,
@@ -255,7 +255,10 @@ namespace inf {
                 { Weather::RAINY, RainIntensity::HEAVY }
             };
         }
-        return {{ Weather::RAINY, RainIntensity::MODERATE }};
+        return {
+            { Weather::RAINY, RainIntensity::LIGHT },
+            { Weather::RAINY, RainIntensity::MODERATE },
+        };
     }
 
     void World::on_weather_change(Weather new_weather, RainIntensity new_rain_intensity) {

@@ -182,6 +182,9 @@ namespace inf {
         const auto frustum = renderer.get_frustum_in_view_space();
         const auto transformation = renderer.get_view_matrix();
         for (auto& vehicle : vehicles) {
+            if (vehicle.stuck) {
+                continue;
+            }
             const auto [vehicle_position, rotation] = vehicle.get_world_position_and_rotation(position);
             const auto model_matrix = glm::rotate(
                 glm::translate(glm::mat4(1.0f), vehicle_position),

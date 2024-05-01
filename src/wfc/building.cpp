@@ -252,17 +252,9 @@ namespace inf::wfc {
                 const auto& width = json_contents["dimensions"]["width"];
                 const auto& height = json_contents["dimensions"]["height"];
                 const auto& depth = json_contents["dimensions"]["depth"];
-                Range2D<int> width_range;
-                width_range.min = width["min"].get<int>();
-                width_range.max = width["max"].get<int>();
-
-                Range2D<int> height_range;
-                height_range.min = height["min"].get<int>();
-                height_range.max = height["max"].get<int>();
-
-                Range2D<int> depth_range;
-                depth_range.min = depth["min"].get<int>();
-                depth_range.max = depth["max"].get<int>();
+                Range2D<int> width_range(width["min"].get<int>(), width["max"].get<int>());
+                Range2D<int> height_range(height["min"].get<int>(), height["max"].get<int>());
+                Range2D<int> depth_range(depth["min"].get<int>(), depth["max"].get<int>());
                 dimensions = AbsoluteBuildingDimensions(width_range, height_range, depth_range);
             }
 
