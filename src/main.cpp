@@ -23,7 +23,7 @@ using namespace inf::utils;
 
 int main() {
     try {
-        Window window("Infinitown", RelativeWindowSize{ 0.75f }, false);
+        Window window("Infinitown", BorderlessFullScreen{});
         Timer timer;
         InputManager input_manager(window, timer);
         Context context([handle = window.get_handle()](bool captured) {

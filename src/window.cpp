@@ -10,7 +10,7 @@
 
 namespace inf {
 
-    Window::Window(std::string_view title, const WindowSize& window_size, bool full_screen) {
+    Window::Window(std::string_view title, const WindowSize& window_size) {
         if (!glfwInit()) {
             throw std::runtime_error("Failed to initialize GLFW.");
         }
@@ -31,10 +31,21 @@ namespace inf {
                 width = value.width;
                 height = value.height;
             }
+            else if constexpr (std::is_same_v<T, BorderlessFullScreen>) {
+                const auto monitor = glfwGetPrimaryMonitor();
+                const auto video_mode = glfwGetVideoMode(monitor);
+                glfwWindowHint(GLFW_RED_BITS, video_mode->redBits);
+                glfwWindowHint(GLFW_GREEN_BITS, video_mode->greenBits);
+                glfwWindowHint(GLFW_BLUE_BITS, video_mode->blueBits);
+                glfwWindowHint(GLFW_REFRESH_RATE, video_mode->refreshRate);
+                width = video_mode->width;
+                height = video_mode->height;
+            }
             else {
                 throw std::runtime_error("Failed to determine window size, unknown type received.");
             }
         }, window_size);
+        const auto full_screen = std::holds_alternative<BorderlessFullScreen>(window_size);
         handle = glfwCreateWindow(width, height, title.data(), full_screen ? glfwGetPrimaryMonitor() : nullptr, nullptr);
         if (!handle) {
             throw std::runtime_error("Failed to create GLFW window.");

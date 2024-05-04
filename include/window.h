@@ -22,11 +22,13 @@ namespace inf {
         int height;
     };
 
-    using WindowSize = std::variant<RelativeWindowSize, FixedWindowSize>;
+    struct BorderlessFullScreen{};
+
+    using WindowSize = std::variant<RelativeWindowSize, FixedWindowSize, BorderlessFullScreen>;
 
     struct Window {
 
-        Window(std::string_view title, const WindowSize& window_size, bool full_screen);
+        Window(std::string_view title, const WindowSize& window_size);
         ~Window();
         Window(const Window&) = delete;
         Window& operator=(const Window&) = delete;
